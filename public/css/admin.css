@@ -1,0 +1,290 @@
+.topbar {
+    background: var(--admin-panel-color);
+}
+.left-sidebar {
+    background: var(--admin-panel-color);
+    
+}
+.sidebar-nav ul li a {
+    border-bottom: var(--admin-panel-color);
+}
+.sidebar-nav {
+    background: var(--admin-panel-color);
+}
+.sidebar-nav ul li a:hover i {
+    color: var(--admin-panel-color);
+}
+.vendor_payout_create-inner fieldset legend {
+    background: var(--admin-panel-color);
+}
+a {
+    color:var(--admin-panel-color);
+}
+a:hover,
+a:focus {
+    color: var(--admin-panel-color);
+}
+a.link:hover,
+a.link:focus {
+    color: var(--admin-panel-color);
+}
+html body blockquote {
+    border-left: 5px solid var(--admin-panel-color);
+}
+.text-warning {
+    color: var(--admin-panel-color) !important;
+}
+.text-info {
+    color: var(--admin-panel-color) !important;
+}
+.sidebar-nav ul li a:hover {
+    color: var(--admin-panel-color);
+}
+.btn-primary {
+    background: var(--admin-panel-color);
+    border: 1px solid var(--admin-panel-color);
+}
+.sidebar-nav>ul>li.active>a {
+    color: var(--admin-panel-color);
+    border-color: 3px solid var(--admin-panel-color);
+}
+.sidebar-nav>ul>li.active>a i {
+    color: var(--admin-panel-color);
+}
+.bg-info {
+    background-color: var(--admin-panel-color) !important;
+}
+.bellow-text ul li>span {
+    color: var(--admin-panel-color);
+}
+.table tr td.redirecttopage {
+    color: var(--admin-panel-color);
+}
+ul.rating {
+    color: var(--admin-panel-color);
+}
+.nav-tabs.card-header-tabs .nav-link.active,
+.nav-tabs.card-header-tabs .nav-link:hover {
+    background: var(--admin-panel-color);
+    border-color: var(--admin-panel-color);
+}
+.btn-warning,
+.btn-warning.disabled {
+    background: var(--admin-panel-color);
+    border: 1px solid var(--admin-panel-color);
+    box-shadow: none;
+}
+.payment-top-tab .nav-tabs.card-header-tabs .nav-link.active,
+.payment-top-tab .nav-tabs.card-header-tabs .nav-link:hover {
+    border-color: var(--admin-panel-color);
+}
+.nav-tabs.card-header-tabs .nav-link span.badge-success {
+    background: var(--admin-panel-color);
+}
+.nav-tabs.card-header-tabs .nav-link.active span.badge-success,
+.nav-tabs.card-header-tabs .nav-link:hover span.badge-success,
+.sidebar-nav ul li a.active,
+.sidebar-nav ul li a.active:hover,
+.sidebar-nav ul li.active a.has-arrow:hover,
+.topbar ul.dropdown-user li a:hover {
+    color: var(--admin-panel-color);
+}
+.sidebar-nav ul li a.has-arrow:hover::after,
+.sidebar-nav .active>.has-arrow::after,
+.sidebar-nav li>.has-arrow.active::after,
+.sidebar-nav .has-arrow[aria-expanded="true"]::after,
+.sidebar-nav ul li a:hover,.sidebar-nav ul li ul li.active a, .sidebar-nav ul li ul li a:hover {
+    border-color: var(--admin-panel-color);
+}
+[type="checkbox"]:checked+label::before,
+[type="radio"]:checked+label::before {
+    border-right: 2px solid var(--admin-panel-color);
+    border-bottom: 2px solid var(--admin-panel-color);
+}
+.radio-form [type="radio"]:checked+label::before {
+    background: var(--admin-panel-color);
+}
+.btn-primary:hover,
+.btn-primary.disabled:hover {
+    background: var(--admin-panel-color);
+    border: 1px solid var(--admin-panel-color);
+    color: white;
+}
+.btn-primary.active,
+.btn-primary:active,
+.btn-primary:focus,
+.btn-primary.disabled.active,
+.btn-primary.disabled:active,
+.btn-primary.disabled:focus,
+.btn-primary.active.focus,
+.btn-primary.active:focus,
+.btn-primary.active:hover,
+.btn-primary.focus:active,
+.btn-primary:active:focus,
+.btn-primary:active:hover,
+.open>.dropdown-toggle.btn-primary.focus,
+.open>.dropdown-toggle.btn-primary:focus,
+.open>.dropdown-toggle.btn-primary:hover,
+.btn-primary.focus,
+.btn-primary:focus,
+.btn-primary:not(:disabled):not(.disabled).active:focus,
+.btn-primary:not(:disabled):not(.disabled):active:focus,
+.show>.btn-primary.dropdown-toggle:focus,
+.btn-warning:hover,
+.btn-warning:hover,
+.btn-warning.disabled:hover,
+.btn-warning.active.focus,
+.btn-warning.active:focus,
+.btn-warning.active:hover,
+.btn-warning.focus:active,
+.btn-warning:active:focus,
+.btn-warning:active:hover,
+.open>.dropdown-toggle.btn-warning.focus,
+.open>.dropdown-toggle.btn-warning:focus,
+.open>.dropdown-toggle.btn-warning:hover,
+.btn-warning.focus,
+.btn-warning:focus {
+    background: var(--admin-panel-color);
+    border-color: var(--admin-panel-color);
+    box-shadow: 0 0 0 0.2rem var(--admin-panel-color);
+    color: white;
+}
+.language-options select option,
+.pagination>li>a.page-link:hover {
+    background: var(--admin-panel-color);
+}
+.mini-sidebar .sidebar-nav #sidebarnav>li:hover a i,
+.mini-sidebar .sidebar-nav ul li a,
+.sidebar-nav ul li a.active i,
+.sidebar-nav ul li a.active:hover i,
+.sidebar-nav ul li.active a:hover i {
+    color: var(--admin-panel-color);
+    
+}
+.cat-slider .cat-item a.cat-link:hover,
+.cat-slider .cat-item.section-selected a.cat-link {
+    border-color: var(--admin-panel-color);
+}
+.cat-slider .cat-item a.cat-link {
+    border-bottom-color: var(--admin-panel-color);
+}
+.cat-slider .cat-item.section-selected a.cat-link:after {
+    border-color: var(--admin-panel-color);
+    background: var(--admin-panel-color);
+}
+.cat-slider {
+    border-color: var(--admin-panel-color);
+}
+.business-analytics .card-box i {
+    background: var(--admin-panel-color);
+}
+.order-status .data i,
+.order-status span.count {
+    color: var(--admin-panel-color);
+}
+.menu-tab ul li.active a, .menu-tab ul li a:hover{
+    border-color: var(--admin-panel-color);
+  background: var(--admin-panel-color);
+}
+@media screen and (max-width: 767px) {
+    .mini-sidebar .sidebar-nav ul li a:hover,
+    .sidebar-nav>ul>li.active>a {
+        color: var(--admin-panel-color) !important;
+    }
+}
+/* ---- Multi-region switcher (header) ---- */
+.region-list {
+    white-space: nowrap;
+}
+
+.region-list .region-select {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.region-options select {
+    background: none;
+    border: 0;
+    color: #fff !important;
+    min-width: 130px;
+}
+
+.region-options select:focus,
+.region-options select:hover {
+    background: none !important;
+    border: 0;
+    color: #fff !important;
+    box-shadow: none;
+    outline: none;
+}
+
+.region-options select option {
+    background: var(--admin-panel-color);
+    color: #fff;
+}
+
+/* ---- Delivery management card (order detail) ----
+   Kept at the full width of its column. The surrounding cards use the
+   order_addre-edit class, which the page's own script converts to a half-width
+   Bootstrap column when an order has no driver - so this card must not carry
+   that class, and states its width explicitly in case it is ever re-added. */
+.delivery-management-card {
+    width: 100%;
+    clear: both;
+}
+
+.delivery-management-card .card-header-title {
+    white-space: nowrap;
+}
+
+/* ---- Assign Driver modal ----
+   The theme carries global select2 rules meant for the phone-box country
+   picker, and they apply to every select2 in the app:
+
+     .select2.select2-container            position:absolute; left:5px; top:3px;
+                                           width:auto !important
+     ... .select2-selection__rendered      max-width:107px
+
+   Left alone they pull this control out of flow, truncate its label to a few
+   characters and leave the dropdown positioned against the wrong box. These
+   rules undo them for this modal only. */
+/* Only the selection box. select2 also gives the dropdown wrapper the
+   .select2-container class, and forcing position/left/top on that would
+   override the coordinates select2 calculates for it - which lands the
+   dropdown in the page corner instead of under the control. The selection box
+   is the one that additionally carries .select2, so match on that. */
+#dmAssignModal .select2.select2-container {
+    position: relative !important;
+    left: 0 !important;
+    top: 0 !important;
+    bottom: auto !important;
+    width: 100% !important;
+}
+
+#dmAssignModal .select2.select2-container .select2-selection--single {
+    height: 38px;
+    border: 1px solid #b1b8bb;
+    border-radius: 4px;
+}
+
+#dmAssignModal .select2-container--default .select2-selection--single .select2-selection__rendered {
+    max-width: none !important;
+    line-height: 36px;
+    padding-left: 10px;
+}
+
+#dmAssignModal .select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 36px;
+}
+
+/* The dropdown is parented here, so this must be a positioned ancestor for
+   select2's absolute coordinates to resolve against. */
+#dmAssignModal .modal-body .form-group {
+    position: relative;
+}
+
+/* Above the modal, which sits at z-index 1050+ */
+#dmAssignModal .select2-dropdown,
+#dmAssignModal .select2-container--open {
+    z-index: 1060;
+}
