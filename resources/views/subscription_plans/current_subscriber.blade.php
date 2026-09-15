@@ -31,7 +31,7 @@
                                 <table id="subscriptionHistoryTable" class="display nowrap table table-hover table-striped table-bordered table table-striped" cellspacing="0" width="100%">
                                     <thead>
                                         <tr>
-                                            <th>{{ trans('lang.vendor_name') }}</th>
+                                            <th id="subscriber_name">{{ trans('lang.vendor_name') }}</th>
                                             <th>{{ trans('lang.plan_name') }}</th>
                                             <th>{{ trans('lang.plan_type') }}</th>
                                             <th id="order_booking">{{ trans('lang.order_limit') }}</th>
@@ -61,11 +61,28 @@
         var floatRegex = /^((\d+(\.\d *)?)|((\d*\.)?\d+))$/;
         var planId = '{{ $id }}';
         
+        /* Set before the plan loads so buildHTML never reads it undefined. */
+        var planIsForCustomer = false;
+
         database.collection('subscription_plans').where('id', '==', planId).get().then(async function(snapshot) {
             var data = snapshot.docs[0].data();
             var section_id = data.sectionId;
+            planIsForCustomer = (data.planFor == 'customer');
 
             $('.plan_title').html('{{ trans('lang.current_subscriber_list_of') }} - ' + data.name);
+
+            if (planIsForCustomer) {
+                /* Customer plans belong to no section, and item and booking
+                 * limits do not apply to them. */
+                adjustHeadersForCustomer();
+                /* This runs outside document.ready, so the table may not exist
+                 * yet. Calling DataTable() on a bare table would initialise it
+                 * with default settings and break it. */
+                if ($.fn.DataTable.isDataTable('#subscriptionHistoryTable')) {
+                    $('#subscriptionHistoryTable').DataTable().ajax.reload();
+                }
+                return;
+            }
 
             var sectionData = await database.collection('sections').doc(section_id).get();
             var section = sectionData.data();
@@ -125,7 +142,13 @@
                             let childData = doc.data();
                             childData.owner = childData.firstName + ' ' + childData.lastName;
                             childData.id = doc.id;
-                            if (childData.role == 'vendor') {
+                            if (planIsForCustomer) {
+                                /* Neither count applies; running the provider
+                                 * queries below would search the wrong
+                                 * collection for every customer. */
+                                childData.itemCreated = 0;
+                                childData.orderCreated = 0;
+                            } else if (childData.role == 'vendor') {
                                 if (childData.hasOwnProperty('vendorID') && childData.vendorID != null && childData.vendorID != '') {
                                     childData.itemCreated = await getProductCount(childData.vendorID, 'vendor');
                                     childData.orderCreated = await getOrderCount(childData.vendorID, 'vendor');
@@ -234,6 +257,13 @@
             }, 300));
         });
 
+        function adjustHeadersForCustomer() {
+            $('#subscriber_name').text("{{ trans('lang.customer_name') }}");
+            $('#order_booking').text("{{ trans('lang.order_limit') }}");
+            $('#item_service').text("{{ trans('lang.item_limit') }}");
+            $('#order_booking, #item_service').closest('table').addClass('customer-plan-table');
+        }
+
         function adjustHeadersBasedOnSection(sectionType) {
 
             const serviceLimitHeader = document.getElementById("item_service");
@@ -249,7 +279,9 @@
 
         async function buildHTML(val) {
             var html = [];
-            var route = '{{ route('vendors.edit', ':id') }}';
+            var route = (planIsForCustomer) ?
+                '{{ route('users.view', ':id') }}' :
+                '{{ route('vendors.edit', ':id') }}';
             route = route.replace(':id', val.id);
             
             html.push('<a href="' + route + '" class="redirecttopage" >' + val.owner + '</a>');
@@ -261,20 +293,25 @@
                 html.push('<span class="badge badge-danger">' + val.subscription_plan.type.toUpperCase() + '</span>');
             }
 
-            if (val.subscription_plan.orderLimit == '-1') {
+            if (planIsForCustomer) {
+                html.push('<span>-</span>');
+                html.push('<span>-</span>');
+            } else if (val.subscription_plan.orderLimit == '-1') {
                 html.push('<span>{{ trans('lang.unlimited') }}</span>')
             } else {
                 var available=val.orderCreated;
                 html.push('<span>{{ trans('lang.total') }} :' + val.subscription_plan.orderLimit + ' </span><br><span>{{ trans('lang.available') }} :' + available + ' </span>')
             }
-            if (val.subscription_plan.itemLimit == '-1') {
-                html.push('<span>{{ trans('lang.unlimited') }}</span>')
-            } else {
-                var available = parseInt(val.subscription_plan.itemLimit) - parseInt(val.itemCreated);
-                if(available<0){
-                    available=0;
+            if (!planIsForCustomer) {
+                if (val.subscription_plan.itemLimit == '-1') {
+                    html.push('<span>{{ trans('lang.unlimited') }}</span>')
+                } else {
+                    var available = parseInt(val.subscription_plan.itemLimit) - parseInt(val.itemCreated);
+                    if(available<0){
+                        available=0;
+                    }
+                    html.push('<span>{{ trans('lang.total') }} :' + val.subscription_plan.itemLimit + ' </span><br><span>{{ trans('lang.available') }} :' + available + ' </span>')
                 }
-                html.push('<span>{{ trans('lang.total') }} :' + val.subscription_plan.itemLimit + ' </span><br><span>{{ trans('lang.available') }} :' + available + ' </span>')
             }
             if (val.subscriptionExpiryDate != null && val.subscriptionExpiryDate != '') {
                 var date = val.subscriptionExpiryDate.toDate().toDateString();

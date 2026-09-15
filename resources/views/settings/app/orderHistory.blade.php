@@ -38,6 +38,12 @@
                             <div id="error_free_limit" class="err"></div>
                         </div>
                     </div>
+                    <div class="form-group row width-100">
+                        <div class="form-text text-muted">
+                            <i class="mdi mdi-information-outline mr-1"></i>{{ trans('lang.order_history_subscription_help') }}
+                            <a href="{{ route('subscription-plans.index') }}">{{ trans('lang.subscription_plans') }}</a>
+                        </div>
+                    </div>
                 </fieldset>
             </div>
         </div>

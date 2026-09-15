@@ -56,6 +56,13 @@
                                     <p class="mb-0 text-dark-2">{{ trans('lang.manage_all_package_in_single_click') }}</p>
                                 </div>
                                 <div class="card-header-right d-flex align-items-center">
+                                    <div class="mr-3">
+                                        <select id="plan_for_filter" class="form-control">
+                                            <option value="all">{{ trans('lang.all') }}</option>
+                                            <option value="vendor">{{ trans('lang.vendor') }}</option>
+                                            <option value="customer">{{ trans('lang.customer') }}</option>
+                                        </select>
+                                    </div>
                                     <div class="card-header-btn mr-3">
                                         <a href="{!! route('subscription-plans.save') !!}" class="btn-primary btn rounded-full"><i
                                                 class="mdi mdi-plus mr-2"></i>{{ trans('lang.create_subscription_plan') }}</a>
@@ -78,6 +85,7 @@
                                                 </th>
                                                 <?php } ?>
                                                 <th>{{ trans('lang.plan_name') }}</th>
+                                                <th>{{ trans('lang.plan_for') }}</th>
                                                 <th>{{ trans('lang.plan_price') }}</th>
                                                 <th>{{ trans('lang.duration') }}</th>
                                                 <th>{{ trans('lang.current_subscriber') }}</th>
@@ -127,8 +135,20 @@
         
         $(document).ready(async function() {
             
+            /* Land on the audience just saved, so a new plan is never
+             * filtered out of the list that opens after saving it. */
+            var planForParam = new URLSearchParams(window.location.search).get('planFor');
+            if (planForParam == 'customer' || planForParam == 'vendor') {
+                $('#plan_for_filter').val(planForParam);
+            }
+
             getOverviewSection(section_id);
            
+            $('#plan_for_filter').on('change', function() {
+                $('#subscriptionPlansTable').DataTable().ajax.reload();
+                getOverviewSection(section_id);
+            });
+
             $(document.body).on('click', '.redirecttopage', function() {
                 var url = $(this).attr('data-url');
                 window.location.href = url;
@@ -146,9 +166,11 @@
                     const searchValue = data.search.value.toLowerCase();
                     const orderColumnIndex = data.order[0].column;
                     const orderDirection = data.order[0].dir;
-                    const orderableColumns = (checkDeletePermission) ? ['', 'name', 'price',
+                    /* Plan For sits between Name and Plan Price, so every
+                     * sortable column after it shifts one place right. */
+                    const orderableColumns = (checkDeletePermission) ? ['', 'name', '', 'price',
                         'expiryDay', '', '', ''
-                    ] : ['name', 'price', 'expiryDay', '', '',
+                    ] : ['name', '', 'price', 'expiryDay', '', '',
                         ''
                     ]; // Ensure this matches the actual column names
                     const orderByField = orderableColumns[
@@ -157,10 +179,18 @@
                         $('#data-table_processing').show();
                     }
 
+                    const planForFilter = $('#plan_for_filter').val();
                     let mainRef = ref;
-                    if(section_id){
+                    if (planForFilter == 'customer') {
+                        /* Customer plans belong to no section, so the section
+                         * filter below would always exclude them. */
+                        mainRef = mainRef.where('planFor', '==', 'customer');
+                    } else if (planForFilter == 'vendor' && section_id) {
                         mainRef = mainRef.where('sectionId', '==', section_id);
                     }
+                    /* 'all' has to span both, and no single query can: store
+                     * plans match on sectionId, customer plans have none. It
+                     * fetches the collection and narrows below instead. */
                     mainRef.get().then(async function(querySnapshot) {
                         if (querySnapshot.empty) {
                             $(".total_count").text(0);
@@ -178,6 +208,14 @@
                         let filteredRecords = [];
                         await Promise.all(querySnapshot.docs.map(async (doc) => {
                             let childData = doc.data();
+
+                            if (planForFilter == 'all' && childData.planFor != 'customer' &&
+                                section_id && childData.sectionId != section_id) {
+                                /* A store plan from another section. Skipped
+                                 * here rather than in the query so customer
+                                 * plans, which have no section, survive. */
+                                return;
+                            }
 
                             childData.id = doc
                                 .id; // Ensure the document ID is included in the data
@@ -326,6 +364,12 @@
     <td>${imageHtml}<a href="${route2}" id="${childData.id}">${childData.name}</a></td>
 `);
 
+            /* Plans created before customer plans existed carry no planFor,
+             * and every one of them is a store plan. */
+            row.push(childData.planFor == 'customer' ?
+                '<span class="badge badge-info">{{ trans('lang.customer') }}</span>' :
+                '<span class="badge badge-primary">{{ trans('lang.vendor') }}</span>');
+
             row.push(
                 childData.type !== "free" ?
                 currencyAtRight ?
@@ -344,8 +388,8 @@
             
             if (childData.isCommissionPlan != true) {
                 row.push(childData.isEnable ?
-                    `<label class = "switch" ><input type = "checkbox" checked id = "${childData.id}" data-section="${childData.sectionId}" name = "isActive" ><span class = "slider round" > </span> </label>` :
-                    `<label class="switch"><input type="checkbox" id="${childData.id}" data-section="${childData.sectionId}" name="isActive"><span class="slider round"></span></label>`
+                    `<label class = "switch" ><input type = "checkbox" checked id = "${childData.id}" data-section="${childData.sectionId}" data-plan-for="${childData.planFor == 'customer' ? 'customer' : 'vendor'}" name = "isActive" ><span class = "slider round" > </span> </label>` :
+                    `<label class="switch"><input type="checkbox" id="${childData.id}" data-section="${childData.sectionId}" data-plan-for="${childData.planFor == 'customer' ? 'customer' : 'vendor'}" name="isActive"><span class="slider round"></span></label>`
                 );
             } else {
                 row.push('')
@@ -376,6 +420,12 @@
             if (ischeck) {
                 database.collection('subscription_plans').doc(id).update({
                     'isEnable': true
+                }).then(function(result) {});
+            } else if ($(this).attr('data-plan-for') == 'customer') {
+                /* Customer plans carry no section, so the guard below could not
+                 * count them anyway; skipping it says so deliberately. */
+                database.collection('subscription_plans').doc(id).update({
+                    'isEnable': false
                 }).then(function(result) {});
             } else {
                 var refactiveSubscription = await database.collection('subscription_plans').where('isEnable',
@@ -450,10 +500,27 @@
 
         async function getOverviewSection(selectedSectionId){
 
-            ref.where('isCommissionPlan', '!=', true).where('sectionId', '==', selectedSectionId).get().then( async function(snapshots) {
+            /* The earnings shown must match the list below, so the overview
+             * follows the same audience. One fetch narrowed in memory, because
+             * 'all' spans store plans (matched on section) and customer plans
+             * (which have no section) at the same time. */
+            var planForFilter = $('#plan_for_filter').val();
+
+            ref.get().then( async function(snapshots) {
                 var html = '';
-                if (snapshots.docs.length > 0) {
-                    snapshots.docs.map(async (listval) => {
+                var overviewDocs = snapshots.docs.filter(function (listval) {
+                    var data = listval.data();
+                    if (data.isCommissionPlan == true) {
+                        return false;
+                    }
+                    if (data.planFor == 'customer') {
+                        return planForFilter != 'vendor';
+                    }
+                    return planForFilter != 'customer' &&
+                        (!selectedSectionId || data.sectionId == selectedSectionId);
+                });
+                if (overviewDocs.length > 0) {
+                    overviewDocs.map(async (listval) => {
                         var data = listval.data();
                         getEarnings(data.id);
                         html += ` <div class="col-md-4">

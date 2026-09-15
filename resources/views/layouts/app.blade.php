@@ -509,10 +509,17 @@
             var assigned = (data && data.regionIds) ? data.regionIds : [];
             $select.val(assigned);
 
-            $select.show().chosen({
-                "placeholder_text": "{{ trans('lang.select_region') }}"
-            });
-            $select.trigger('chosen:updated');
+            /* Chosen hides the native select and draws its own box. Calling
+             * .show() again on an already-initialised select would reveal the
+             * original alongside it, which is what a second call used to do. */
+            if ($select.data('chosen')) {
+                $select.trigger('chosen:updated');
+            } else {
+                $select.show().chosen({
+                    "placeholder_text": "{{ trans('lang.select_region') }}"
+                });
+                $select.trigger('chosen:updated');
+            }
         }
 
         function getRegionAssignment(selector) {

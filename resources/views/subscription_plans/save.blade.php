@@ -33,6 +33,18 @@
                     <fieldset>
                         <legend>{{ trans('lang.plan_details') }}</legend>
                         <div class="form-group row width-50">
+                            <label class="col-3 control-label" for="">{{ trans('lang.plan_for') }}</label>
+                            <div class="form-check width-50">
+                                <input type="radio" id="plan_for_vendor" name="planFor" value="vendor" checked>
+                                <label class="control-label" for="plan_for_vendor">{{ trans('lang.vendor') }}</label>
+                            </div>
+                            <div class="form-check width-50">
+                                <input type="radio" id="plan_for_customer" name="planFor" value="customer">
+                                <label class="control-label" for="plan_for_customer">{{ trans('lang.customer') }}</label>
+                            </div>
+                            <div class="form-text text-muted plan_for_help d-none">{{ trans('lang.plan_for_locked') }}</div>
+                        </div>
+                        <div class="form-group row width-50">
                             <label class="col-3 control-label">{{ trans('lang.plan_name') }}</label>
                             <div class="col-7">
                                 <input type="text" class="form-control" id="plan_name"
@@ -101,17 +113,22 @@
                     <fieldset>
                         <legend>{{ trans('lang.available_features') }}</legend>
                         <div class="form-group row width-100 subscriptionPlan-features-div">
-                            <div class="form-check">
+                            <div class="form-check vendorFeatureDiv">
                                 <input type="checkbox" id="mobile_app" name="features" value="ownerMobileApp">
                                 <label class="control-label" for="mobile_app">{{ trans('lang.mobile_app') }}</label>
                             </div>
-                            <div class="form-check">
+                            <div class="form-check vendorFeatureDiv">
                                 <input type="checkbox" id="chat" name="features" value="chat">
                                 <label class="control-label" for="chat">{{ trans('lang.chat') }}</label>
                             </div>
                             <div class="form-check qrCodeGenerateDiv" style="display:none">
                                 <input type="checkbox" id="qrCodeGenerate" name="features" value="qrCodeGenerate">
                                 <label class="control-label" for="qrCodeGenerate">{{ trans('lang.generate_qr_code') }}</label>
+                            </div>
+                            <div class="form-check customerFeatureDiv d-none">
+                                <input type="checkbox" id="fullOrderHistory" name="features" value="fullOrderHistory">
+                                <label class="control-label" for="fullOrderHistory">{{ trans('lang.full_order_history') }}</label>
+                                <div class="form-text text-muted">{{ trans('lang.full_order_history_help') }}</div>
                             </div>
                         </div>
                     </fieldset>
@@ -165,6 +182,13 @@
                 </div>
             </div>
         </div>
+        <div id="plan_region_div" class="d-none">
+            @include('settings.app.partials.region_assignment', [
+                'regionFieldLabel' => trans('lang.plan_regions'),
+                'regionFieldHelp' => trans('lang.plan_regions_help'),
+            ])
+        </div>
+
         <div class="form-group col-12 text-center btm-btn">
             <button type="button" class="btn btn-primary edit-form-btn"><i class="fa fa-save"></i>
                 {{ trans('lang.save') }}
@@ -200,18 +224,34 @@
     var enabledSubscriptions = 0; 
     var serviceTypeFlag = '';
     var sectionData = '';
+    /* Customer plans are not bound to a section, so they are counted
+     * separately from the store plans above. */
+    var enabledCustomerSubscriptions = 0;
+    var qrAllowed = false;
     
     $(document).ready(async function() {
 
-        let sectionRef = await database.collection('sections').doc(section_id).get();
-        if(sectionRef.exists){
-            sectionData = sectionRef.data();
-            serviceTypeFlag = sectionData.serviceTypeFlag;
+        /* doc(null) throws, which would abandon the rest of this block and
+         * leave the form inert. A customer plan needs no section at all. */
+        if (section_id) {
+            let sectionRef = await database.collection('sections').doc(section_id).get();
+            if(sectionRef.exists){
+                sectionData = sectionRef.data();
+                serviceTypeFlag = sectionData.serviceTypeFlag;
+            }
         }
         
         let subscriptionRef = await database.collection('subscription_plans').where('isEnable', '==', true)
         .where('isCommissionPlan', '==', false).where('sectionId', '==', section_id).get();
         enabledSubscriptions = subscriptionRef.docs.length;
+
+        /* One equality filter only; isEnable is counted here rather than in
+         * the query so this needs no composite index. */
+        let customerPlanRef = await database.collection('subscription_plans')
+            .where('planFor', '==', 'customer').get();
+        enabledCustomerSubscriptions = customerPlanRef.docs.filter(function (doc) {
+            return doc.data().isEnable == true;
+        }).length;
         
         var itemLimitLegend = $("#item_service_limit_heading");
         var orderLimitLegend  = $("#order_booking_limit_heading");
@@ -219,15 +259,30 @@
             itemLimitLegend.text("{{ trans('lang.maximum_service_limit') }}");
             orderLimitLegend.text("{{ trans('lang.maximum_booking_limit') }}");             
             $('.qrCodeGenerateDiv').hide();
+            qrAllowed = false;
         } else {
             itemLimitLegend.text("{{ trans('lang.maximum_item_limit') }}");
             orderLimitLegend.text("{{ trans('lang.maximum_order_limit') }}");
             $('.qrCodeGenerateDiv').removeAttr('style').show();
+            qrAllowed = true;
         }
 
         $("#item_service_limit").removeClass('d-none');
         $("#order_booking_limit").removeClass('d-none');
         
+        $('input[name="planFor"]').on('change', function() {
+            applyAudience();
+        });
+
+        showPlanRegions();
+        /* When editing, the record has the regions to preselect, so the box is
+         * built once it arrives. Building it here as well would empty and
+         * rebuild the list underneath Chosen. */
+        if (requestId == '') {
+            await loadRegionAssignment(null);
+        }
+        applyAudience();
+
         $('input[name="set_expiry_limit"]').on('change', function() {
             if ($('#limited_days').is(':checked')) {
                 $('.expiry-limit-div').removeClass('d-none');
@@ -258,6 +313,21 @@
             ref.get().then(async function(snapshots) {
                 if (snapshots.docs.length) {
                     var data = snapshots.docs[0].data();
+
+                    /* Plans written before customer plans existed carry no
+                     * planFor, and they are all store plans. */
+                    if (data.planFor == 'customer') {
+                        $('#plan_for_customer').prop('checked', true);
+                    } else {
+                        $('#plan_for_vendor').prop('checked', true);
+                    }
+                    /* Switching audience would strand existing subscribers on
+                     * a plan that no longer applies to them. */
+                    $('input[name="planFor"]').attr('disabled', true);
+                    $('.plan_for_help').removeClass('d-none');
+                    await loadRegionAssignment(data);
+                    await applyAudience();
+
                     $("#plan_name").val(data.name);
                     $("#plan_price").val(data.price);
                     $('#description').val(data.description);
@@ -342,6 +412,44 @@
         }
     });
 
+    /* Chosen measures the select when it initialises, so the container is
+     * revealed before anything is loaded into it - the same trap the driver
+     * select2 hit inside a hidden modal. */
+    function showPlanRegions() {
+        $('#plan_region_div').removeClass('d-none');
+    }
+
+    /* Store plans and customer plans share one form; this shows the half that
+     * applies and clears the half that does not, so nothing hidden is saved. */
+    async function applyAudience() {
+        if ($('input[name="planFor"]:checked').val() == 'customer') {
+            $('.vendorFeatureDiv').addClass('d-none');
+            $('.vendorFeatureDiv input[name="features"]').prop('checked', false);
+            $('.qrCodeGenerateDiv').hide();
+            $('#qrCodeGenerate').prop('checked', false);
+            $('.customerFeatureDiv').removeClass('d-none');
+
+            /* Item and order limits count what a store may create; they mean
+             * nothing for a customer and are saved as unlimited. */
+            $('#item_service_limit').addClass('d-none');
+            $('#order_booking_limit').addClass('d-none');
+            $('#unlimited_item').prop('checked', true);
+            $('#unlimited_order').prop('checked', true);
+            $('.item-limit-div').addClass('d-none');
+            $('.order-limit-div').addClass('d-none');
+
+        } else {
+            $('.vendorFeatureDiv').removeClass('d-none');
+            $('.customerFeatureDiv').addClass('d-none');
+            $('#fullOrderHistory').prop('checked', false);
+            if (qrAllowed) {
+                $('.qrCodeGenerateDiv').removeAttr('style').show();
+            }
+            $('#item_service_limit').removeClass('d-none');
+            $('#order_booking_limit').removeClass('d-none');
+        }
+    }
+
     $('input[name="planType"]').on('change', function() {
         if ($('input[name="planType"]:checked').val() == 'free') {
             $('.plan_price_div').addClass('d-none');
@@ -371,6 +479,15 @@
         var item_limit = (set_item_limit == 'limited') ? $('#item_limit').val() : '-1';
         var set_order_limit = $('input[name="set_order_limit"]:checked').val();
         var order_limit = (set_order_limit == 'limited') ? $('#order_limit').val() : '-1';
+        var planFor = $('input[name="planFor"]:checked').val();
+        if (planFor == 'customer') {
+            item_limit = '-1';
+            order_limit = '-1';
+        }
+        /* A customer's history spans every section, so the plan belongs to
+         * none. Store screens filter on sectionId and skip these by design. */
+        var plan_section_id = (planFor == 'customer') ? null : section_id;
+        var plan_region_ids = getRegionAssignment();
         var checkboxes = document.querySelectorAll('input[name="features"]');
         
         var featuresObject = {};
@@ -426,10 +543,12 @@
         }   else if (selectedCheckboxCount == 0) {
             $(".error_top").show();
             $(".error_top").html("");
-            $(".error_top").append("<p>{{ trans('lang.select_any_one_feature') }}</p>");
+            $(".error_top").append((planFor == 'customer') ?
+                "<p>{{ trans('lang.select_full_order_history_feature') }}</p>" :
+                "<p>{{ trans('lang.select_any_one_feature') }}</p>");
             window.scrollTo(0, 0);
             return false;
-        } else if (set_item_limit == 'limited' && ($('#item_limit').val() == '' || $('#item_limit').val() <= '0')) {
+        } else if (planFor != 'customer' && set_item_limit == 'limited' && ($('#item_limit').val() == '' || $('#item_limit').val() <= '0')) {
             $(".error_top").html("");
             $(".error_top").show();
             if(serviceTypeFlag == "ondemand-service"){
@@ -447,7 +566,7 @@
             window.scrollTo(0, 0);
             return false;
            
-        } else if (set_order_limit == 'limited' && ($('#order_limit').val() == '' || $('#order_limit').val() <= '0')) {
+        } else if (planFor != 'customer' && set_order_limit == 'limited' && ($('#order_limit').val() == '' || $('#order_limit').val() <= '0')) {
             $(".error_top").html("");
             $(".error_top").show();
             if(serviceTypeFlag == "ondemand-service"){
@@ -468,7 +587,7 @@
 
             return false;
 
-        } else if (enabledSubscriptions == 0 && status == false) {
+        } else if (planFor != 'customer' && enabledSubscriptions == 0 && status == false) {
             
             $(".error_top").show();
             $(".error_top").html("");
@@ -504,14 +623,18 @@
                             'type': planType,
                             'createdAt': createdAt,
                             'image': IMG,
-                            'sectionId': section_id,
+                            'sectionId': plan_section_id,
+                            'planFor': planFor,
+                            'regionIds': plan_region_ids,
                             'isCommissionPlan':false
                         }).then(function(result) {
                             jQuery("#data-table_processing").hide();
                             $(".success_top").show();
                             $(".success_top").html("");
                             window.scrollTo(0, 0);
-                            window.location.href = "{{ route('subscription-plans.index') }}";
+                            /* The list opens on store plans, so without this
+                             * a customer plan looks like it was never saved. */
+                            window.location.href = "{{ route('subscription-plans.index') }}?planFor=" + planFor;
                         }).catch(function(error) {
                             $(".error_top").show();
                             $(".error_top").html("");
@@ -544,13 +667,17 @@
                             'plan_points': planPoints,
                             'image': IMG,
                             'type': planType,
-                            'sectionId': section_id
+                            'sectionId': plan_section_id,
+                            'planFor': planFor,
+                            'regionIds': plan_region_ids
                         }).then(function(result) {
                             jQuery("#data-table_processing").hide();
                             $(".success_top").show();
                             $(".success_top").html("");
                             window.scrollTo(0, 0);
-                            window.location.href = "{{ route('subscription-plans.index') }}";
+                            /* The list opens on store plans, so without this
+                             * a customer plan looks like it was never saved. */
+                            window.location.href = "{{ route('subscription-plans.index') }}?planFor=" + planFor;
                         }).catch(function(error) {
                             $(".error_top").show();
                             $(".error_top").html("");
