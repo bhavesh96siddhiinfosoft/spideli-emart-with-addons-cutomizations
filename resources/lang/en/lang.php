@@ -2700,5 +2700,6 @@ return [
     'wholesale_min_qty_error' => 'Minimum quantity must be at least 2',
     'enter_positive_variant_wholesale_price_error' => 'Please enter a wholesale price greater than zero for each variant',
     'variant_wholesale_price_less_than_price_error' => 'Each variant wholesale price must be lower than its variant price',
+    'wholesale_from_units' => 'from :count units',
 ];
 ?>

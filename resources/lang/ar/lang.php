@@ -2517,5 +2517,6 @@ return [
     'wholesale_min_qty_error' => 'يجب ألا يقل الحد الأدنى للكمية عن 2',
     'enter_positive_variant_wholesale_price_error' => 'الرجاء إدخال سعر جملة أكبر من صفر لكل خيار',
     'variant_wholesale_price_less_than_price_error' => 'يجب أن يكون سعر جملة كل خيار أقل من سعره',
+    'wholesale_from_units' => 'ابتداءً من :count وحدات',
 ];
 ?>

@@ -209,6 +209,12 @@
                                     </div>
                                     <span id="variant_qty" class="text-muted"></span>
                                 </div>
+                                <div id="modal_wholesale_line" style="display:none;">
+                                    <div class="d-flex align-items-center justify-content-between mt-2">
+                                        <strong class="text-dark">{{ trans('lang.wholesale') }}:</strong>
+                                        <span id="modal_wholesale_value" class="text-success"></span>
+                                    </div>
+                                </div>
                                 <div class="attribute_price_div d-none">
                                     <span class="price">
                                         <div class="variation_info" id="modal-variation-info">
@@ -680,6 +686,38 @@
         renderPagination(page);
     }
     
+    /* The wholesale tier on the card, so a bulk price is visible while browsing
+     * rather than only once the modal is open. A product with variants shows the
+     * cheapest tier, matching how the card shows a price range.
+     * Kept in step with the store panel's copy. */
+    function generateWholesaleHtml(data) {
+        if (data.wholesaleEnabled !== true || !data.wholesaleMinQty) {
+            return '';
+        }
+
+        let candidates = [];
+
+        if (data.item_attribute && data.item_attribute.variants && data.item_attribute.variants.length > 0) {
+            data.item_attribute.variants.forEach(function (v) {
+                var vw = v.variant_wholesale_price ? v.variant_wholesale_price : data.wholesalePrice;
+                if (vw !== undefined && vw !== null && vw !== '') {
+                    candidates.push(parseFloat(vw));
+                }
+            });
+        } else if (data.wholesalePrice !== undefined && data.wholesalePrice !== null && data.wholesalePrice !== '') {
+            candidates.push(parseFloat(data.wholesalePrice));
+        }
+
+        if (candidates.length === 0) {
+            return '';
+        }
+
+        const label = "{{ trans('lang.wholesale_from_units') }}".replace(':count', data.wholesaleMinQty);
+
+        return `<div class="shop-wholesale mb-2"><span class="badge badge-info">{{ trans('lang.wholesale') }} ` +
+            `${formatPrice(Math.min(...candidates))} ${label}</span></div>`;
+    }
+
     function generateProductHtml(id, data) {
         const name = data.name || 'Unnamed';
         const photo = data.photo || config.placeholderImage;
@@ -695,6 +733,7 @@
         
         // Calculate price display
         const priceHtml = generatePriceHtml(data);
+        const wholesaleHtml = generateWholesaleHtml(data);
 
         let statusHtml = '';
         if (!isEcommerceService) {
@@ -724,6 +763,7 @@
                     <div class="shop-price mb-3">
                         <span class="form-control text-center text-dark">${priceHtml}</span>
                     </div>
+                    ${wholesaleHtml}
                     <div class="shop-item-btn">
                         <button class="btn btn-primary btn-sm add-to-cart" data-id="${id}">
                             {{trans('lang.add_to_cart')}}
@@ -765,6 +805,35 @@
         return displayPrice;
     }
     
+    /* Shows the wholesale tier in the add-to-cart modal, so the counter can see a
+     * bulk price exists before adding the line, rather than discovering it only
+     * once the quantity crosses the threshold.
+     *
+     * Reads the hidden inputs the product card already carries.
+     * variantWholesalePrice is the selected variant's own price when it has one;
+     * it wins over the product's, exactly as the cart resolves it.
+     * Kept in step with the store panel's copy. */
+    function showModalWholesale(productId, variantWholesalePrice) {
+        if ($('#wholesale_enabled_' + productId).val() !== '1') {
+            $('#modal_wholesale_line').hide();
+            return;
+        }
+
+        var price = (variantWholesalePrice !== undefined && variantWholesalePrice !== null && variantWholesalePrice !== '') ?
+            variantWholesalePrice : $('#wholesale_price_' + productId).val();
+        var minQty = $('#wholesale_min_qty_' + productId).val();
+
+        if (price === undefined || price === null || price === '' || !minQty) {
+            $('#modal_wholesale_line').hide();
+            return;
+        }
+
+        var label = "{{ trans('lang.wholesale_from_units') }}".replace(':count', minQty);
+
+        $('#modal_wholesale_value').text(formatPrice(parseFloat(price)) + ' ' + label);
+        $('#modal_wholesale_line').show();
+    }
+
     function formatPrice(amount) {
         const formatted = parseFloat(amount).toFixed(config.decimal_degits);
         return config.currencyAtRight 
@@ -1082,6 +1151,10 @@
     // Add to cart button click
     $(document).on('click', '.add-to-cart', async function () {
         const productId = $(this).data('id');
+
+        /* Cleared up front: the modal is reused between products, so a tier left
+         * from the last one must not survive into this one. */
+        $('#modal_wholesale_line').hide();
         
         // Get product data from hidden inputs
         const name = $(`#name_${productId}`).val() || 'N/A';
@@ -1132,6 +1205,7 @@
         );
         let displayPrice = disPrice > 0 && disPrice < originalPrice ? formatPrice(disPrice) : formatPrice(originalPrice);
         $('#variant_price').html(displayPrice);
+        showModalWholesale(productId);
 
         // $('#variant_price').html(priceHtml);
         
@@ -1261,6 +1335,7 @@
         if (!matchedVariant) {
             $('#variant_price').text('');
             $('.modal-product-quantity-count').text('');
+            showModalWholesale(productId);
             return;
         }
         
@@ -1285,6 +1360,8 @@
                 'data-vinfo': JSON.stringify(selectedValues)
             });
         
+        showModalWholesale(productId, matchedVariant.variant_wholesale_price);
+
         $('#selected_variant_id').val(matchedVariant.variant_id);
         $('#selected_variant_price').val(variantPrice);
         
