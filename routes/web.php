@@ -764,6 +764,14 @@ Route::middleware(['permission:subscription-plans,subscription-plans'])->group(f
 Route::middleware(['permission:subscription-plans,subscription-plans.'.((str_contains(Request::url(), 'save')) ? (explode("save", Request::url())[1] ? "edit" : "create") : Request::url())])->group(function () {
     Route::get('/subscription-plans/save/{id?}', [App\Http\Controllers\SubscriptionPlanController::class, 'save'])->name('subscription-plans.save');
 });
+// Subscriptions a store sells to its own customers - a separate system from the
+// platform's own plans above, with its own collections. Read-only oversight.
+Route::middleware(['permission:vendor-subscriptions,vendor-subscriptions'])->group(function () {
+    Route::get('/vendor-subscriptions', [App\Http\Controllers\VendorSubscriptionController::class, 'plans'])->name('vendor-subscriptions.plans');
+    Route::get('/vendor-subscriptions/subscribers', [App\Http\Controllers\VendorSubscriptionController::class, 'subscribers'])->name('vendor-subscriptions.subscribers');
+    Route::get('/vendor-subscriptions/payments', [App\Http\Controllers\VendorSubscriptionController::class, 'payments'])->name('vendor-subscriptions.payments');
+});
+
 Route::middleware(['permission:subscription-history,subscription.history'])->group(function () {
     Route::get('/subscription-plan/history/{id?}', [App\Http\Controllers\SubscriptionPlanController::class, 'SubscriptionPlanHistory'])->name('subscription.subscriptionPlanHistory');
 });
