@@ -48,6 +48,20 @@
                 </div>
               </div>
 
+              <div class="form-group row width-50 wholesale_row" style="display:none;">
+                <label class="col-3 control-label">{{trans('lang.wholesale_price')}}</label>
+                <div class="col-7">
+                    <span class="wholesale_price" id="wholesale_price"></span>
+                </div>
+              </div>
+
+              <div class="form-group row width-50 wholesale_row" style="display:none;">
+                <label class="col-3 control-label">{{trans('lang.wholesale_min_qty')}}</label>
+                <div class="col-7">
+                    <span class="wholesale_min_qty" id="wholesale_min_qty"></span>
+                </div>
+              </div>
+
               <div class="form-group row width-50">
                 <label class="col-3 control-label">{{trans('lang.item_vendor_id')}}</label>
                 <div class="col-7">
@@ -248,6 +262,13 @@ await vendorsDb.get().then( async function(snapshots){
   $(".item_name").text(product.name);
   $(".item_price").text(product.price);
   $(".item_discount").text(product.disPrice);
+  /* Only shown when the store actually offers the product at wholesale - the
+     rows stay hidden otherwise rather than reading as a blank price. */
+  if (product.wholesaleEnabled === true) {
+    $(".wholesale_price").text(product.wholesalePrice);
+    $(".wholesale_min_qty").text(product.wholesaleMinQty);
+    $(".wholesale_row").show();
+  }
   if(product.hasOwnProperty("calories")){
     $(".item_calories").text(product.calories)
   }

@@ -857,7 +857,18 @@ async function buildHTML(val) {
 
     }
 
+    /* A wholesale tier is appended to the price cell rather than given a column
+     * of its own, so the list still reads as one price per row. Mirrors the
+     * store panel. */
+    if (val.wholesaleEnabled === true && val.wholesalePrice != '' && val.wholesalePrice != null) {
 
+        var wholesale_val = currencyAtRight ?
+            parseFloat(val.wholesalePrice).toFixed(decimal_degits) + '' + currentCurrency :
+            currentCurrency + '' + parseFloat(val.wholesalePrice).toFixed(decimal_degits);
+
+        html[html.length - 1] += '<br><span class="badge badge-info">{{ trans('lang.wholesale') }} ' +
+            wholesale_val + ' &times;' + val.wholesaleMinQty + '+</span>';
+    }
 
     <?php if ($id == '') { ?>
 

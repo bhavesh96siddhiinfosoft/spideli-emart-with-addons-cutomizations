@@ -15,6 +15,9 @@
                         </div>
                         <div class="orders-tracking">
                             <h6 class="text-dark">{{ $item['name'] }}</h6>
+                            @if(!empty($item['is_wholesale']))
+                                <span class="badge badge-info">{{ trans('lang.wholesale') }}</span>
+                            @endif
                             @if(!empty($item['variant_info']) && is_array($item['variant_info']) && !empty($item['variant_info']['variant_options']) && is_array($item['variant_info']['variant_options']))
                                 <small class="text-muted">
                                     {{ implode(', ', $item['variant_info']['variant_options']) }}
@@ -58,6 +61,13 @@
                 @php
                     $variantPrice = $item['variant_info']['variant_price'] ?? 0;
                     $itemPrice = ($variantPrice > 0) ? $variantPrice : ($item['original_base_price'] ?? 0);
+
+                    /* A wholesale line is charged at the repriced unit price, so
+                       it must be shown at that price too - variant lines included,
+                       which otherwise display their own variant_price. */
+                    if (!empty($item['is_wholesale'])) {
+                        $itemPrice = $item['original_base_price'] ?? $itemPrice;
+                    }
                 @endphp
 
                 <td class="text-green">

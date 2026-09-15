@@ -794,6 +794,9 @@
             <input type="hidden" id="addons_price_${id}" value='${JSON.stringify(data.addOnsPrice || [])}'>
             <input type="hidden" id="addons_title_${id}" value='${JSON.stringify(data.addOnsTitle || [])}'>
             <input type="hidden" id="taxSetting_${id}" value='${JSON.stringify(data.taxSetting || [])}'>
+            <input type="hidden" id="wholesale_enabled_${id}" value="${data.wholesaleEnabled === true ? '1' : '0'}">
+            <input type="hidden" id="wholesale_price_${id}" value="${data.wholesalePrice || ''}">
+            <input type="hidden" id="wholesale_min_qty_${id}" value="${data.wholesaleMinQty || ''}">
         `;
     }
     
@@ -1359,6 +1362,7 @@
                         itemAttributes.attributes.length > 0 && itemAttributes.variants.length > 0;
         
         let variant_info = {};
+        let variantWholesalePrice = '';
         let originalBasePrice = 0;
         
         // Determine original base price
@@ -1423,6 +1427,9 @@
                 }
                 
                 originalBasePrice = parseFloat(matchedVariant.variant_price || 0);
+                if (matchedVariant.variant_wholesale_price) {
+                    variantWholesalePrice = matchedVariant.variant_wholesale_price;
+                }
                 variant_info = {
                     variant_id: matchedVariant.variant_id,
                     variant_sku: matchedVariant.variant_sku,
@@ -1446,6 +1453,14 @@
             }
             originalBasePrice = rawPrice;
         } 
+
+        /* The quantity break travels with the line so the cart can reprice it when
+         * the quantity changes, rather than only at the moment it is added. A
+         * variant's own wholesale price wins over the product's. */
+        let wholesaleEnabled = $('#wholesale_enabled_' + productId).val() === '1';
+        let wholesalePrice = wholesaleEnabled ?
+            (variantWholesalePrice !== '' ? variantWholesalePrice : $('#wholesale_price_' + productId).val()) : '';
+        let wholesaleMinQty = wholesaleEnabled ? $('#wholesale_min_qty_' + productId).val() : '';
 
         let selectedAddons = [];
         let selectedAddonsTotal = 0;
@@ -1494,6 +1509,8 @@
                 commission_type: config.commissionType,
                 commission_value: config.commissionValue,
                 taxSetting: productTaxSetting,
+                wholesale_price: wholesalePrice,
+                wholesale_min_qty: wholesaleMinQty,
                 taxScope: taxScope,
                 taxesByScope: taxesByScope,
                 packagingCharge: packagingCharge,
@@ -1737,6 +1754,11 @@
                     extras: item.extras ?? [],
                     extras_price: String(applyCommission(item.extras_price ?? 0)),
                     taxSetting: item.taxSetting ?? [],
+                    /* The order records the tier it was actually charged at. A
+                     * store changing its wholesale price later must never alter
+                     * what a past order says it charged. */
+                    isWholesale: item.is_wholesale === true,
+                    wholesaleMinQty: item.wholesale_min_qty ?? '',
                 };
 
                 if (item.variant_info) {

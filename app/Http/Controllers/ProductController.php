@@ -91,8 +91,13 @@ class ProductController extends Controller
                 'extras' => $extras,
                 'extras_price' => $addonsTotal,
                 'taxSetting' => $request->taxSetting ? json_decode($request->taxSetting, true) : [],
+                'retail_base_price' => $request->original_base_price,
+                'wholesale_price' => $request->wholesale_price,
+                'wholesale_min_qty' => $request->wholesale_min_qty,
             ];
         }
+
+        $cart[$productKey] = $this->applyWholesalePrice($cart[$productKey]);
 
         $cart['restaurant_id'] = $request->restaurant_id;
         $cart['item'][$cart['restaurant_id']][$productKey] = $cart[$productKey];
@@ -216,6 +221,12 @@ class ProductController extends Controller
 
             // Save only if no validation error
             if (!$error) {
+                /* Crossing the minimum quantity in either direction reprices the
+                 * line, so the cart never shows a wholesale total for a retail
+                 * quantity. */
+                $cart[$index] = $this->applyWholesalePrice($cart[$index]);
+                $cart['item'][$cart['restaurant_id']][$index] = $cart[$index];
+
                 session()->put('cart', $cart);
             }
         }
@@ -232,6 +243,40 @@ class ProductController extends Controller
             'total' => $totalHtml,
             'error' => $error,
         ]);
+    }
+
+    /**
+     * Applies the wholesale quantity break to one cart line.
+     *
+     * A store sets a wholesale price and the minimum quantity that unlocks it.
+     * Once the line reaches that quantity every unit on it is charged at the
+     * wholesale price; below it the line falls back to the retail price, which
+     * is kept alongside so the fallback is exact.
+     *
+     * A wholesale price that is not actually cheaper than the retail price the
+     * line already has - a product on promotion, say - is ignored, so the buyer
+     * always pays the lower of the two.
+     *
+     * Kept identical to the store panel's copy: two panels disagreeing about
+     * what a bulk sale costs would be worse than either behaviour alone.
+     */
+    private function applyWholesalePrice(array $item)
+    {
+        $retail = $item['retail_base_price'] ?? $item['original_base_price'];
+        $item['retail_base_price'] = $retail;
+
+        $wholesalePrice = $item['wholesale_price'] ?? '';
+        $minQty = (int) ($item['wholesale_min_qty'] ?? 0);
+
+        $isWholesale = $wholesalePrice !== '' && $wholesalePrice !== null
+            && $minQty > 0
+            && (int) $item['quantity'] >= $minQty
+            && (float) $wholesalePrice < (float) $retail;
+
+        $item['is_wholesale'] = $isWholesale;
+        $item['original_base_price'] = $isWholesale ? (float) $wholesalePrice : $retail;
+
+        return $item;
     }
 
     function calculateTax($cart){

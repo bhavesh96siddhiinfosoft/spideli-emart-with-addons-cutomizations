@@ -103,6 +103,37 @@
                                 </div>
                             </div>
 
+                            <div class="form-check width-100">
+                                <input type="checkbox" class="wholesale_enabled" id="wholesale_enabled">
+                                <label class="col-3 control-label"
+                                    for="wholesale_enabled">{{ trans('lang.offer_at_wholesale') }}</label>
+                                <div class="form-text text-muted">
+                                    {{ trans('lang.offer_at_wholesale_help') }}
+                                </div>
+                            </div>
+
+                            <div class="wholesale_fields" style="display:none;">
+                                <div class="form-group row width-50">
+                                    <label class="col-3 control-label">{{ trans('lang.wholesale_price') }}</label>
+                                    <div class="col-7">
+                                        <input type="number" class="form-control wholesale_price" id="wholesale_price" min="0">
+                                        <div class="form-text text-muted">
+                                            {{ trans('lang.wholesale_price_help') }}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group row width-50">
+                                    <label class="col-3 control-label">{{ trans('lang.wholesale_min_qty') }}</label>
+                                    <div class="col-7">
+                                        <input type="number" class="form-control wholesale_min_qty" id="wholesale_min_qty" min="2">
+                                        <div class="form-text text-muted">
+                                            {{ trans('lang.wholesale_min_qty_help') }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="form-group row width-50">
                                 <label class="col-3 control-label">{{ trans('lang.item_quantity') }}</label>
                                 <div class="col-7">
@@ -686,6 +717,12 @@
                 $("#item_price").val(product.price);
                 $("#item_quantity").val(product.quantity);
                 $("#item_discount").val(product.disPrice);
+                if (product.wholesaleEnabled === true) {
+                    $("#wholesale_enabled").prop('checked', true);
+                    $("#wholesale_price").val(product.wholesalePrice);
+                    $("#wholesale_min_qty").val(product.wholesaleMinQty);
+                    applyWholesaleVisibility();
+                }
                 
                 if (product.hasOwnProperty("calories")) {
                     $(".item_calories").val(product.calories)
@@ -797,6 +834,9 @@
                 var veg = !nonveg;
                 var itemTakeaway = $(".item_take_away_option").is(":checked");
                 var discount = $("#item_discount").val();
+                var wholesaleEnabled = $("#wholesale_enabled").is(":checked");
+                var wholesalePrice = $("#wholesale_price").val();
+                var wholesaleMinQty = $("#wholesale_min_qty").val();
                 var is_digital_product = $("#is_digital_product").is(":checked");
 
                 if (discount == '') {
@@ -840,6 +880,21 @@
                     $(".error_top").show();
                     $(".error_top").html("");
                     $(".error_top").append("<p>{{ trans('lang.enter_positive_price_error') }}</p>");
+                    window.scrollTo(0, 0);
+                } else if (wholesaleEnabled && (wholesalePrice == '' || parseFloat(wholesalePrice) <= 0)) {
+                    $(".error_top").show();
+                    $(".error_top").html("");
+                    $(".error_top").append("<p>{{ trans('lang.wholesale_price_positive_error') }}</p>");
+                    window.scrollTo(0, 0);
+                } else if (wholesaleEnabled && parseFloat(wholesalePrice) >= parseFloat(price)) {
+                    $(".error_top").show();
+                    $(".error_top").html("");
+                    $(".error_top").append("<p>{{ trans('lang.wholesale_price_less_than_price_error') }}</p>");
+                    window.scrollTo(0, 0);
+                } else if (wholesaleEnabled && (wholesaleMinQty == '' || parseInt(wholesaleMinQty) < 2)) {
+                    $(".error_top").show();
+                    $(".error_top").html("");
+                    $(".error_top").append("<p>{{ trans('lang.wholesale_min_qty_error') }}</p>");
                     window.scrollTo(0, 0);
                 } else if (item_quantity == '' || item_quantity < -1) {
                     $(".error_top").show();
@@ -888,6 +943,8 @@
                     var item_attribute = null;
                     var quantityerror = 0;
                     var priceerror = 0;
+                    var wholesalepriceerror = 0;
+                    var wholesalepricehigherror = 0;
                     var attributes = [];
                     var variants = [];
                     if ($("#item_attribute").val().length > 0) {
@@ -915,11 +972,14 @@
                                     error++;
                                 }
                                 var variant_image = $('#variant_' + variant + '_url').val();
+                                var variant_wholesale_price = wholesaleEnabled ?
+                                    $('#wholesale_price_' + variant).val() : '';
                                 if (variant_image) {
                                     variants.push({
                                         'variant_id': variant_id,
                                         'variant_sku': variant_sku,
                                         'variant_price': variant_price,
+                                        'variant_wholesale_price': variant_wholesale_price,
                                         'variant_quantity': variant_quantity,
                                         'variant_image': variant_image
                                     });
@@ -928,6 +988,7 @@
                                         'variant_id': variant_id,
                                         'variant_sku': variant_sku,
                                         'variant_price': variant_price,
+                                        'variant_wholesale_price': variant_wholesale_price,
                                         'variant_quantity': variant_quantity
                                     });
                                 }
@@ -936,6 +997,15 @@
                                 }
                                 if (variant_price == "" || variant_price <= 0) {
                                     priceerror++;
+                                }
+                                if (wholesaleEnabled) {
+                                    if (variant_wholesale_price == "" ||
+                                        parseFloat(variant_wholesale_price) <= 0) {
+                                        wholesalepriceerror++;
+                                    } else if (parseFloat(variant_wholesale_price) >=
+                                        parseFloat(variant_price)) {
+                                        wholesalepricehigherror++;
+                                    }
                                 }
                             });
                         }).catch(err => {
@@ -960,6 +1030,14 @@
                             alert('Please add your variants  Price');
                             return false;
                         }
+                        if (wholesalepriceerror > 0) {
+                            alert("{{ trans('lang.enter_positive_variant_wholesale_price_error') }}");
+                            return false;
+                        }
+                        if (wholesalepricehigherror > 0) {
+                            alert("{{ trans('lang.variant_wholesale_price_less_than_price_error') }}");
+                            return false;
+                        }
                         var item_attribute = {
                             'attributes': attributes,
                             'variants': variants
@@ -982,6 +1060,9 @@
                                 'price': price.toString(),
                                 'quantity': parseInt(item_quantity),
                                 'disPrice': discount,
+                                'wholesaleEnabled': wholesaleEnabled,
+                                'wholesalePrice': wholesaleEnabled ? wholesalePrice.toString() : '',
+                                'wholesaleMinQty': wholesaleEnabled ? wholesaleMinQty.toString() : '',
                                 'vendorID': set_vendor_id,
                                 'categoryID': category,
                                 'brandID': brand,
@@ -1446,6 +1527,21 @@
             })
         }
 
+        /* The wholesale column is always drawn and shown or hidden with the
+         * toggle, so a price already typed into it survives being switched off
+         * and on again. Mirrors the store panel. */
+        function applyWholesaleVisibility() {
+            if ($('#wholesale_enabled').is(':checked')) {
+                $('.wholesale_fields').show();
+                $('.wholesale_column').show();
+            } else {
+                $('.wholesale_fields').hide();
+                $('.wholesale_column').hide();
+            }
+        }
+
+        $(document).on('change', '#wholesale_enabled', applyWholesaleVisibility);
+
         function selectAttribute(item_attribute = '') {
             if (item_attribute) {
                 var item_attribute = $.parseJSON(atob(item_attribute));
@@ -1513,6 +1609,7 @@
                     html += '<tr>';
                     html += '<th class="text-center"><span class="control-label">Variant</span></th>';
                     html += '<th class="text-center"><span class="control-label">Variant Price</span></th>';
+                    html += '<th class="text-center wholesale_column"><span class="control-label">{{ trans('lang.variant_wholesale_price') }}</span></th>';
                     html += '<th class="text-center"><span class="control-label">Variant Quantity</span></th>';
                     html += '<th class="text-center"><span class="control-label">Variant Image</span></th>';
                     html += '</tr>';
@@ -1521,6 +1618,7 @@
                     $.each(variants, function(index, variant) {
                         var variant_price = 1;
                         var variant_qty = 1;
+                        var variant_wholesale_price = '';
                         var variant_image = variant_image_url = '';
                         if (item_attributeX) {
                             var variant_info = $.map(item_attributeX.variants, function(v, i) {
@@ -1530,6 +1628,9 @@
                             });
                             if (variant_info[0]) {
                                 variant_price = variant_info[0].variant_price;
+                                if (variant_info[0].variant_wholesale_price) {
+                                    variant_wholesale_price = variant_info[0].variant_wholesale_price;
+                                }
                                 variant_qty = variant_info[0].variant_quantity;
                                 if (variant_info[0].variant_image) {
                                     variant_image = '<img class="rounded" style="width:50px" src="' + variant_info[0].variant_image + '" onerror="this.onerror=null;this.src=\'' + placeholderImage + '\'" alt="image"><i class="mdi mdi-delete" data-variant="' + variant + '"></i>';
@@ -1541,6 +1642,9 @@
                         html += '<td><label for="" class="control-label">' + variant + '</label></td>';
                         html += '<td>';
                         html += '<input type="number" id="price_' + variant + '" value="' + variant_price + '" min="0" class="form-control">';
+                        html += '</td>';
+                        html += '<td class="wholesale_column">';
+                        html += '<input type="number" id="wholesale_price_' + variant + '" value="' + variant_wholesale_price + '" min="0" class="form-control">';
                         html += '</td>';
                         html += '<td>';
                         html += '<input type="number" id="qty_' + variant + '" value="' + variant_qty + '" min="-1" class="form-control">';
@@ -1565,6 +1669,7 @@
                 }
             }
             $("#item_variants").html(html);
+            applyWholesaleVisibility();
         }
 
         function getCombinations(arr) {
