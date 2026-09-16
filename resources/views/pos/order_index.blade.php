@@ -327,6 +327,19 @@
         newdate = '';
         var id = val.id;
         var vendorID = val.vendorID;
+        /* This row's own currency, not the page's.
+         *
+         * The order's own regionId wins, so an order keeps reading in the currency
+         * it was charged in - matching orders/edit and orders/print. Orders from
+         * before regions existed fall back to their store's region.
+         *
+         * These shadow the page-level variables of the same names, so every
+         * formatting line below is unchanged. Cached. */
+        const rowCurrency = await currencyOfOrder(val);
+        const currentCurrency = rowCurrency ? rowCurrency.symbol : '';
+        const currencyAtRight = rowCurrency ? Boolean(rowCurrency.symbolAtRight) : false;
+        const decimal_degits = (rowCurrency && rowCurrency.decimal_degits !== undefined && rowCurrency.decimal_degits !== null)
+            ? rowCurrency.decimal_degits : 2;
 
         var user_id = val.authorID;
         var route1 = '{{route("orders.edit",":id")}}';

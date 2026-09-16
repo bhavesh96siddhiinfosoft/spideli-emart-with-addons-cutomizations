@@ -750,6 +750,22 @@
 
 async function buildHTML(val) {
 
+    /* This row's own currency, not the page's.
+     *
+     * The page-level currency follows the top-bar region, which is the global
+     * currency under All Regions - so a Cameroon store's prices would read in
+     * euros. Resolving from the item's store instead means each row reads in
+     * its own region's currency.
+     *
+     * These shadow the page-level variables of the same names, so every
+     * formatting line below is unchanged. Cached per store, so a list of many
+     * items from a few stores costs a few lookups. */
+    const rowCurrency = await currencyOfStore(val.vendorID);
+    const currentCurrency = rowCurrency ? rowCurrency.symbol : '';
+    const currencyAtRight = rowCurrency ? Boolean(rowCurrency.symbolAtRight) : false;
+    const decimal_degits = (rowCurrency && rowCurrency.decimal_degits !== undefined && rowCurrency.decimal_degits !== null)
+        ? rowCurrency.decimal_degits : 2;
+
     var html = [];
 
     newdate = '';

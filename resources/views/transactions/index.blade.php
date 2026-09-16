@@ -612,6 +612,15 @@
         });
         async function buildHTML(val) {
             var html = [];
+            /* This row's own currency, not the page's. A wallet transaction is history, so it keeps the currency it was recorded in.
+             *
+             * These shadow the page-level variables of the same names, so every
+             * formatting line below is unchanged. Cached. */
+            const rowCurrency = await currencyOfPayment(val, { userId: val.user_id, vendorId: val.vendorID });
+            const currentCurrency = rowCurrency ? rowCurrency.symbol : '';
+            const currencyAtRight = rowCurrency ? Boolean(rowCurrency.symbolAtRight) : false;
+            const decimal_degits = (rowCurrency && rowCurrency.decimal_degits !== undefined && rowCurrency.decimal_degits !== null)
+                ? rowCurrency.decimal_degits : 2;
             html.push('<input type="checkbox" id="is_open_' + val.id + '" class="is_open" dataId="' + val.id + '"><label class="col-3 control-label"\n' +
                 'for="is_open_' + val.id + '" ></label>');
             if (id == "") {

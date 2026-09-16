@@ -970,6 +970,12 @@
             state.selectedVendorId = newVendorId;
             state.currentPage = 1;
             state.pageCursors = {};
+
+            /* The whole screen is now this store, so prices, the cart and the
+             * totals read in its region's currency rather than the one the
+             * top-bar region implies. */
+            await applyStoreCurrency(newVendorId);
+
             await loadProducts(1);
         });
         
@@ -1622,6 +1628,24 @@
     }
     
     // Load currency display
+    /* Repoints config at the selected store's currency. Falls back to whatever
+     * was loaded at page start when the store has no region. */
+    async function applyStoreCurrency(vendorId) {
+        const currency = await currencyOfStore(vendorId);
+
+        if (!currency) {
+            return;
+        }
+
+        config.currentCurrency = currency.symbol || config.currentCurrency;
+        config.currencyAtRight = Boolean(currency.symbolAtRight);
+        config.decimal_degits = (currency.decimal_degits !== undefined && currency.decimal_degits !== null)
+            ? currency.decimal_degits : config.decimal_degits;
+
+        loadCurrency();
+        formatCartPrices();
+    }
+
     function loadCurrency() {
         if (config.currencyAtRight) {
             $('.currency-symbol-left').hide();

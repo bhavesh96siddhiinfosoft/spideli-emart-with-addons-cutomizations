@@ -381,6 +381,15 @@
 
      async function buildHTML(val) {      
         var html = [];
+        /* This row's own currency, not the page's. A payout is money that moved, so it keeps the currency it was paid in.
+         *
+         * These shadow the page-level variables of the same names, so every
+         * formatting line below is unchanged. Cached. */
+        const rowCurrency = await currencyOfPayment(val, { userId: val.driverID });
+        const currentCurrency = rowCurrency ? rowCurrency.symbol : '';
+        const currencyAtRight = rowCurrency ? Boolean(rowCurrency.symbolAtRight) : false;
+        const decimal_degits = (rowCurrency && rowCurrency.decimal_degits !== undefined && rowCurrency.decimal_degits !== null)
+            ? rowCurrency.decimal_degits : 2;
         if (val.title) {
 
             html.push('<input type="checkbox" id="is_open_' + val.recid + '" class="is_open" dataId="' + val.recid + '"><label class="col-3 control-label"\n' +

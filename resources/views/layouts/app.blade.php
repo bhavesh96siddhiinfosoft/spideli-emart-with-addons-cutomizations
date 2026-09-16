@@ -538,6 +538,133 @@
          * It mimics the shape the screens already expect - .limit() chaining
          * and a .get() yielding { docs: [ { data() } ] } - so a display screen
          * only swaps the query expression and keeps its own logic untouched. */
+        /* ---- Per-record currency -------------------------------------------
+         * regionCurrencyRef() above answers "what currency is the admin
+         * currently looking at", which is the top-bar region - and falls back to
+         * the global currency under All Regions.
+         *
+         * A list that spans regions needs the currency of each *row's* owner
+         * instead: a Cameroon store's prices read in FCFA whichever region the
+         * admin has selected. These resolve that owner, and all of them go
+         * through getCurrencyForRegion(), so the existing cache still applies.
+         * ------------------------------------------------------------------ */
+        var ownerRegionCache = {};
+
+        /* A store names its region directly. */
+        async function regionOfStore(vendorId) {
+            if (!vendorId) {
+                return null;
+            }
+            var key = 'store:' + vendorId;
+            if (ownerRegionCache[key] !== undefined) {
+                return ownerRegionCache[key];
+            }
+
+            var regionId = null;
+            try {
+                var snapshot = await database.collection('vendors').doc(vendorId).get();
+                if (snapshot.exists) {
+                    regionId = snapshot.data().regionId || null;
+                }
+            } catch (err) {
+                console.error("Error resolving a store's region:", err);
+            }
+
+            ownerRegionCache[key] = regionId;
+            return regionId;
+        }
+
+        /* Vendors, providers and drivers carry a single regionId. A customer can
+         * have traded in several, so `regionIds` is an array - the first is used,
+         * which is the one the backfill recorded first. */
+        async function regionOfUser(userId) {
+            if (!userId) {
+                return null;
+            }
+            var key = 'user:' + userId;
+            if (ownerRegionCache[key] !== undefined) {
+                return ownerRegionCache[key];
+            }
+
+            var regionId = null;
+            try {
+                var snapshot = await database.collection('users').doc(userId).get();
+                if (snapshot.exists) {
+                    var data = snapshot.data();
+                    regionId = data.regionId || null;
+                    if (!regionId && Array.isArray(data.regionIds) && data.regionIds.length > 0) {
+                        regionId = data.regionIds[0];
+                    }
+                }
+            } catch (err) {
+                console.error("Error resolving a user's region:", err);
+            }
+
+            ownerRegionCache[key] = regionId;
+            return regionId;
+        }
+
+        /* The currency symbol and decimals for one store, ready to format with.
+         * Falls back to the global currency, so a record with no region still
+         * renders. */
+        async function currencyOfStore(vendorId) {
+            return await getCurrencyForRegion(await regionOfStore(vendorId));
+        }
+
+        async function currencyOfUser(userId) {
+            return await getCurrencyForRegion(await regionOfUser(userId));
+        }
+
+        /* The currency an order should be read in.
+         *
+         * Its own regionId wins: an order is history, and it must keep reading
+         * in the currency it was charged in even if its store later moves
+         * region. This is what orders/edit and orders/print already do through
+         * recordCurrencyRef(); the lists now agree with them.
+         *
+         * Orders written before regions existed carry no regionId, so those
+         * fall back to the store's current region. */
+        async function currencyOfOrder(order) {
+            if (order && order.regionId) {
+                return await getCurrencyForRegion(order.regionId);
+            }
+
+            return await currencyOfStore(order ? order.vendorID : null);
+        }
+
+        /* The currency a payment or transaction should be read in.
+         *
+         * Same rule as an order: money that has moved is history, so the
+         * record's own regionId wins and the figure keeps reading in the
+         * currency it was paid in. Records written before regions existed fall
+         * back to the region of whoever they belong to - a store for a vendor
+         * payout, a user for a driver payout or a wallet transaction. */
+        async function currencyOfPayment(record, owner) {
+            if (record && record.regionId) {
+                return await getCurrencyForRegion(record.regionId);
+            }
+
+            if (owner && owner.vendorId) {
+                return await currencyOfStore(owner.vendorId);
+            }
+
+            return await currencyOfUser(owner ? owner.userId : null);
+        }
+
+        /* Formats an amount in a given currency, honouring symbolAtRight and the
+         * currency's own decimal places. */
+        function formatInCurrency(amount, currency) {
+            if (!currency) {
+                return parseFloat(amount || 0).toFixed(2);
+            }
+
+            var decimals = (currency.decimal_degits !== undefined && currency.decimal_degits !== null)
+                ? currency.decimal_degits : 2;
+            var value = parseFloat(amount || 0).toFixed(decimals);
+
+            return currency.symbolAtRight ? value + '' + currency.symbol : currency.symbol + '' + value;
+        }
+
         function regionCurrencyRef() {
             return {
                 limit: function () { return this; },
