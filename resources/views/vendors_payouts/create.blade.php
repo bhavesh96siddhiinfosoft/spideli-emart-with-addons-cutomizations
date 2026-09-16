@@ -357,10 +357,12 @@
 
                         price = remaining - amount;
 
-                        database.collection('users').where("vendorID", "==", vendorID).where('role','==','vendor').get().then(function (snapshotss) {
-                            if (snapshotss.docs.length) {
-                                userdata = snapshotss.docs[0].data();
-                                database.collection('users').doc(userdata.id).update({'wallet_amount': price}).then(async function (result) {
+                        /* Taken off the store the payout is for, and off the
+                         * account it rolls up into. */
+                        database.collection('vendors').doc(vendorID).get().then(function (storeSnapshot) {
+                            if (storeSnapshot.exists) {
+                                userdata = storeSnapshot.data();
+                                applyVendorWalletDelta(vendorID, userdata.author || '', -parseFloat(amount)).then(async function (result) {
                                     if (currencyAtRight) {
                                         amount = parseInt(amount).toFixed(decimal_degits) + "" + currentCurrency;
                                     } else {
@@ -446,21 +448,11 @@
 
     })
 
+    /* A payout is drawn on the store that earned the money. This used to look a
+     * user up BY `vendorID`, which on an account with several stores returns
+     * whoever happens to have that store selected. */
     async function remainingPrice(vendorID) {
-        var remaining = 0;
-
-        await database.collection('users').where("vendorID", "==", vendorID).where('role','==','vendor').get().then(async function (snapshotss) {
-            if (snapshotss.docs.length) {
-                userdata = snapshotss.docs[0].data();
-                if (isNaN(userdata.wallet_amount) || userdata.wallet_amount == undefined) {
-                    remaining = 0;
-                } else {
-                    remaining = userdata.wallet_amount;
-                }
-
-            }
-        });
-        return remaining;
+        return await storeWalletAmount(vendorID);
     }
 
     async function getVendorId(vendorUser) {

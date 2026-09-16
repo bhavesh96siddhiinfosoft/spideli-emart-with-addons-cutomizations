@@ -1403,17 +1403,15 @@
 
                 if (snapshot.docs.length > 0) {
                     var data = snapshot.docs[0].data();
-                    var walletAmount = 0;
-                    if (data.hasOwnProperty('wallet_amount') && !isNaN(data.wallet_amount) && data
-                        .wallet_amount != null) {
-                        walletAmount = data.wallet_amount;
-                    }
 
                     user_id = data.id;
-                    var newWalletAmount = parseFloat(walletAmount) + parseFloat(amount);
-                    database.collection('users').doc(vendorOwnerId).update({
-                        'wallet_amount': newWalletAmount
-                    }).then(function(result) {
+
+                    /* This screen shows the STORE's balance, so a top-up here has
+                     * to reach the store as well as the account - otherwise the
+                     * figure above would not move when an admin adds money. */
+                    var newWalletAmount = (await storeWalletAmount(id)) + parseFloat(amount);
+
+                    applyVendorWalletDelta(id, vendorOwnerId, parseFloat(amount)).then(function(result) {
                         var tempId = database.collection("tmp").doc().id;
                         database.collection('wallet').doc(tempId).set({
                             'amount': parseFloat(amount),

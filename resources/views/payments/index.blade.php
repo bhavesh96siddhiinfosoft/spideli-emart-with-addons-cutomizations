@@ -406,42 +406,33 @@ $(document).ready(function () {
 
             });
 
-            await database.collection('users').where('vendorID', '==', vendorID).where('role','==','vendor').get().then(async function (vendorSnapshots) {
-                var vendor = [];
-                var wallet_amount = 0;
-                if (vendorSnapshots.docs.length) {
-                    vendor = vendorSnapshots.docs[0].data();
+            /* The store's own balance, which is what a payout is drawn on. This
+             * used to find the owner with `users where vendorID == <storeId>` and
+             * read the account total - on an account with several stores that is
+             * whoever happens to have this store selected, and the figure did not
+             * match what the vendor could actually withdraw. */
+            var wallet_amount = await storeWalletAmount(vendorID);
+            var remaining = wallet_amount;
 
-                    if (isNaN(vendor.wallet_amount) || vendor.wallet_amount == undefined || vendor.wallet_amount == "") {
-                        wallet_amount = 0;
-                    } else {
-                        wallet_amount = vendor.wallet_amount;
-                    }
+            total_price = wallet_amount + paid_price;
 
-                }
+            if (Number.isNaN(paid_price)) {
+                paid_price = 0;
+            }
 
-                var remaining = wallet_amount;
+            if (Number.isNaN(total_price)) {
+                total_price = 0;
+            }
 
-                total_price = wallet_amount + paid_price;
+            if (Number.isNaN(remaining)) {
+                remaining = 0;
+            }
 
-                if (Number.isNaN(paid_price)) {
-                    paid_price = 0;
-                }
-
-                if (Number.isNaN(total_price)) {
-                    total_price = 0;
-                }
-
-                if (Number.isNaN(remaining)) {
-                    remaining = 0;
-                }
-
-                data = {
-                    'total': total_price,
-                    'paid_price_val': paid_price,
-                    'remaining_val': remaining,
-                };
-            });
+            data = {
+                'total': total_price,
+                'paid_price_val': paid_price,
+                'remaining_val': remaining,
+            };
 
         });
 

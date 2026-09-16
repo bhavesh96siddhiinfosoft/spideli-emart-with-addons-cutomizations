@@ -1390,7 +1390,82 @@
 
             return checkFlag;
         }
-        
+
+        /* ---- The vendor balance ----
+         *
+         * A store earns and spends its own money, so the balance lives on the
+         * `vendors` document. The account copy on `users` is kept moving with it
+         * because the customer app still credits and reads that one, and the app
+         * is outside both repos.
+         *
+         * Both sides move by the same delta. The account total is deliberately
+         * NOT recomputed as the sum of its stores: store balances start at zero,
+         * so a sum would wipe out everything a vendor earned before their stores
+         * had balances of their own.
+         *
+         * This is the same helper as in the store panel's layout - keep the two
+         * in step. */
+        function toAmount(value) {
+            const amount = parseFloat(value);
+
+            return isNaN(amount) ? 0 : amount;
+        }
+
+        async function storeWalletAmount(storeId) {
+            if (!storeId) {
+                return 0;
+            }
+
+            const snapshot = await firebase.firestore().collection('vendors').doc(storeId).get();
+
+            return snapshot.exists ? toAmount(snapshot.data().wallet_amount) : 0;
+        }
+
+        /* `delta` is signed: positive credits, negative debits. The owner is
+         * looked up from the store when it is not already known. */
+        async function applyVendorWalletDelta(storeId, ownerUserId, delta) {
+            const db = firebase.firestore();
+            const amount = toAmount(delta);
+
+            if (amount === 0) {
+                return;
+            }
+
+            if (storeId) {
+                try {
+                    const storeRef = db.collection('vendors').doc(storeId);
+                    const snapshot = await storeRef.get();
+
+                    if (snapshot.exists) {
+                        if (!ownerUserId) {
+                            ownerUserId = snapshot.data().author || '';
+                        }
+
+                        await storeRef.update({
+                            'wallet_amount': Number((toAmount(snapshot.data().wallet_amount) + amount).toFixed(2))
+                        });
+                    }
+                } catch (err) {
+                    console.error("Could not update the store balance:", err);
+                }
+            }
+
+            if (ownerUserId) {
+                try {
+                    const userRef = db.collection('users').doc(ownerUserId);
+                    const snapshot = await userRef.get();
+
+                    if (snapshot.exists) {
+                        await userRef.update({
+                            'wallet_amount': Number((toAmount(snapshot.data().wallet_amount) + amount).toFixed(2))
+                        });
+                    }
+                } catch (err) {
+                    console.error("Could not update the account balance:", err);
+                }
+            }
+        }
+
     </script>
 
     @yield('scripts')

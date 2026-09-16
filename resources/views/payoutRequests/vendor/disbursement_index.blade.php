@@ -740,24 +740,19 @@
             var amount = $(this).data('amount');
             var admin_note = $("#admin_note").val();
             jQuery("#data-table_processing").show();
-            database.collection('users').where("vendorID", "==", auth).where('role','==','vendor').get().then(function(resultvendor) {
-                if (resultvendor.docs.length) {
-                    var vendor = resultvendor.docs[0].data();
-                    var wallet_amount = 0;
-                    if (isNaN(vendor.wallet_amount) || vendor.wallet_amount == undefined) {
-                        wallet_amount = 0;
-                    } else {
-                        wallet_amount = vendor.wallet_amount;
-                    }
-                    price = parseFloat(wallet_amount) + parseFloat(priceadd);
-                    if (!isNaN(price)) {
+            /* `auth` is the store the payout was raised against. The refund goes
+             * back to that store and to the account it belongs to. This used to
+             * look a user up BY `vendorID`, which on an account with several
+             * stores finds whoever happens to have that store selected. */
+            database.collection('vendors').doc(auth).get().then(function(storeSnapshot) {
+                if (storeSnapshot.exists) {
+                    var vendor = storeSnapshot.data();
+                    if (!isNaN(parseFloat(priceadd))) {
                         database.collection('payouts').doc(id).update({
                             'paymentStatus': 'Reject',
                             'adminNote': admin_note
                         }).then(function(result) {
-                            database.collection('users').doc(vendor.id).update({
-                                'wallet_amount': price
-                            }).then(async function(result) {
+                            applyVendorWalletDelta(auth, vendor.author || '', parseFloat(priceadd)).then(async function(result) {
                                 var wId = database.collection('temp').doc().id;
                                 database.collection('wallet').doc(wId).set({
                                     'amount': parseFloat(priceadd),
@@ -768,7 +763,9 @@
                                     'payment_method': 'Wallet',
                                     'payment_status': 'Refund success',
                                     'transactionUser': 'vendor',
-                                    'user_id': vendor.id,
+                                    /* `vendor` is the store document now, so the
+                                     * account this belongs to is its author. */
+                                    'user_id': vendor.author || '',
                                     'note': 'Refund by admin'
                                 });
                                 if (user && user != undefined) {

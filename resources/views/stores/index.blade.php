@@ -654,10 +654,50 @@
             }
         });
         async function deleteStoreData(storeId) {
-            await database.collection('users').where('vendorID', '==', storeId).where('role', '==', 'vendor').get().then(async function(userssanpshots) {
-                if (userssanpshots.docs.length > 0) {
+            /* Deleting a store must not delete its owner's login unless this was
+             * their last store. A vendor may own several, and the account is what
+             * the others are reached through - removing it would take them all.
+             *
+             * The owner is named on the store. The old query asked "whose
+             * SELECTED store is this?", which on a multi-store account is the
+             * wrong person or nobody. */
+            var storeSnapshot = await database.collection('vendors').doc(storeId).get();
+            var ownerId = storeSnapshot.exists ? (storeSnapshot.data().author || '') : '';
+            var remainingStores = [];
+
+            if (ownerId) {
+                var ownedSnapshot = await database.collection('vendors').where('author', '==', ownerId).get();
+
+                ownedSnapshot.docs.forEach(function(doc) {
+                    var otherId = doc.data().id || doc.id;
+
+                    if (otherId !== storeId) {
+                        remainingStores.push(otherId);
+                    }
+                });
+            }
+
+            if (ownerId && remainingStores.length > 0) {
+                /* The owner keeps their account. If the store being deleted was
+                 * the one they had selected, move them to one that still exists
+                 * so the panel does not open on nothing. */
+                var ownerSnapshot = await database.collection('users').doc(ownerId).get();
+
+                if (ownerSnapshot.exists && ownerSnapshot.data().vendorID === storeId) {
+                    await database.collection('users').doc(ownerId).update({
+                        'vendorID': remainingStores[0]
+                    });
+                }
+            }
+
+            /* Only when this was their last store is the account removed. */
+            var ownerDoc = (ownerId && remainingStores.length === 0)
+                ? await database.collection('users').doc(ownerId).get() : null;
+
+            await Promise.resolve().then(async function() {
+                if (ownerDoc && ownerDoc.exists) {
                     var projectId = '<?php echo env('FIREBASE_PROJECT_ID'); ?>';
-                    var item_data = userssanpshots.docs[0].data();
+                    var item_data = ownerDoc.data();
                     var dataObject = {
                         "data": {
                             "uid": item_data.id
@@ -863,6 +903,9 @@
                         userData.vendorID = vendor_id;
                         userData.createdAt = createdAt;
                         userData.wallet_amount = 0;
+                        /* A store keeps its own balance, so it starts at zero
+                         * rather than being absent and read as undefined. */
+                        vendorData.wallet_amount = 0;
                         vendorData.author = user_id;
                         vendorData.authorName = userFirstName + ' ' + userLastName;
                         vendorData.title = vendor_title;

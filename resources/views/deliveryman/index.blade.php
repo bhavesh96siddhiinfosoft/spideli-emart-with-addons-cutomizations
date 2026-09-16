@@ -672,10 +672,6 @@
             const vendorRef = database.collection('vendors').where('id', '==', vendorid);
             const vendorSnapshot = await vendorRef.get();
 
-            const vendor_userRef = database.collection('users').where('vendorID', '==', vendorid).where('role', '==', 'vendor');
-            const vendor_userSnapshot = await vendor_userRef.get();
-
-
             if (vendorSnapshot.empty) {
                 return {
                     title: "-",
@@ -683,26 +679,29 @@
                 }; // Default values if vendor not found
             }
 
-            if (vendor_userSnapshot.empty) {
-                return {
-                    image: "-",
-                    email: "-"
-                }; // Default values if vendor not found
-            }
-
             let vendorData = {};
-            let vendor_userData = {};
             vendorSnapshot.forEach((doc) => {
                 vendorData = doc.data();
             });
 
-            vendor_userSnapshot.forEach((doc) => {
-                vendor_userData = doc.data();
-            });
-            
+            /* The owner is named on the store. Looking a user up BY `vendorID`
+             * asks "whose SELECTED store is this?", which on an account with
+             * several stores is the wrong person, or nobody. */
+            let vendor_userData = {};
+
+            if (vendorData.author) {
+                const ownerSnapshot = await database.collection('users').doc(vendorData.author).get();
+
+                if (ownerSnapshot.exists) {
+                    vendor_userData = ownerSnapshot.data();
+                }
+            }
+
             return {
                 title: vendorData.title || "-",
-                image: vendorData.profilePictureURL == '' || vendorData.profilePictureURL == null ? placeholderImage : val.profilePictureURL,
+                /* `val` was used here and is not in scope in this function, so
+                 * this threw for any store that had a picture. */
+                image: vendorData.profilePictureURL ? vendorData.profilePictureURL : placeholderImage,
                 email: vendor_userData.email || "-"
             };
         }

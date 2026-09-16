@@ -980,13 +980,37 @@
                 }
             })
         })
+        /* Every owner, including those who already have a store - a vendor
+         * account may hold several. This used to offer only owners whose
+         * `vendorID` was empty, which is what stopped an admin creating a second
+         * store for someone. How many they already have is shown beside the
+         * name rather than used to exclude them. */
         database.collection('users').where('role', '==', 'vendor').where('sectionId', '==', section_id).orderBy('firstName', 'asc').get().then(async function(snapshots) {
+            var storeCounts = {};
+            var ownedSnapshot = await database.collection('vendors').get();
+
+            ownedSnapshot.docs.forEach((doc) => {
+                var author = doc.data().author;
+
+                if (author) {
+                    storeCounts[author] = (storeCounts[author] || 0) + 1;
+                }
+            });
+
             snapshots.docs.forEach((listval) => {
                 var data = listval.data();
-                if ((data.vendorID == "" || data.vendorID == null) && data.firstName != "") {
+
+                if (data.firstName != "") {
+                    var owned = storeCounts[data.id] || 0;
+                    var label = data.firstName + " " + data.lastName;
+
+                    if (owned > 0) {
+                        label += " (" + owned + ")";
+                    }
+
                     $('#store_vendors').append($("<option></option>")
                         .attr("value", data.id)
-                        .text(data.firstName + " " + data.lastName));
+                        .text(label));
                 }
             })
         });
@@ -1392,16 +1416,29 @@
                 await storeImageData().then(async (IMG) => {
                     await storeGalleryImageData().then(async (GalleryIMG) => {
                         await storeMenuImageData().then(async (MenuIMG) => {
-                            database.collection('users').doc(user_id).update({
-                                'section_id': section_id,
-                                'vendorID': vendor_id,
+                            /* `users.vendorID` now means "the store the panel is
+                             * working on", not "the one store this user owns".
+                             * Setting it here for an owner who already has stores
+                             * would silently move them to the new one the next
+                             * time they log in, so it is written only when they
+                             * have no store selected yet. */
+                            var ownerUpdate = { 'section_id': section_id };
+                            var ownerSnapshot = await database.collection('users').doc(user_id).get();
+                            var ownerSelected = ownerSnapshot.exists ? (ownerSnapshot.data().vendorID || '') : '';
 
-                            }).then(function(result) {
+                            if (!ownerSelected) {
+                                ownerUpdate.vendorID = vendor_id;
+                            }
+
+                            database.collection('users').doc(user_id).update(ownerUpdate).then(function(result) {
 
                                 coordinates = new firebase.firestore.GeoPoint(latitude, longitude);
 
                                 geoFirestore.collection('vendors').doc(vendor_id).set({
                                     'section_id': section_id,
+                                    /* A store keeps its own balance, so it starts
+                                     * at zero rather than being absent. */
+                                    'wallet_amount': 0,
                                     'title': vendorname,
                                     'description': description,
                                     'latitude': latitude,
