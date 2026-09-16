@@ -470,17 +470,17 @@
     async function getVendorEmail(vendorUser) {
         var userEmail = '';
 
-        await database.collection('users').where('vendorID', "==", vendorUser).where('role','==','vendor').get().then(async function (vendorSnapshots) {
+        /* The owner is named on the store. Asking which user has this store
+         * selected returns the wrong person once a vendor holds several, and
+         * this address is what the payout notice is sent to. */
+        var vendorData = await storeOwnerData(vendorUser);
 
-            if (vendorSnapshots.docs[0]) {
-                var vendorData = vendorSnapshots.docs[0].data();
-                userEmail = vendorData.email;
+        if (vendorData) {
+            userEmail = vendorData.email;
 
-                userName = vendorData.firstName + " " + vendorData.lastName;
-                userContact = vendorData.phoneNumber;
-            }
-
-        });
+            userName = vendorData.firstName + " " + vendorData.lastName;
+            userContact = vendorData.phoneNumber;
+        }
 
         return userEmail;
     }

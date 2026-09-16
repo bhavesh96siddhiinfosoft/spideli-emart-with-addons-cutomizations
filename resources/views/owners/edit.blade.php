@@ -557,6 +557,24 @@ foreach ($countries as $keycountry => $valuecountry) {
     async function updateSubscriptionHistory(ownerId, subscriptionPlanExpiryDate,store_id) {
         try {
 
+            /* The subscription a store pays Spideli is per store, so the store's
+             * own copy is the one the store panel reads. It was taking `store_id`
+             * and ignoring it, which meant extending an expiry here moved the
+             * account and left the store untouched.
+             *
+             * The account copy below is still written, because the store panel's
+             * checkout writes both and other screens read it. */
+            if (store_id) {
+                const storeRef = database.collection('vendors').doc(store_id);
+                const storeDoc = await storeRef.get();
+
+                if (storeDoc.exists && storeDoc.data().subscriptionPlanId) {
+                    await storeRef.update({
+                        'subscriptionExpiryDate': subscriptionPlanExpiryDate,
+                    });
+                }
+            }
+
             const userRef = database.collection('users').doc(ownerId);
             const userDoc = await userRef.get();
             const data = userDoc.data();
@@ -568,6 +586,11 @@ foreach ($countries as $keycountry => $valuecountry) {
                 });
             }
             
+            /* `subscription_history` rows carry `user_id` only - no store - so the
+             * most recent row for this owner is the best available match. On a
+             * vendor with several stores that row may belong to another of them.
+             * Scoping it needs a store field on the row, written by whichever
+             * panel takes the payment. */
             const lastSubscriptionHistory = await database.collection('subscription_history').where('user_id','==',ownerId).orderBy('createdAt','desc').get();
             if(lastSubscriptionHistory && lastSubscriptionHistory.docs && lastSubscriptionHistory.docs.length > 0){
                 const subscriptionData = lastSubscriptionHistory.docs[0].data();

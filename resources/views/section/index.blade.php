@@ -317,6 +317,10 @@
                     for (const temData of vendorsnapshots.docs) {
                         var item_data = temData.data();
                         var vendorID = item_data.id;
+                        /* Read off the store before it is deleted. `const` so each
+                         * iteration keeps its own value - the callbacks below run
+                         * after the loop has moved on. */
+                        const storeOwnerId = item_data.author || '';
                             const snaps = await database.collection('vendors').where('id', '==', vendorID).get();
                             await deleteDocumentWithImage('vendors',snaps.docs[0].id,'photo','photos','authorProfilePic');
                         database.collection('vendors').doc(item_data.id).delete().then(async function () {
@@ -338,34 +342,42 @@
                                     });
                                 }
                             });
-                            await database.collection('users').where('vendorID', '==', vendorID).get().then(async function (userssanpshots) {
-                                if (userssanpshots.docs.length > 0) {
+                            /* The owner's login goes only with their LAST store. A
+                             * vendor may hold stores in other sections, and the
+                             * account is how those are reached - deleting it here
+                             * would take them all.
+                             *
+                             * This store is already deleted above, so a vendor with
+                             * anything left still owns a store. The old query asked
+                             * "whose SELECTED store is this?", which on a multi-store
+                             * vendor is the wrong person, or nobody at all. */
+                            if (storeOwnerId) {
+                                const remainingStores = await database.collection('vendors').where('author', '==', storeOwnerId).get();
+
+                                if (remainingStores.empty) {
                                     var projectId = '<?php echo env('FIREBASE_PROJECT_ID') ?>';
-                                    userssanpshots.docs.forEach((val) => {
-                                        var item_data = val.data();
-                                        var dataObject = {
-                                            "data": {
-                                                "uid": item_data.id
-                                            }
-                                        };
-                                        jQuery.ajax({
-                                            url: 'https://us-central1-' + projectId + '.cloudfunctions.net/deleteUser',
-                                            method: 'POST',
-                                            contentType: "application/json; charset=utf-8",
-                                            data: JSON.stringify(dataObject),
-                                            success: function (data) {
-                                                console.log('Delete user success:', data.result);
-                                                database.collection('users').doc(item_data.id).delete().then(function () {
-                                                });
-                                            },
-                                            error: function (xhr, status, error) {
-                                                var responseText = JSON.parse(xhr.responseText);
-                                                console.log('Delete user error:', responseText.error);
-                                            }
-                                        });
+                                    var dataObject = {
+                                        "data": {
+                                            "uid": storeOwnerId
+                                        }
+                                    };
+                                    jQuery.ajax({
+                                        url: 'https://us-central1-' + projectId + '.cloudfunctions.net/deleteUser',
+                                        method: 'POST',
+                                        contentType: "application/json; charset=utf-8",
+                                        data: JSON.stringify(dataObject),
+                                        success: function (data) {
+                                            console.log('Delete user success:', data.result);
+                                            database.collection('users').doc(storeOwnerId).delete().then(function () {
+                                            });
+                                        },
+                                        error: function (xhr, status, error) {
+                                            var responseText = JSON.parse(xhr.responseText);
+                                            console.log('Delete user error:', responseText.error);
+                                        }
                                     });
                                 }
-                            });
+                            }
                             await database.collection('vendor_orders').where('vendorID', '==', vendorID).get().then(async function (vendorordersanpshots) {
                                 if (vendorordersanpshots.docs.length > 0) {
                                     vendorordersanpshots.docs.forEach((val) => {

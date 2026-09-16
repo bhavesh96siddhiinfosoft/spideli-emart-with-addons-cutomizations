@@ -535,18 +535,17 @@
         }
         async function getVendorBankDetails() {
             var vendorId = $('#vendorId').val();
-            await database.collection('users').where("vendorID", "==", vendorId).where('role','==','vendor').get().then(async function(snapshotss) {
-                if (snapshotss.docs[0]) {
-                    var user_data = snapshotss.docs[0].data();
-                    if (user_data.userBankDetails) {
-                        $('#bankName').val(user_data.userBankDetails.bankName);
-                        $('#branchName').val(user_data.userBankDetails.branchName);
-                        $('#holderName').val(user_data.userBankDetails.holderName);
-                        $('#accountNumber').val(user_data.userBankDetails.accountNumber);
-                        $('#otherDetails').val(user_data.userBankDetails.otherDetails);
-                    }
-                }
-            });
+            /* The owner comes from the store, not from whoever has the store
+             * selected - paying into the wrong account is not a display bug. */
+            var user_data = await storeOwnerData(vendorId);
+
+            if (user_data && user_data.userBankDetails) {
+                $('#bankName').val(user_data.userBankDetails.bankName);
+                $('#branchName').val(user_data.userBankDetails.branchName);
+                $('#holderName').val(user_data.userBankDetails.holderName);
+                $('#accountNumber').val(user_data.userBankDetails.accountNumber);
+                $('#otherDetails').val(user_data.userBankDetails.otherDetails);
+            }
         }
         $(document).on("click", "a[name='vendor_view']", function(e) {
             $('#bankName').val("");
@@ -682,11 +681,11 @@
         }
         async function getUserData(vendorId) {
             var data = '';
-            await database.collection('users').where("vendorID", "==", vendorId).where('role','==','vendor').get().then(async function(snapshotss) {
-                if (snapshotss.docs[0]) {
-                    data = snapshotss.docs[0].data();
-                }
-            });
+            /* See getVendorBankDetails - the owner is named on the store. */
+            var owner = await storeOwnerData(vendorId);
+            if (owner) {
+                data = owner;
+            }
             if (data.id) {
                 await database.collection('withdraw_method').where("userId", "==", data.id).get().then(async function(snapshotss) {
                     if (snapshotss.docs.length) {

@@ -2494,6 +2494,7 @@ return [
     'search_here' => 'ابحث هنا...',
     'parcel_image' => 'صورة الطرد',
     'parcel_images_not_found' => 'صور الطرود غير موجودة',
+    'all_stores' => 'All Stores',
     'plan_for' => 'Plan For',
     'full_order_history' => 'Full Order History',
     'full_order_history_help' => 'Lets the customer see their complete order history, beyond the free limit set in Settings > Order History.',

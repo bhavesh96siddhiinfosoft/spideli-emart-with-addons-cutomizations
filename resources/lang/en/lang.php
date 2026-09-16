@@ -2677,6 +2677,7 @@ return [
     'parcel_image' => 'Parcel Image',
     'parcel_images_not_found' => 'Parcel Images Not Found',
     'you_have_received_new_message_from_admin' => 'You have received new message from admin',
+    'all_stores' => 'All Stores',
     'plan_for' => 'Plan For',
     'full_order_history' => 'Full Order History',
     'full_order_history_help' => 'Lets the customer see their complete order history, beyond the free limit set in Settings > Order History.',

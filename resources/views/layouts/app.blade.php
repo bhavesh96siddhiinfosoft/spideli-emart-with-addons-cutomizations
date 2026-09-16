@@ -6,7 +6,7 @@
     <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('app.name', 'Laravel') }}</title>
-    <link rel="icon" type="image/x-icon" href="{{ asset('images/logo-light-icon.png') }}">
+    <link rel="icon" type="image/x-icon" href="{{ asset('images/spideli-circle.png') }}">
     <!-- Fonts -->
     <link rel="dns-prefetch" href="//fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css?family=Nunito" rel="stylesheet">
@@ -954,12 +954,19 @@
                 script.src = "https://unpkg.com/leaflet-geojson-layer/src/leaflet.geojson.js";
                 script.src = "https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js";
             } else {
-                script.src = "https://maps.googleapis.com/maps/api/js?key=" + googleMapKey + "&libraries=places,drawing";
+                // script.src = "https://maps.googleapis.com/maps/api/js?key=" + googleMapKey + "&libraries=places,drawing";
+                script.src = "https://maps.googleapis.com/maps/api/js?key=" + googleMapKey + "&libraries=places,drawing&v=quarterly";
+                script.async = true;
+                script.defer = true;
             }
             script.onload = function () {
                 navigator.geolocation.getCurrentPosition(GeolocationSuccessCallback, GeolocationErrorCallback);
                 if (typeof window['InitializeGodsEyeMap'] === 'function') {
                     InitializeGodsEyeMap();
+                }
+
+                if (typeof window['initMap'] === 'function') {
+                    window['initMap']();
                 }
             };
             document.head.appendChild(script);
@@ -1419,6 +1426,34 @@
             const snapshot = await firebase.firestore().collection('vendors').doc(storeId).get();
 
             return snapshot.exists ? toAmount(snapshot.data().wallet_amount) : 0;
+        }
+
+        /* A store's owner is named on the store document, in `author`.
+         *
+         * Finding them with `users where vendorID == <storeId>` asks a different
+         * question - "whose SELECTED store is this?" - which was right only while
+         * a vendor could hold one store. On a vendor with several it returns
+         * whoever happens to have that store open, or nobody at all.
+         *
+         * Returns the owner's user data, or null when the store or the owner
+         * cannot be found. Callers must handle null: the old queries failed
+         * silently, and this one must not. */
+        async function storeOwnerData(storeId) {
+            if (!storeId) {
+                return null;
+            }
+
+            const db = firebase.firestore();
+            const storeSnapshot = await db.collection('vendors').doc(storeId).get();
+            const ownerId = storeSnapshot.exists ? (storeSnapshot.data().author || '') : '';
+
+            if (!ownerId) {
+                return null;
+            }
+
+            const ownerSnapshot = await db.collection('users').doc(ownerId).get();
+
+            return ownerSnapshot.exists ? ownerSnapshot.data() : null;
         }
 
         /* `delta` is signed: positive credits, negative debits. The owner is

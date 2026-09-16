@@ -30,6 +30,15 @@
                                 <span class="counter ml-3 total_count"></span>
                             </div>
                             <div class="d-flex top-title-right align-self-center">
+                                <?php if ($id == '') { ?>
+                                {{-- On a single store's tab every employee already belongs
+                                     to that store, so the filter would do nothing. --}}
+                                <div class="select-box pl-3">
+                                    <select id="store_selector" class="form-control store_selector filteredRecords">
+                                        <option value="" selected>{{ trans('lang.all_stores') }}</option>
+                                    </select>
+                                </div>
+                                <?php } ?>
                                 <div class="select-box pl-3">
                                     <select class="form-control status_selector filteredRecords">
                                         <option value="" selected>{{ trans('lang.status') }}</option>
@@ -225,11 +234,45 @@
             });
         }
         setDate();
+
+        /* Sorted in memory rather than with orderBy, because Firestore drops
+         * documents that lack the field being ordered by and some stores have
+         * no title. */
+        async function loadStoreFilter() {
+            var $select = $('#store_selector');
+
+            if (!$select.length) {
+                return;
+            }
+
+            var snapshot = await database.collection('vendors').get();
+            var stores = regionDocs(snapshot).map(function (doc) {
+                return doc.data();
+            });
+
+            stores.sort(function (a, b) {
+                return (a.title || '').localeCompare(b.title || '');
+            });
+
+            stores.forEach(function (store) {
+                $select.append($('<option></option>')
+                    .attr('value', store.id)
+                    .text(store.title || '-'));
+            });
+        }
+
+        loadStoreFilter();
+
         var initialRef = ref;
         $('.filteredRecords').change(async function() {
             var status = $('.status_selector').val();
+            var storeFilter = $('#store_selector').val();
             var daterangepicker = $('#daterange').data('daterangepicker');
             var refData = initialRef;
+            if (storeFilter) {
+                /* An employee belongs to one store, named on `vendorID`. */
+                refData = refData.where('vendorID', '==', storeFilter);
+            }
             if (status) {
                 refData = (status === "active") ?
                     refData.where('active', '==', true) :
