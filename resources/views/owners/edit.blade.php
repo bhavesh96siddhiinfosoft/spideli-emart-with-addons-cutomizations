@@ -586,14 +586,34 @@ foreach ($countries as $keycountry => $valuecountry) {
                 });
             }
             
-            /* `subscription_history` rows carry `user_id` only - no store - so the
-             * most recent row for this owner is the best available match. On a
-             * vendor with several stores that row may belong to another of them.
-             * Scoping it needs a store field on the row, written by whichever
-             * panel takes the payment. */
-            const lastSubscriptionHistory = await database.collection('subscription_history').where('user_id','==',ownerId).orderBy('createdAt','desc').get();
+            /* Rows written from 17 Sep 2026 carry `vendorID`, so the row for THIS
+             * store is picked when there is one. Older rows have no store and
+             * cannot be attributed after the fact, so for those the most recent
+             * row for the owner is still the best available match - which on a
+             * vendor with several stores may belong to another of them.
+             *
+             * Ordered in memory rather than with orderBy, because adding a
+             * `where` on `vendorID` to an ordered query needs a composite index
+             * this project does not have. */
+            const lastSubscriptionHistory = await database.collection('subscription_history').where('user_id','==',ownerId).get();
             if(lastSubscriptionHistory && lastSubscriptionHistory.docs && lastSubscriptionHistory.docs.length > 0){
-                const subscriptionData = lastSubscriptionHistory.docs[0].data();
+                const rows = lastSubscriptionHistory.docs.map(function (doc) {
+                    return doc.data();
+                });
+
+                const forThisStore = store_id
+                    ? rows.filter(function (row) { return row.vendorID === store_id; })
+                    : [];
+
+                const candidates = forThisStore.length ? forThisStore : rows;
+
+                candidates.sort(function (a, b) {
+                    const aTime = a.createdAt ? a.createdAt.toMillis() : 0;
+                    const bTime = b.createdAt ? b.createdAt.toMillis() : 0;
+                    return bTime - aTime;
+                });
+
+                const subscriptionData = candidates[0];
                 database.collection('subscription_history').doc(subscriptionData.id).update({
                     'expiry_date': subscriptionPlanExpiryDate,
                 });
