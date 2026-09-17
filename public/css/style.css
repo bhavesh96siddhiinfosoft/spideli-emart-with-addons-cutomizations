@@ -16075,3 +16075,62 @@ border-bottom: 2px solid #fff;
 /* Caht new design end */
 
 
+
+/* List filters that carry long values - the Employees store filter.
+ *
+ * `.store-filter` is the positioned ancestor the select2 panel is anchored to
+ * through its `dropdownParent`. Left on its default select2 hangs the panel off
+ * <body> and places it from a single measurement, so it stays put while the page
+ * scrolls and ends up over the header. `.select-box` above sets the container to
+ * position:static, which is why the wrapper has to supply the positioning.
+ *
+ * The store panel's stylesheet carries the same block - keep the two in step. */
+.store-filter {
+    position: relative;
+}
+
+.store-filter .select2-container--open {
+    z-index: 1056;
+}
+
+.store-filter .select2-dropdown {
+    border: 1px solid #E5E7EB;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 6px 18px rgba(12, 17, 28, 0.08);
+}
+
+.store-filter .select2-results__options {
+    max-height: 240px;
+}
+
+.store-filter .select2-results__option {
+    padding: 8px 18px;
+    font-size: 14px;
+    color: #6B7280;
+}
+
+/* Store names run long, so the panel is wider than the pill it hangs from and is
+ * pinned to the pill's right edge - widening it to the left keeps it on the page.
+ *
+ * The width goes on the panel's own container, not on `.select2-dropdown`: the
+ * dropdown sits inside that container at left:0, so widening the dropdown alone
+ * just makes it overflow to the right, which is the side with no room.
+ *
+ * `:not(.select2)` keeps this off the pill. select2 marks both the pill and the
+ * panel `--open`, and only the pill carries the `select2` class. */
+.store-filter-wide .select2-container--open:not(.select2) {
+    width: 340px !important;
+    max-width: 80vw;
+    left: auto !important;
+    right: 0 !important;
+}
+
+.store-filter-wide .select2-container--open:not(.select2) .select2-dropdown {
+    width: 100% !important;
+}
+
+.store-filter-wide .select2-results__option {
+    white-space: normal;
+    word-break: break-word;
+}

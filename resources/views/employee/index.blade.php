@@ -33,7 +33,7 @@
                                 <?php if ($id == '') { ?>
                                 {{-- On a single store's tab every employee already belongs
                                      to that store, so the filter would do nothing. --}}
-                                <div class="select-box pl-3">
+                                <div class="select-box pl-3 store-filter store-filter-wide" id="store_filter_box">
                                     <select id="store_selector" class="form-control store_selector filteredRecords">
                                         <option value="" selected>{{ trans('lang.all_stores') }}</option>
                                     </select>
@@ -208,6 +208,17 @@
             placeholder: "{{ trans('lang.select_status') }}",
             minimumResultsForSearch: Infinity,
             allowClear: true
+        });
+
+        /* The store list keeps its search box - this panel lists every store on
+         * the platform, not one account's handful. `dropdownParent` anchors the
+         * panel to the pill, which otherwise hangs off <body>, is placed from a
+         * single measurement and drifts over the header when the page scrolls. */
+        $('.store_selector').select2({
+            placeholder: "{{ trans('lang.all_stores') }}",
+            dropdownParent: $('#store_filter_box'),
+            allowClear: true,
+            width: '240px'
         });
         $('select').on("select2:unselecting", function(e) {
             var self = $(this);

@@ -1472,6 +1472,8 @@
                     const snapshot = await storeRef.get();
 
                     if (snapshot.exists) {
+                        /* The store names its owner, so a caller that knows
+                         * only the store still moves both balances. */
                         if (!ownerUserId) {
                             ownerUserId = snapshot.data().author || '';
                         }
