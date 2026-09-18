@@ -57,6 +57,7 @@
                     </a>
                 </div>
 
+                <div id="ambiguous_zones" class="alert alert-warning m-t-10" style="display:none;"></div>
                 <div class="table-responsive m-t-10" id="result_box" style="display:none;">
                     <table class="table table-bordered table-striped">
                         <thead>
@@ -111,6 +112,7 @@
     var customerToRegions = {};
 
     var zoneToRegion = {};
+    var ambiguousZones = [];
     var parentToRegion = {vendor: {}, provider: {}};
     var parentToZone = {vendor: {}, provider: {}};
 
@@ -143,14 +145,24 @@
     }
 
     /* zone -> region, so a record carrying a zone lands in the right region
-     * instead of falling back to the default. */
+     * instead of falling back to the default.
+     *
+     * A zone serving SEVERAL regions cannot say which one a record belongs to,
+     * so it is left out of this map entirely. Those records fall through to
+     * their parent, and then to the default region, rather than being assigned
+     * to whichever region happened to come first. */
     async function loadZoneMap() {
         zoneToRegion = {};
+        ambiguousZones = [];
         var snapshots = await database.collection('zone').get();
         snapshots.docs.forEach(function (doc) {
             var zone = doc.data();
-            if (zone.regionId) {
-                zoneToRegion[doc.id] = zone.regionId;
+            var regionIds = zoneRegionIds(zone);
+
+            if (regionIds.length === 1) {
+                zoneToRegion[doc.id] = regionIds[0];
+            } else if (regionIds.length > 1) {
+                ambiguousZones.push(zone.name || doc.id);
             }
         });
     }
@@ -293,6 +305,17 @@
         $('#result_box').show();
 
         await loadZoneMap();
+
+        /* A zone serving several regions cannot place a record, so those
+         * records fall through to their parent or the default. Said out loud,
+         * because otherwise the numbers look wrong for no visible reason. */
+        if (ambiguousZones.length) {
+            $('#ambiguous_zones').show().html(
+                "{{ trans('lang.region_backfill_ambiguous_zones') }} " +
+                ambiguousZones.join(', '));
+        } else {
+            $('#ambiguous_zones').hide().html('');
+        }
 
         for (var i = 0; i < keys.length; i++) {
             /* Reloaded per collection so that stores stamped earlier in this

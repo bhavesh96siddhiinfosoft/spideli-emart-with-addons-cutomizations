@@ -170,9 +170,8 @@
         var snapshots = await database.collection('zone').get();
         snapshots.docs.forEach(function (doc) {
             var zone = doc.data();
-            if (!zone.regionId) {
-                $('#zone_ids').append($('<option></option>').attr('value', zone.id).text(zone.name));
-            }
+
+            $('#zone_ids').append($('<option></option>').attr('value', zone.id).text(zone.name));
         });
         $('#zone_ids').show().chosen({
             "placeholder_text": "{{ trans('lang.region_zones') }}"
@@ -224,13 +223,50 @@
             'createdAt': firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        /* Denormalise regionId onto each zone so zone-driven queries can filter
-         * by region without a second lookup. */
-        await Promise.all(zoneIds.map(function (zoneId) {
-            return database.collection('zone').doc(zoneId).update({'regionId': regionId});
-        }));
+        await setZoneRegions(zoneIds, regionId, []);
 
         window.location.href = '{{ route('region') }}';
     });
+
+    /* Attaching a zone ADDS this region to it. A zone may serve several regions
+     * at once, so another region holding it is not a conflict.
+     *
+     * `regionIds` is the truth; `regionId` is kept in step as the first entry
+     * for anything still reading the old single-value field. Read, modify,
+     * write rather than arrayUnion, because `regionId` has to be recomputed
+     * from the result anyway. */
+    async function setZoneRegions(zoneIds, attachedRegionId, detachedZoneIds) {
+        var writes = [];
+
+        (detachedZoneIds || []).forEach(function (zoneId) {
+            writes.push(updateZoneRegions(zoneId, attachedRegionId, false));
+        });
+        zoneIds.forEach(function (zoneId) {
+            writes.push(updateZoneRegions(zoneId, attachedRegionId, true));
+        });
+
+        await Promise.all(writes);
+    }
+
+    async function updateZoneRegions(zoneId, targetRegionId, attach) {
+        var doc = await database.collection('zone').doc(zoneId).get();
+
+        if (!doc.exists) {
+            return;
+        }
+
+        var regionIds = zoneRegionIds(doc.data()).filter(function (id) {
+            return id !== targetRegionId;
+        });
+
+        if (attach) {
+            regionIds.push(targetRegionId);
+        }
+
+        return database.collection('zone').doc(zoneId).update({
+            'regionIds': regionIds,
+            'regionId': regionIds.length ? regionIds[0] : ''
+        });
+    }
 </script>
 @endsection

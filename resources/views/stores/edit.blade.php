@@ -956,9 +956,12 @@
         database.collection('zone').where('publish', '==', true).orderBy('name', 'asc').get().then(async function(snapshots) {
             snapshots.docs.forEach((listval) => {
                 var data = listval.data();
-                /* Only zones belonging to the region being worked in can be
-                 * picked, so a store can never be moved outside it. */
-                if (!isInActiveRegion(data)) {
+                /* Only zones serving the region being worked in can be picked,
+                 * so a store can never be moved outside it. A zone may serve
+                 * several regions, so its whole list is checked. */
+                var active = getActiveRegionId();
+
+                if (active && zoneRegionIds(data).indexOf(active) === -1) {
                     return;
                 }
                 var area = [];
@@ -971,7 +974,7 @@
                 $('#zone').append($("<option></option>")
                     .attr("value", data.id)
                     .attr("data-area", JSON.stringify(area))
-                    .attr("data-region", data.regionId ? data.regionId : '')
+                    .attr("data-region", regionForZone(data))
                     .text(data.name));
             })
         });

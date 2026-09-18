@@ -197,11 +197,29 @@
     });
 
     /* Detach the region from its zones before deleting it, so no zone is left
-     * pointing at a region that no longer exists. */
+     * pointing at a region that no longer exists.
+     *
+     * A zone may serve several regions, so only THIS region is removed - the
+     * others keep it. Every zone is read rather than queried by region, because
+     * `regionIds` is an array and the zones saved before the change still carry
+     * the old single `regionId`. */
     async function deleteRegion(regionId) {
-        var zoneSnapshots = await database.collection('zone').where('regionId', '==', regionId).get();
+        var zoneSnapshots = await database.collection('zone').get();
         await Promise.all(zoneSnapshots.docs.map(function (doc) {
-            return database.collection('zone').doc(doc.id).update({'regionId': ''});
+            var regionIds = zoneRegionIds(doc.data());
+
+            if (regionIds.indexOf(regionId) === -1) {
+                return null;
+            }
+
+            var kept = regionIds.filter(function (id) {
+                return id !== regionId;
+            });
+
+            return database.collection('zone').doc(doc.id).update({
+                'regionIds': kept,
+                'regionId': kept.length ? kept[0] : ''
+            });
         }));
         await database.collection('regions').doc(regionId).delete();
         if (getActiveRegionId() === regionId) {

@@ -834,8 +834,11 @@
                 database.collection('zone').where('publish', '==', true)/* .where('sectionId', '==', order.vendor.section_id) */.orderBy('name', 'asc').get().then(async function(snapshots) {
                     snapshots.docs.forEach((listval) => {
                         var data = listval.data();
-                        /* Only zones inside the active region are offered. */
-                        if (!isInActiveRegion(data)) {
+                        /* Only zones serving the active region are offered. A
+                         * zone may serve several, so its whole list is checked. */
+                        var active = getActiveRegionId();
+
+                        if (active && zoneRegionIds(data).indexOf(active) === -1) {
                             return;
                         }
                         $('#zone').append($("<option></option>")

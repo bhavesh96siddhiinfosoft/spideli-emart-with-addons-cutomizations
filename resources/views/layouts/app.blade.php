@@ -1428,6 +1428,40 @@
             return snapshot.exists ? toAmount(snapshot.data().wallet_amount) : 0;
         }
 
+        /* A delivery zone may serve several regions at once - one "Worldwide"
+         * zone can be offered by Cameroon and France together.
+         *
+         * `regionIds` is the truth. `regionId` is the old single-value field,
+         * still written for anything not yet updated (the apps, the store
+         * panel), and read here so zones saved before the change keep working
+         * until they are next saved. */
+        function zoneRegionIds(zone) {
+            if (!zone) {
+                return [];
+            }
+            if (Array.isArray(zone.regionIds)) {
+                return zone.regionIds;
+            }
+            return zone.regionId ? [zone.regionId] : [];
+        }
+
+        /* Records carry ONE region, so a zone serving several cannot decide it
+         * on its own. The region being worked in settles it when the zone
+         * serves it; a zone serving exactly one region still decides by itself;
+         * anything else is genuinely ambiguous and returns ''. */
+        function regionForZone(zone) {
+            var regionIds = zoneRegionIds(zone);
+            var active = getActiveRegionId();
+
+            if (active && regionIds.indexOf(active) !== -1) {
+                return active;
+            }
+            if (regionIds.length === 1) {
+                return regionIds[0];
+            }
+            return active || '';
+        }
+
         /* A store's owner is named on the store document, in `author`.
          *
          * Finding them with `users where vendorID == <storeId>` asks a different

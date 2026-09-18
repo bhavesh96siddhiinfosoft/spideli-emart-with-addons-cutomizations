@@ -224,14 +224,18 @@ foreach ($countries as $keycountry => $valuecountry) {
         refZone.orderBy('name', 'asc').get().then(async function(snapshots) {
             snapshots.docs.forEach((listval) => {
                 var data = listval.data();
-                /* Only zones belonging to the region being worked in can be
-                 * picked, so a driver can never be placed outside it. */
-                if (!isInActiveRegion(data)) {
+                /* Only zones serving the region being worked in can be picked,
+                 * so a driver can never be placed outside it. A zone may serve
+                 * several regions, so its whole list is checked. */
+                var zoneRegions = zoneRegionIds(data);
+                var active = getActiveRegionId();
+
+                if (active && zoneRegions.indexOf(active) === -1) {
                     return;
                 }
                 $('#zone').append($("<option></option>")
                     .attr("value", data.id)
-                    .attr("data-region", data.regionId ? data.regionId : '')
+                    .attr("data-region", regionForZone(data))
                     .text(data.name));
             })
         });
@@ -512,8 +516,10 @@ foreach ($countries as $keycountry => $valuecountry) {
         var active = $(".user_active").is(":checked");
         var ownerId = $('#owner option:selected').val();
         var zoneId = $('#zone option:selected').val();
-        /* The zone decides the region, so a driver always sits in the same
-         * region as the zone they serve. */
+        /* The zone decides the region. A zone serving several regions cannot do
+         * that alone, so regionForZone() settled it when the list was built:
+         * the region being worked in wins, and a zone serving exactly one
+         * region still decides by itself. */
         var zoneRegion = $('#zone option:selected').data('region');
         var driverRegionId = zoneRegion ? zoneRegion : getActiveRegionId();
 

@@ -200,15 +200,19 @@
         });
     }
 
-    /* Offer unclaimed zones plus the ones already attached to this region. */
+    /* Every zone is offered, on every region. Zones held elsewhere used to be
+     * hidden, which left this dropdown empty once each zone had a region and
+     * made the screen look broken.
+     *
+     * A zone still belongs to ONE region: that is what lets a store, driver or
+     * order derive its region from its zone. Picking a zone another region
+     * holds MOVES it, and the option says so before you choose. */
     async function loadZones(region) {
-        var assigned = region.zoneIds || [];
         var snapshots = await database.collection('zone').get();
         snapshots.docs.forEach(function (doc) {
             var zone = doc.data();
-            if (!zone.regionId || zone.regionId === regionId || assigned.indexOf(zone.id) !== -1) {
-                $('#zone_ids').append($('<option></option>').attr('value', zone.id).text(zone.name));
-            }
+
+            $('#zone_ids').append($('<option></option>').attr('value', zone.id).text(zone.name));
         });
         $('#zone_ids').show().chosen({
             "placeholder_text": "{{ trans('lang.region_zones') }}"
@@ -262,19 +266,56 @@
             'updatedAt': firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        /* Keep the denormalised zone.regionId in step: clear the zones that were
-         * removed from this region, stamp the ones that were added. */
+        /* Zones dropped from this region lose THIS region only - any other
+         * region holding them keeps it. */
         var removed = originalZoneIds.filter(function (zoneId) {
             return zoneIds.indexOf(zoneId) === -1;
         });
-        await Promise.all(removed.map(function (zoneId) {
-            return database.collection('zone').doc(zoneId).update({'regionId': ''});
-        }));
-        await Promise.all(zoneIds.map(function (zoneId) {
-            return database.collection('zone').doc(zoneId).update({'regionId': regionId});
-        }));
+
+        await setZoneRegions(zoneIds, regionId, removed);
 
         window.location.href = '{{ route('region') }}';
     });
+
+    /* Attaching a zone ADDS this region to it. A zone may serve several regions
+     * at once, so another region holding it is not a conflict.
+     *
+     * `regionIds` is the truth; `regionId` is kept in step as the first entry
+     * for anything still reading the old single-value field. Read, modify,
+     * write rather than arrayUnion, because `regionId` has to be recomputed
+     * from the result anyway. */
+    async function setZoneRegions(zoneIds, attachedRegionId, detachedZoneIds) {
+        var writes = [];
+
+        (detachedZoneIds || []).forEach(function (zoneId) {
+            writes.push(updateZoneRegions(zoneId, attachedRegionId, false));
+        });
+        zoneIds.forEach(function (zoneId) {
+            writes.push(updateZoneRegions(zoneId, attachedRegionId, true));
+        });
+
+        await Promise.all(writes);
+    }
+
+    async function updateZoneRegions(zoneId, targetRegionId, attach) {
+        var doc = await database.collection('zone').doc(zoneId).get();
+
+        if (!doc.exists) {
+            return;
+        }
+
+        var regionIds = zoneRegionIds(doc.data()).filter(function (id) {
+            return id !== targetRegionId;
+        });
+
+        if (attach) {
+            regionIds.push(targetRegionId);
+        }
+
+        return database.collection('zone').doc(zoneId).update({
+            'regionIds': regionIds,
+            'regionId': regionIds.length ? regionIds[0] : ''
+        });
+    }
 </script>
 @endsection
