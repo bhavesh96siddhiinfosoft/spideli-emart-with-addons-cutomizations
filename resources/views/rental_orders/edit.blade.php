@@ -399,6 +399,14 @@
 
             ref.get().then(async function(snapshots) {
                 var order = snapshots.docs[0].data();
+
+                /* A rental order outside the region the admin is working in
+                 * must not be reachable by editing the url. */
+                if (!isInActiveRegion(order)) {
+                    window.location.href = '{{ route("rental_orders") }}';
+                    return;
+                }
+
                 getUserReview(order);
                 
                 append_procucts_total = document.getElementById('order_products_total');

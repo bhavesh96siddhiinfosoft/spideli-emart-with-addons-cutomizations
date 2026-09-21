@@ -316,24 +316,28 @@
     $(document).ready(function () {
 
 
+        /* Counted in memory rather than with a region filter in the query.
+         * These lists are fetched whole and paged in the browser, so filtering
+         * here keeps the counters matching the rows below without needing a
+         * composite index for every status. */
         ref.get().then((snapshot) => {
             jQuery("#order_count").empty();
-            jQuery("#order_count").text(snapshot.docs.length);
+            jQuery("#order_count").text(regionDocs(snapshot).length);
         });
 
         ref.where('status', 'in', ["Order Placed"]).get().then((snapshot) => {
             jQuery("#placed_count").empty();
-            jQuery("#placed_count").text(snapshot.docs.length);
+            jQuery("#placed_count").text(regionDocs(snapshot).length);
         });
 
         ref.where('status', 'in', ["Order Accepted"]).get().then((snapshot) => {
             jQuery("#accepted_count").empty();
-            jQuery("#accepted_count").text(snapshot.docs.length);
+            jQuery("#accepted_count").text(regionDocs(snapshot).length);
         });
 
         ref.where('status', 'in', ["Order Completed"]).get().then((snapshot) => {
             jQuery("#order_completed").empty();
-            jQuery("#order_completed").text(snapshot.docs.length);
+            jQuery("#order_completed").text(regionDocs(snapshot).length);
         });
 
 
@@ -411,7 +415,13 @@
                     let records = [];
                     let filteredRecords = [];
 
-                    await Promise.all(querySnapshot.docs.map(async (doc) => {
+                    /* A ride belongs to the region its driver works in. Rides
+                     * taken before the backfill carry no regionId and are
+                     * hidden while a region is selected - run Region Backfill
+                     * to place them. */
+                    const regionRides = regionDocs(querySnapshot);
+
+                    await Promise.all(regionRides.map(async (doc) => {
                         let childData = doc.data();
                         childData.id = doc.id;
                         

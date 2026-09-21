@@ -374,6 +374,14 @@
 
             var ride = snapshots.docs[0].data();
 
+            /* A ride outside the region the admin is working in must not be
+             * reachable by editing the url, the same guard the vendor and
+             * store screens carry. */
+            if (!isInActiveRegion(ride)) {
+                window.location.href = '{{ route("rides") }}';
+                return;
+            }
+
             append_procucts_list = document.getElementById('order_products');
             append_procucts_list.innerHTML = '';
 

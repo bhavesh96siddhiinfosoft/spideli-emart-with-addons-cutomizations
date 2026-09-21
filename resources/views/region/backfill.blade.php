@@ -105,7 +105,13 @@
         {key: 'providers_workers', label: 'Provider workers', parentField: 'providerId', parentType: 'provider'},
         {key: 'providers_services', label: 'Provider services', parentField: 'author', parentType: 'provider'},
         {key: 'vendor_orders', label: 'Orders', zoneField: 'zoneId', parentField: 'vendorID', parentType: 'vendor'},
-        {key: 'users_customer', collection: 'users', label: 'Customers', roleFilter: 'customer', manyRegions: true}
+        {key: 'users_customer', collection: 'users', label: 'Customers', roleFilter: 'customer', manyRegions: true},
+        /* Both hang off the DRIVER. A rental order looked like it belonged to
+         * a store, but the vehicle belongs to a driver and `vendorID` is not
+         * populated on these documents - resolving through it placed every
+         * rental order in the default region. */
+        {key: 'rental_orders', label: 'Rental orders', parentField: 'driverId', parentType: 'driver'},
+        {key: 'rides', label: 'Cab rides', parentField: 'driverId', parentType: 'driver'}
     ];
 
     /* customer id -> the set of regions they have ordered in. */
@@ -113,8 +119,8 @@
 
     var zoneToRegion = {};
     var ambiguousZones = [];
-    var parentToRegion = {vendor: {}, provider: {}};
-    var parentToZone = {vendor: {}, provider: {}};
+    var parentToRegion = {vendor: {}, provider: {}, driver: {}};
+    var parentToZone = {vendor: {}, provider: {}, driver: {}};
 
     $(document).ready(function () {
         jQuery("#data-table_processing").show();
@@ -172,8 +178,8 @@
      * hang off a service provider. The parent's own region wins, so a parent
      * moved to another region by hand takes its children with it. */
     async function loadParentMaps() {
-        parentToRegion = {vendor: {}, provider: {}};
-        parentToZone = {vendor: {}, provider: {}};
+        parentToRegion = {vendor: {}, provider: {}, driver: {}};
+        parentToZone = {vendor: {}, provider: {}, driver: {}};
 
         var vendors = await database.collection('vendors').get();
         vendors.docs.forEach(function (doc) {
@@ -200,6 +206,19 @@
             }
             if (customerToRegions[order.authorID].indexOf(order.regionId) === -1) {
                 customerToRegions[order.authorID].push(order.regionId);
+            }
+        });
+
+        /* Drivers were stamped with a region in the first backfill, so a ride
+         * can inherit from the driver who took it. */
+        var drivers = await database.collection('users').where('role', '==', 'driver').get();
+        drivers.docs.forEach(function (doc) {
+            var driver = doc.data();
+            if (driver.zoneId) {
+                parentToZone.driver[doc.id] = driver.zoneId;
+            }
+            if (driver.regionId) {
+                parentToRegion.driver[doc.id] = driver.regionId;
             }
         });
 

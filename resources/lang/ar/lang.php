@@ -2494,7 +2494,7 @@ return [
     'search_here' => 'ابحث هنا...',
     'parcel_image' => 'صورة الطرد',
     'parcel_images_not_found' => 'صور الطرود غير موجودة',
-    'region_backfill_ambiguous_zones' => 'These zones serve more than one region, so they cannot decide which region a record belongs to. Records using them fall back to their store, or to the default region:',
+    'region_backfill_ambiguous_zones' => 'These delivery zones serve more than one region, so they cannot say which region a record belongs to. Records using them fall back to their parent, or to the default region chosen above. Zones affected:',
     'service_group_delete_message' => 'Are you sure you want to delete this service group?',
     'service_group_plural' => 'Service Groups',
     'service_group_create' => 'Create a Service Group',
