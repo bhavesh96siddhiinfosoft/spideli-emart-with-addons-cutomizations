@@ -111,7 +111,13 @@
          * populated on these documents - resolving through it placed every
          * rental order in the default region. */
         {key: 'rental_orders', label: 'Rental orders', parentField: 'driverId', parentType: 'driver'},
-        {key: 'rides', label: 'Cab rides', parentField: 'driverId', parentType: 'driver'}
+        {key: 'rides', label: 'Cab rides', parentField: 'driverId', parentType: 'driver'},
+        /* A booking belongs to the service provider who fulfils it, a
+         * complaint to the driver it is about, and a transaction to the store
+         * it was taken at. */
+        {key: 'provider_orders', label: 'On-demand bookings', parentField: 'provider.author', parentType: 'provider'},
+        {key: 'complaints', label: 'Complaints', parentField: 'driverId', parentType: 'driver'},
+        {key: 'order_transactions', label: 'Order transactions', parentField: 'vendorId', parentType: 'vendor'}
     ];
 
     /* customer id -> the set of regions they have ordered in. */
@@ -234,6 +240,22 @@
         });
     }
 
+    /* Supports a dotted path, because a booking holds its provider at
+     * `provider.author` rather than a field of its own. */
+    function fieldValue(data, path) {
+        var parts = String(path).split('.');
+        var value = data;
+
+        for (var i = 0; i < parts.length; i++) {
+            if (value === null || value === undefined) {
+                return '';
+            }
+            value = value[parts[i]];
+        }
+
+        return (value === null || value === undefined) ? '' : value;
+    }
+
     function getConfig(key) {
         for (var i = 0; i < BACKFILL_COLLECTIONS.length; i++) {
             if (BACKFILL_COLLECTIONS[i].key == key) {
@@ -285,7 +307,7 @@
         }
 
         if (config.parentField && config.parentType) {
-            var parentId = data[config.parentField];
+            var parentId = fieldValue(data, config.parentField);
             if (parentId) {
                 var byRegion = parentToRegion[config.parentType] || {};
                 if (byRegion[parentId]) {

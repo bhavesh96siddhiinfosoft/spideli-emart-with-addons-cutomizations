@@ -476,9 +476,11 @@
             if (id != '') {
                 refTotalOrder = refTotalOrder.where('provider.author', '==', id)
             }
+            /* Counted in memory so the figures match the rows below, which
+             * are filtered the same way. */
             refTotalOrder.get().then((snapshot) => {
                 jQuery("#order_count").empty();
-                jQuery("#order_count").text(snapshot.docs.length);
+                jQuery("#order_count").text(regionDocs(snapshot).length);
             });
             var refPlacedOrder = database.collection('provider_orders').where('sectionId', '==', active_id).where('status', 'in', ["Order Placed"]);
             if (id != '') {
@@ -486,7 +488,7 @@
             }
             refPlacedOrder.get().then((snapshot) => {
                 jQuery("#placed_count").empty();
-                jQuery("#placed_count").text(snapshot.docs.length);
+                jQuery("#placed_count").text(regionDocs(snapshot).length);
             });
             var refAcceptedOrder = database.collection('provider_orders').where('sectionId', '==', active_id).where('status', 'in', ["Order Accepted"]);
             if (id != '') {
@@ -494,7 +496,7 @@
             }
             refAcceptedOrder.get().then((snapshot) => {
                 jQuery("#accepted_count").empty();
-                jQuery("#accepted_count").text(snapshot.docs.length);
+                jQuery("#accepted_count").text(regionDocs(snapshot).length);
             });
             var refCompletedOrder = database.collection('provider_orders').where('sectionId', '==', active_id).where('status', 'in', ["Order Completed"]);
             if (id != '') {
@@ -502,7 +504,7 @@
             }
             refCompletedOrder.get().then((snapshot) => {
                 jQuery("#order_completed").empty();
-                jQuery("#order_completed").text(snapshot.docs.length);
+                jQuery("#order_completed").text(regionDocs(snapshot).length);
             });
             $('.dt-button-collection').hide();
             if (id != '') {
@@ -617,7 +619,15 @@
                         }
                         let records = [];
                         filteredRecords = [];
-                        await Promise.all(querySnapshot.docs.map(async (doc) => {
+
+                        /* A booking belongs to the region of the service
+                         * provider who fulfils it. Bookings taken before the
+                         * backfill carry no regionId and are hidden while a
+                         * region is selected - run Region Backfill to place
+                         * them. */
+                        const regionBookings = regionDocs(querySnapshot);
+
+                        await Promise.all(regionBookings.map(async (doc) => {
                             let childData = doc.data();
                             childData.id = doc.id;
                             var authorName = (childData.author != undefined) ? (childData.author.firstName + ' ' + childData.author.lastName) : '';

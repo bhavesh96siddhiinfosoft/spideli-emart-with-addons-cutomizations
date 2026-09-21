@@ -149,6 +149,15 @@
                 var val = listval.data();
                 var id = listval.id;
                 var currentSectionId = getCookie('section_id');
+
+                /* A complaint belongs to the region of the driver it is about.
+                 * Complaints raised before the backfill carry no regionId and
+                 * are hidden while a region is selected - run Region Backfill
+                 * to place them. */
+                if (!isInActiveRegion(val)) {
+                    return;
+                }
+
                 if (!val.orderId) {
                     return; // skip if no orderId
                 }

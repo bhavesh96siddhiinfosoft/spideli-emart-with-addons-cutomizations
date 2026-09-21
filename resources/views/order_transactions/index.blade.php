@@ -214,6 +214,14 @@
    
     await Promise.all(snapshots.docs.map(async (listval) => {
     var val = listval.data();
+
+    /* A transaction belongs to the region of the store it was taken at.
+     * Transactions recorded before the backfill carry no regionId and are
+     * hidden while a region is selected - run Region Backfill to place them. */
+    if (!isInActiveRegion(val)) {
+        return;
+    }
+
     var route1 = '{{route("drivers.edit",":id")}}';
         route1 = route1.replace(':id', val.id);
     var getData = await getListData(val);
