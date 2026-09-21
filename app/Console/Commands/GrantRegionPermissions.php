@@ -32,6 +32,7 @@ class GrantRegionPermissions extends Command
             'carrier' => ['carrier.list', 'carrier.create', 'carrier.edit', 'carrier.delete'],
             'service-group' => ['service-group.list', 'service-group.create', 'service-group.edit', 'service-group.delete'],
             'order-history' => ['settings.app.orderHistory'],
+            'sms-gateway' => ['settings.app.smsGateway'],
             'admin-commission' => ['settings.app.adminCommission'],
         ];
 

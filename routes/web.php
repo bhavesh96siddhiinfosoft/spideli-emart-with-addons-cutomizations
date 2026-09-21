@@ -344,6 +344,11 @@ Route::prefix('settings')->group(function () {
     Route::middleware(['permission:delivery-charge,settings.app.deliveryCharge'])->group(function () {
         Route::get('app/deliveryCharge', [App\Http\Controllers\SettingsController::class, 'deliveryCharge'])->name('settings.app.deliveryCharge');
     });
+    Route::middleware(['permission:sms-gateway,settings.app.smsGateway'])->group(function () {
+        Route::get('app/smsGateway', [App\Http\Controllers\SettingsController::class, 'smsGateway'])->name('settings.app.smsGateway');
+        Route::post('app/smsGateway/test', [App\Http\Controllers\SmsController::class, 'sendTest'])->name('settings.app.smsGateway.test');
+        Route::get('app/smsGateway/balance', [App\Http\Controllers\SmsController::class, 'balance'])->name('settings.app.smsGateway.balance');
+    });
     Route::middleware(['permission:order-history,settings.app.orderHistory'])->group(function () {
         Route::get('app/orderHistory', [App\Http\Controllers\SettingsController::class, 'orderHistory'])->name('settings.app.orderHistory');
     });

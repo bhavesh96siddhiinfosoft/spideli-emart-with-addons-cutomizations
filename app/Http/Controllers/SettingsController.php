@@ -97,6 +97,11 @@ class SettingsController extends Controller
         return view('settings.app.deliveryCharge');
     }
 
+    public function smsGateway()
+    {
+        return view('settings.app.smsGateway');
+    }
+
     public function orderHistory()
     {
         return view('settings.app.orderHistory');
