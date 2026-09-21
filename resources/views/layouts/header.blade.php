@@ -7,8 +7,8 @@ $service_type = @$_COOKIE['service_type'];
 <div class="navbar-header position-relative">
     <a class="navbar-brand" href="<?php echo URL::to('/'); ?>">
         <b>
-            <img src="{{ asset('/images/logo_web.png') }}" onerror="this.onerror=null; this.src='{{ asset('/images/logo_web.png') }}';" alt="homepage" class="dark-logo" width="100%" id="logo_web">
-            <img src="{{ asset('images/logo-light-icon.png') }}" onerror="this.onerror=null; this.src='{{ asset('images/logo-light-icon.png') }}';" alt="homepage" class="light-logo">
+            <img src="{{ asset('/images/spideli_dark_logo.png') }}" onerror="this.onerror=null; this.src='{{ asset('/images/spideli_dark_logo.png') }}';" alt="homepage" class="dark-logo" width="100%" id="logo_web">
+            <img src="{{ asset('images/spideli_light_logo.png') }}" onerror="this.onerror=null; this.src='{{ asset('images/spideli_light_logo.png') }}';" alt="homepage" class="light-logo">
         </b>
     </a>
     <div class="sidebar-toggle">  
@@ -86,6 +86,9 @@ $service_type = @$_COOKIE['service_type'];
                     @endif
                     @if (in_array('region', $role_has_permission))
                     <li><a class="nav-link"href="{!! route('region') !!}"><i class="mdi mdi-earth"></i> {{ trans('lang.region') }}</a></li>
+                    @endif
+                    @if (in_array('service-group', $role_has_permission))
+                    <li><a class="nav-link"href="{!! route('service-groups') !!}"><i class="mdi mdi-view-grid"></i> {{ trans('lang.service_group_plural') }}</a></li>
                     @endif
                     @if (in_array('carrier', $role_has_permission))
                     <li><a class="nav-link"href="{!! route('carriers') !!}"><i class="mdi mdi-truck"></i> {{ trans('lang.carrier') }}</a></li>
@@ -266,7 +269,7 @@ $service_type = @$_COOKIE['service_type'];
         <div class="nav-item dropdown" id="activeSection">
             <a class="nav-link dropdown-toggle waves-effect waves-dark" href="#" id="activeSectionLink"
                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <img src="{{ asset('/images/logo-light-icon.png') }}" id="activeSectionLogo" style="height:40px; margin-right:5px;">
+                <img src="{{ asset('/images/spideli_light_logo.png') }}" id="activeSectionLogo" style="height:40px; margin-right:5px;">
                 <span id="activeSectionName"> {{ trans('lang.select_section') }}</span>
             </a>
             <div class="dropdown-menu dropdown-service scale-up">

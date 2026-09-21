@@ -288,3 +288,32 @@ ul.rating {
 #dmAssignModal .select2-container--open {
     z-index: 1060;
 }
+
+
+/* ---- Service Group select2 ----
+   Same theme rules as the Assign Driver modal above: the global
+   .select2.select2-container pulls any select2 out of flow and the
+   __rendered max-width truncates its label. Undone here for this field only.
+
+   Match .select2.select2-container, never the bare .select2-container - that
+   also matches the dropdown wrapper, and overriding its position puts the
+   dropdown in the page corner instead of under the control. */
+.service-group-box .select2.select2-container {
+    position: relative !important;
+    left: 0 !important;
+    top: 0 !important;
+    bottom: auto !important;
+    width: 100% !important;
+}
+
+.service-group-box .select2.select2-container .select2-selection--single {
+    height: 38px;
+    border: 1px solid #b1b8bb;
+    border-radius: 4px;
+}
+
+.service-group-box .select2-container--default .select2-selection--single .select2-selection__rendered {
+    max-width: none !important;
+    line-height: 36px;
+    padding-left: 10px;
+}

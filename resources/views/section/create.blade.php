@@ -52,6 +52,7 @@
                                 </select>
                             </div>
                         </div>
+                        @include('section.partials.service_group')
                         <div class="form-group row width-100 marker-icon-div" style="display:none">
                             <label class="col-3 control-label">{{trans('lang.marker_icon')}}</label>
                             <div class="col-7">
@@ -330,6 +331,7 @@
         $(document).ready(function() {
             jQuery("#data-table_processing").hide();
             loadRegionAssignment(null);
+            loadServiceGroups('');
             services.get().then(async function(snapshots) {
                 snapshots.docs.forEach((listval) => {
                     var data = listval.data();
@@ -441,6 +443,7 @@
                     'rideType': rideType,
                     'serviceType': service_type,
                     'serviceTypeFlag': service_type_flag,
+                    'serviceGroup': $('#service_group').val() || '',
                     'delivery_charge': delivery_charge,
                     'cab_service_template': htmlTemplate,
                     'referralAmount': referralAmount,

@@ -51,6 +51,7 @@
                                 </select>
                             </div>
                         </div>
+                        @include('section.partials.service_group')
                         <div class="form-group row width-100 marker-icon-div" style="display:none">
                             <label class="col-3 control-label">{{trans('lang.marker_icon')}}</label>
                             <div class="col-7">
@@ -374,6 +375,9 @@
                     }
                     if (section.serviceType) {
                         $('#service_type').val(section.serviceType).trigger('change');
+                        /* Sections created before service groups existed have no
+                         * serviceGroup, and fall to "No group". */
+                        loadServiceGroups(section.serviceGroup || '');
                         if (section.serviceType == "Cab Service") {
                             $('.diliverychargeDiv').hide();
                             if (section.hasOwnProperty('rideType')) {
@@ -519,6 +523,7 @@
                         'rideType': rideType,
                         'serviceType': service_type,
                         'serviceTypeFlag': service_type_flag,
+                        'serviceGroup': $('#service_group').val() || '',
                         'delivery_charge': delivery_charge,
                         'cab_service_template': htmlTemplate,
                         'referralAmount': referralAmount,

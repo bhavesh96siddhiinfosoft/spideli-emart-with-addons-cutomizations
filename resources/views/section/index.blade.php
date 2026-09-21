@@ -53,6 +53,7 @@
                                         <th>Sort</th>
                                         <th>{{trans('lang.section_info')}}</th>
                                         <th>{{trans('lang.service_type')}}</th>
+                                        <th>{{trans('lang.service_group')}}</th>
                                         <th>{{trans('lang.status')}}</th>
                                         <th>{{trans('lang.actions')}}</th>
                                     </tr>
@@ -121,8 +122,11 @@
                     order: [[0, "asc"]],
                     columnDefs: [
                         {
+                            /* Service Type, Service Group, Status. Targets are
+                             * column positions, so they shifted when the group
+                             * column was added between type and status. */
                             orderable: false,
-                            targets: [2, 3]
+                            targets: [2, 3, 4]
                         },
                     ],
                     "language": datatableLang,
@@ -169,8 +173,18 @@
             });
         }
 
+        /* Filled from Settings > Service Groups before the rows are built, so
+         * a renamed group shows its new name here without touching this file.
+         * A section saved before groups existed has none and shows a dash. */
+        var SERVICE_GROUP_LABELS = {};
+
+        function serviceGroupLabel(group) {
+            return SERVICE_GROUP_LABELS[group] || '-';
+        }
+
         async function buildHTML(snapshots) {
             var html = '';
+            SERVICE_GROUP_LABELS = await serviceGroupNames();
             await Promise.all(snapshots.docs.map(async (listval) => {
                 var val = listval.data();
                 if (val.title != '') {
@@ -201,6 +215,7 @@
                 html = html + '<td><img alt="" width="100%" style="width:70px;height:70px;" src="' + placeholderImage + '" alt="image"> <span data-url="' + route1 + '" class="redirecttopage"><a href="' + route1 + '">' + val.name + '</a></span></td>';
             }
             html = html + '<td data-url="' + route1 + '" class="redirecttopage">' + val.serviceType + '</td>';
+            html = html + '<td data-url="' + route1 + '" class="redirecttopage">' + serviceGroupLabel(val.serviceGroup) + '</td>';
             if (val.isActive) {
                 html = html + '<td><label class="switch"><input type="checkbox" checked id="' + val.id + '" name="isSwitch"><span class="slider round"></span></label></td>';
             } else {

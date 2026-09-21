@@ -1428,6 +1428,63 @@
             return snapshot.exists ? toAmount(snapshot.data().wallet_amount) : 0;
         }
 
+        /* The groups a service can appear under on the customer home screen.
+         * Managed in Settings > Service Groups, so the list is read from
+         * Firestore rather than fixed in the form.
+         *
+         * A group's `id` is what a section stores. It never changes, so
+         * renaming a group cannot detach the services in it. */
+        async function loadServiceGroups(selected) {
+            var $select = $('#service_group');
+
+            if (!$select.length) {
+                return;
+            }
+
+            var snapshots = await firebase.firestore().collection('service_groups').get();
+            var groups = snapshots.docs.map(function (doc) {
+                return doc.data();
+            }).filter(function (group) {
+                return group.publish !== false;
+            });
+
+            /* Sorted here rather than with orderBy: Firestore drops documents
+             * that lack the field being ordered by. */
+            groups.sort(function (a, b) {
+                return (parseInt(a.order) || 0) - (parseInt(b.order) || 0);
+            });
+
+            groups.forEach(function (group) {
+                $select.append($('<option></option>').attr('value', group.id).text(group.name));
+            });
+
+            /* A section may hold a group that was later unpublished or
+             * deleted. Kept as an option so saving the section does not
+             * silently clear it. */
+            if (selected && !$select.find('option[value="' + selected + '"]').length) {
+                $select.append($('<option></option>').attr('value', selected).text(selected));
+            }
+
+            $select.val(selected || '');
+            $select.select2({
+                width: '100%',
+                placeholder: "{{ trans('lang.service_group_none') }}"
+            });
+        }
+
+        /* Group id -> name, for screens that only display it. */
+        async function serviceGroupNames() {
+            var names = {};
+            var snapshots = await firebase.firestore().collection('service_groups').get();
+
+            snapshots.docs.forEach(function (doc) {
+                var group = doc.data();
+                names[group.id] = group.name;
+            });
+
+            return names;
+        }
+
         /* A delivery zone may serve several regions at once - one "Worldwide"
          * zone can be offered by Cameroon and France together.
          *

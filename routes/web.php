@@ -812,6 +812,15 @@ Route::middleware(['permission:deliveryman,deliveryman'])->group(function () {
 
 Route::post('/send-ad-notification', [App\Http\Controllers\AdvertisementsController::class, 'sendNotification'])->name('advertisement.sendnotification');
 
+Route::middleware(['permission:service-group,service-group.list'])->group(function () {
+    Route::get('service-groups', [App\Http\Controllers\ServiceGroupController::class, 'index'])->name('service-groups');
+});
+Route::middleware(['permission:service-group,service-group.create'])->group(function () {
+    Route::get('/service-groups/create', [App\Http\Controllers\ServiceGroupController::class, 'create'])->name('service-groups.create');
+});
+Route::middleware(['permission:service-group,service-group.edit'])->group(function () {
+    Route::get('/service-groups/edit/{id}', [App\Http\Controllers\ServiceGroupController::class, 'edit'])->name('service-groups.edit');
+});
 Route::middleware(['permission:region,region.list'])->group(function () {
     Route::get('region', [App\Http\Controllers\RegionController::class, 'index'])->name('region');
 });
