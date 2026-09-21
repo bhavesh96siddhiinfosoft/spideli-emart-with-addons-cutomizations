@@ -87,6 +87,9 @@ $service_type = @$_COOKIE['service_type'];
                     @if (in_array('region', $role_has_permission))
                     <li><a class="nav-link"href="{!! route('region') !!}"><i class="mdi mdi-earth"></i> {{ trans('lang.region') }}</a></li>
                     @endif
+                    @if (in_array('pickup-point', $role_has_permission))
+                    <li><a class="nav-link"href="{!! route('pickup-points') !!}"><i class="mdi mdi-map-marker"></i> {{ trans('lang.pickup_point_plural') }}</a></li>
+                    @endif
                     @if (in_array('sms-gateway', $role_has_permission))
                     <li><a class="nav-link"href="{!! route('settings.app.smsGateway') !!}"><i class="mdi mdi-message-text"></i> {{ trans('lang.sms_gateway') }}</a></li>
                     @endif

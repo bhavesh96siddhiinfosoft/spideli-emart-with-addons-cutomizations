@@ -817,6 +817,16 @@ Route::middleware(['permission:deliveryman,deliveryman'])->group(function () {
 
 Route::post('/send-ad-notification', [App\Http\Controllers\AdvertisementsController::class, 'sendNotification'])->name('advertisement.sendnotification');
 
+Route::middleware(['permission:pickup-point,pickup-point.list'])->group(function () {
+    Route::get('pickup-points', [App\Http\Controllers\PickupPointController::class, 'index'])->name('pickup-points');
+    Route::get('/pickup-points/parcels/{id}', [App\Http\Controllers\PickupPointController::class, 'parcels'])->name('pickup-points.parcels');
+});
+Route::middleware(['permission:pickup-point,pickup-point.create'])->group(function () {
+    Route::get('/pickup-points/create', [App\Http\Controllers\PickupPointController::class, 'create'])->name('pickup-points.create');
+});
+Route::middleware(['permission:pickup-point,pickup-point.edit'])->group(function () {
+    Route::get('/pickup-points/edit/{id}', [App\Http\Controllers\PickupPointController::class, 'edit'])->name('pickup-points.edit');
+});
 Route::middleware(['permission:service-group,service-group.list'])->group(function () {
     Route::get('service-groups', [App\Http\Controllers\ServiceGroupController::class, 'index'])->name('service-groups');
 });

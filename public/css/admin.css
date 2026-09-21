@@ -317,3 +317,32 @@ ul.rating {
     line-height: 36px;
     padding-left: 10px;
 }
+
+
+/* ---- Pickup point Region select2 ----
+   Same theme rules as the Assign Driver modal and the service group box: the
+   global .select2.select2-container pulls any select2 out of flow and the
+   __rendered max-width truncates it to a few characters. Undone here for this
+   one field.
+
+   The phone picker on the same form is deliberately NOT covered - the theme's
+   absolute positioning is written for .phone-box and is correct there. */
+.pickup-region-box .select2.select2-container {
+    position: relative !important;
+    left: 0 !important;
+    top: 0 !important;
+    bottom: auto !important;
+    width: 100% !important;
+}
+
+.pickup-region-box .select2.select2-container .select2-selection--single {
+    height: 38px;
+    border: 1px solid #b1b8bb;
+    border-radius: 4px;
+}
+
+.pickup-region-box .select2-container--default .select2-selection--single .select2-selection__rendered {
+    max-width: none !important;
+    line-height: 36px;
+    padding-left: 10px;
+}

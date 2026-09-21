@@ -30,6 +30,7 @@ class GrantRegionPermissions extends Command
         $groups = [
             'region' => ['region.list', 'region.create', 'region.edit', 'region.delete', 'region.backfill'],
             'carrier' => ['carrier.list', 'carrier.create', 'carrier.edit', 'carrier.delete'],
+            'pickup-point' => ['pickup-point.list', 'pickup-point.create', 'pickup-point.edit', 'pickup-point.delete'],
             'service-group' => ['service-group.list', 'service-group.create', 'service-group.edit', 'service-group.delete'],
             'order-history' => ['settings.app.orderHistory'],
             'sms-gateway' => ['settings.app.smsGateway'],
