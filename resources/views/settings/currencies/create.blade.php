@@ -446,13 +446,13 @@
 
 
 
-        })
+        });
 
-
-
- 
-
-
+    /* Closes $(document).ready(...) opened near the top of this block. It was
+     * never closed, so the whole script failed to parse and nothing on the
+     * page ran - the country picker, the service list and Save all silently
+     * did nothing. Pre-existing in the stock eMart view. */
+    });
 
 </script>
 

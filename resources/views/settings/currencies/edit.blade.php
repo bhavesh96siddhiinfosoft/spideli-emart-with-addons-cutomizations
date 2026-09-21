@@ -52,9 +52,14 @@
 
                     <div class="form-group row width-100">
 
-                        <label class="col-12 control-label">{{trans('lang.country')}}</label>
+                        <label class="col-3 control-label">{{trans('lang.country')}}</label>
 
-                        <div class="col-12">
+                        <div class="col-7">
+
+                        {{-- The theme cancels its global select2 positioning only
+                             inside .country-box. Without this wrapper the picker
+                             collapses, which is what this screen was doing. --}}
+                        <div id="phone-box" class="country-box position-relative">
 
                             <?php
 
@@ -78,15 +83,17 @@
 
                             ?>
 
-                            <select name="country" id="country">
+                            <select name="country" id="country" class="form-control currency_country">
 
                                 <?php foreach ($newcountries as $keycy => $valuecy) { ?>
 
-                                    <option value="<?php echo $valuecy->countryName; ?>"><?php echo $valuecy->countryName; ?></option>
+                                    <option value="<?php echo $valuecy->countryName; ?>"><?php echo $valuecy->countryName; ?> +(<?php echo $valuecy->phoneCode; ?>)</option>
 
                                 <?php } ?>
 
                             </select>
+
+                        </div>
 
                         </div>
 
@@ -354,19 +361,10 @@ $(document).ready(function () {
 
         if (currency.country != undefined) {
 
-            $('#country').val(currency.country);
-
-            jQuery("#country").select2({
-
-                templateResult: formatState,
-
-                templateSelection: formatState2,
-
-                placeholder: "Select Country",
-
-                allowClear: true
-
-            });
+            /* select2 ignores a second initialisation, so the picker is told
+             * about the new value with a change event instead - the same way
+             * the carrier and store forms do it. */
+            $('#country').val(currency.country).trigger('change');
 
         }
 
