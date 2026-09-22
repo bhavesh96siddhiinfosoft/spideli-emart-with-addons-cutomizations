@@ -352,6 +352,9 @@ Route::prefix('settings')->group(function () {
     Route::middleware(['permission:order-history,settings.app.orderHistory'])->group(function () {
         Route::get('app/orderHistory', [App\Http\Controllers\SettingsController::class, 'orderHistory'])->name('settings.app.orderHistory');
     });
+    Route::middleware(['permission:region-defaults,settings.app.regionDefaults'])->group(function () {
+        Route::get('app/regionDefaults', [App\Http\Controllers\SettingsController::class, 'regionDefaults'])->name('settings.app.regionDefaults');
+    });
     Route::middleware(['permission:admin-commission,settings.app.adminCommission'])->group(function () {
         Route::get('app/adminCommission', [App\Http\Controllers\SettingsController::class, 'adminCommission'])->name('settings.app.adminCommission');
     });

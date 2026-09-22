@@ -123,6 +123,9 @@ $service_type = @$_COOKIE['service_type'];
                     @if (in_array('order-history', $role_has_permission))
                     <li><a class="nav-link"href="{!! route('settings.app.orderHistory') !!}"><i class="mdi mdi-history"></i> {{ trans('lang.order_history_settings') }}</a></li>
                     @endif
+                    @if (in_array('region-defaults', $role_has_permission))
+                    <li><a class="nav-link"href="{!! route('settings.app.regionDefaults') !!}"><i class="mdi mdi-earth"></i> {{ trans('lang.region_defaults_settings') }}</a></li>
+                    @endif
                     @if (in_array('admin-commission', $role_has_permission))
                     <li><a class="nav-link"href="{!! route('settings.app.adminCommission') !!}"><i class="mdi mdi-percent"></i> {{ trans('lang.admin_commission') }}</a></li>
                     @endif

@@ -33,6 +33,7 @@ class GrantRegionPermissions extends Command
             'pickup-point' => ['pickup-point.list', 'pickup-point.create', 'pickup-point.edit', 'pickup-point.delete'],
             'service-group' => ['service-group.list', 'service-group.create', 'service-group.edit', 'service-group.delete'],
             'order-history' => ['settings.app.orderHistory'],
+            'region-defaults' => ['settings.app.regionDefaults'],
             'sms-gateway' => ['settings.app.smsGateway'],
             'admin-commission' => ['settings.app.adminCommission'],
         ];

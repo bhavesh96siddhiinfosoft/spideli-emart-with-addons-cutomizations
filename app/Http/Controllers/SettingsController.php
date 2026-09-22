@@ -107,6 +107,11 @@ class SettingsController extends Controller
         return view('settings.app.orderHistory');
     }
 
+    public function regionDefaults()
+    {
+        return view('settings.app.regionDefaults');
+    }
+
     public function adminCommission()
     {
         return view('settings.app.adminCommission');
