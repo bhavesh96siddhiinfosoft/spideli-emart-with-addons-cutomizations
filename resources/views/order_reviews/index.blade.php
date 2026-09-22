@@ -302,7 +302,20 @@ async function getStoreNameFunction(vendorId){
 
         await database.collection('vendors').where('id', '==', vendorId).get().then(async function (snapshots) {
 
+            if (!snapshots.docs.length) {
+                window.location.href = '{{ route("stores") }}';
+                return;
+            }
+
             var vendorData = snapshots.docs[0].data();
+
+            /* These reviews belong to one store, and a store belongs to one
+             * region - so the store decides. Without this, a store in another
+             * region is reachable by editing the url. */
+            if (!isInActiveRegion(vendorData)) {
+                window.location.href = '{{ route("stores") }}';
+                return;
+            }
 
             vendorName = vendorData.title;
 

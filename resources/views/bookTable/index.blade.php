@@ -241,7 +241,21 @@
         function getStoreNameFunction(vendorId) {
             var vendorName = '';
             database.collection('vendors').where('id', '==', vendorId).get().then(function(snapshots) {
+                if (!snapshots.docs.length) {
+                    window.location.href = '{{ route("stores") }}';
+                    return;
+                }
+
                 var vendorData = snapshots.docs[0].data();
+
+                /* These bookings belong to one store, and a store belongs to one
+                 * region - so the store decides. Without this, a store in another
+                 * region is reachable by editing the url. */
+                if (!isInActiveRegion(vendorData)) {
+                    window.location.href = '{{ route("stores") }}';
+                    return;
+                }
+
                 vendorName = vendorData.title;
                 $(".storeTitle").text(' - ' + vendorName);
             });
