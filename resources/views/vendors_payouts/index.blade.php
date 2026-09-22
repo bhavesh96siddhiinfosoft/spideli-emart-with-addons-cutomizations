@@ -364,9 +364,18 @@
 
 
 
+                        const partyRegions = await partyRegionMap();
+
                         await Promise.all(querySnapshot.docs.map(async (doc) => {
 
                             let childData = doc.data();
+                            /* A payout carries no region of its own. It belongs to the
+                             * store it is paid to, and that is where its region
+                             * comes from. */
+                            if (!payoutInActiveRegion(partyRegions, childData.vendorID)) {
+                                return;
+                            }
+
 
                             childData.id = doc.vendorID; // Ensure the document ID is included in the data
 

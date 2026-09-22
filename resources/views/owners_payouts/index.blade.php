@@ -197,8 +197,17 @@
             let records = [];
             let filteredRecords = [];
 
+            const partyRegions = await partyRegionMap();
+
             await Promise.all(querySnapshot.docs.map(async (doc) => {
                 let childData = doc.data();
+                /* A payout carries no region of its own. It belongs to the
+                 * fleet owner it is paid to, and that is where its region
+                 * comes from. */
+                if (!payoutInActiveRegion(partyRegions, childData.driverID)) {
+                    return;
+                }
+
                 childData.id = doc.driverID; // Ensure the document ID is included in the data
                 childData.recid=doc.id;
                 var payoutDriver = '';

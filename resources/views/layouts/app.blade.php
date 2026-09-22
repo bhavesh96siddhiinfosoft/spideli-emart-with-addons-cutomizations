@@ -1519,6 +1519,69 @@
             return active || '';
         }
 
+        /* A payout row names one party and carries no region of its own: a
+         * vendor payout names a store, a provider payout names a provider, a
+         * driver payout names a driver. The party already carries `regionId`,
+         * so the region is resolved here rather than stamped onto every payout
+         * - which would need a backfill AND a change in both panels that write
+         * payouts.
+         *
+         * Both collections are keyed by document id, but their documents also
+         * carry an `id` field, and the payout rows use that. Both are mapped so
+         * either spelling resolves.
+         *
+         * Cached for the life of the page: these lists are fetched whole and
+         * paged in the browser, so this runs once per screen. */
+        var PARTY_REGIONS = null;
+
+        async function partyRegionMap() {
+            if (PARTY_REGIONS) {
+                return PARTY_REGIONS;
+            }
+
+            var db = firebase.firestore();
+            var map = {};
+
+            function remember(doc) {
+                var data = doc.data();
+
+                if (!data.regionId) {
+                    return;
+                }
+
+                map[doc.id] = data.regionId;
+
+                if (data.id) {
+                    map[data.id] = data.regionId;
+                }
+            }
+
+            var stores = await db.collection('vendors').get();
+            stores.docs.forEach(remember);
+
+            var people = await db.collection('users').get();
+            people.docs.forEach(remember);
+
+            PARTY_REGIONS = map;
+
+            return map;
+        }
+
+        /* True when a payout belongs in the region being worked in. `partyId`
+         * is the row's vendorID or driverID.
+         *
+         * A payout whose party has no region yet is hidden while a region is
+         * selected, exactly as an unplaced order is - not silently shown. */
+        function payoutInActiveRegion(map, partyId) {
+            var active = getActiveRegionId();
+
+            if (!active) {
+                return true;
+            }
+
+            return !!partyId && map[partyId] === active;
+        }
+
         /* A store's owner is named on the store document, in `author`.
          *
          * Finding them with `users where vendorID == <storeId>` asks a different
