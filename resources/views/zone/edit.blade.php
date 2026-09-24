@@ -265,6 +265,7 @@
                 var name = $("#name").val();
                 var publish = $("#publish").is(":checked");
                 var coordinates_object = $('#coordinates').val();
+                var sectionId = getCookie('section_id') || '';
                 $(".error_top").empty();
                 if (name == '') {
                     $(".error_top").show();
