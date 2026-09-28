@@ -75,12 +75,91 @@
         var refData = database.collection('email_templates').orderBy('createdAt', 'desc');
         var append_list = '';
 
-        $(document).ready(function () {
+        /* The templates this panel expects to exist.
+         *
+         * The Type field on the edit screen is read-only and there is no
+         * "create template" screen - the original nine were seeded with the
+         * product. So a new template has to be created here, once, or the
+         * client has no way to reach it and the email never goes out.
+         *
+         * Idempotent: a type that already exists is left exactly as it is,
+         * wording included. Opening this screen never overwrites anything the
+         * client has edited.
+         */
+        var EXPECTED_TEMPLATES = [
+            {
+                type: 'subscription_purchased',
+                subject: 'Your subscription is confirmed - {planname}',
+                message: '<p>Hello {username},</p>' +
+                    '<p>Thank you. Your subscription is now active.</p>' +
+                    '<p><strong>Plan:</strong> {planname}<br>' +
+                    '<strong>Store:</strong> {storename}<br>' +
+                    '<strong>Amount paid:</strong> {price}<br>' +
+                    '<strong>Paid with:</strong> {paymentmethod}<br>' +
+                    '<strong>Valid until:</strong> {expirydate}</p>' +
+                    '<p>You can see this subscription at any time under Subscriptions in your account.</p>',
+                isSendToAdmin: false
+            },
+            {
+                type: 'subscription_purchased_admin',
+                subject: 'New subscription purchased - {planname}',
+                message: '<p>A customer has bought a subscription.</p>' +
+                    '<p><strong>Customer:</strong> {username} ({customeremail})<br>' +
+                    '<strong>Plan:</strong> {planname}<br>' +
+                    '<strong>Store:</strong> {storename}<br>' +
+                    '<strong>Amount:</strong> {price}<br>' +
+                    '<strong>Paid with:</strong> {paymentmethod}<br>' +
+                    '<strong>Valid until:</strong> {expirydate}<br>' +
+                    '<strong>Purchased on:</strong> {date}</p>',
+                isSendToAdmin: true
+            }
+        ];
+
+        /* {storename} is empty for the platform's own order-history plan,
+         * which no store sells. That is why the templates read as they do -
+         * an empty line rather than a wrong one. */
+        async function ensureExpectedTemplates() {
+            try {
+                for (var i = 0; i < EXPECTED_TEMPLATES.length; i++) {
+                    var wanted = EXPECTED_TEMPLATES[i];
+
+                    var existing = await database.collection('email_templates')
+                        .where('type', '==', wanted.type).limit(1).get();
+
+                    if (!existing.empty) {
+                        continue;
+                    }
+
+                    var id = database.collection('tmp').doc().id;
+                    await database.collection('email_templates').doc(id).set({
+                        'id': id,
+                        'subject': wanted.subject,
+                        'message': wanted.message,
+                        'type': wanted.type,
+                        'isSendToAdmin': wanted.isSendToAdmin,
+                        'createdAt': firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+            } catch (err) {
+                /* Never blocks the list. A panel that will not open because a
+                 * template could not be created is worse than a missing
+                 * template. */
+                console.error('expected email templates could not be created', err);
+            }
+        }
+
+        $(document).ready(async function () {
 
             jQuery("#data-table_processing").show();
 
             append_list = document.getElementById('emailTemplatesTbody');
             append_list.innerHTML = '';
+
+            /* Creates anything missing before the list is drawn, so the two
+             * subscription templates appear the first time this screen is
+             * opened after the update. */
+            await ensureExpectedTemplates();
+
             refData.get().then(async function (snapshots) {
                 var html = '';
                 if (snapshots.docs.length > 0) {
@@ -181,6 +260,10 @@
                     type = "{{trans('lang.new_car_book')}}";
                 }else if (data.type == "new_ondemand_book") {
                     type = "{{trans('lang.new_ondemand_book')}}";
+                }else if (data.type == "subscription_purchased") {
+                    type = "{{trans('lang.subscription_purchased')}}";
+                }else if (data.type == "subscription_purchased_admin") {
+                    type = "{{trans('lang.subscription_purchased_admin')}}";
                 }
 
 

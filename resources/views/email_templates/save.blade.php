@@ -120,6 +120,10 @@
                                     type = "{{trans('lang.new_car_book')}}";
                                 }else if (data.type == "new_ondemand_book") {
                                     type = "{{trans('lang.new_ondemand_book')}}";
+                                } else if (data.type == "subscription_purchased") {
+                                    type = "{{trans('lang.subscription_purchased')}}";
+                                } else if (data.type == "subscription_purchased_admin") {
+                                    type = "{{trans('lang.subscription_purchased_admin')}}";
                                 }
                                 $('#type').val(type);
                             }

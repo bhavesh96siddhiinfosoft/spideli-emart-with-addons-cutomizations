@@ -1252,6 +1252,8 @@ return [
     'new_parcel_book' => 'New Parcel Book',
     'new_car_book' => 'New car Book',
     'new_ondemand_book' => 'New OnDemand Book',
+    'subscription_purchased' => 'Subscription purchased (customer)',
+    'subscription_purchased_admin' => 'Subscription purchased (admin)',
     'schedule_date_time' => 'Schedule Date',
     'accept_before_date_error' => 'You can not accept order before schedule date',
     'accept_before_time_error' => 'You can not accept order before schedule time',

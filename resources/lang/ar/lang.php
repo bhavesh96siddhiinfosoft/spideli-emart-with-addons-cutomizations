@@ -1253,6 +1253,8 @@ return [
     'new_parcel_book' => 'حجز طرد جديد',
     'new_car_book' => 'حجز سيارة جديدة',
     'new_ondemand_book' => 'حجز خدمة عند الطلب جديدة',
+    'subscription_purchased' => 'تم شراء اشتراك (العميل)',
+    'subscription_purchased_admin' => 'تم شراء اشتراك (المشرف)',
     'schedule_date_time' => 'تاريخ الجدول',
     'accept_before_date_error' => 'لا يمكنك قبول الطلب قبل تاريخ الجدول',
     'accept_before_time_error' => 'لا يمكنك قبول الطلب قبل وقت الجدول',
