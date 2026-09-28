@@ -17,6 +17,27 @@
                             <h6 class="text-dark">{{ $item['name'] }}</h6>
                             @if(!empty($item['is_wholesale']))
                                 <span class="badge badge-info">{{ trans('lang.wholesale') }}</span>
+                                @if(!empty($item['wholesale_applied_min_qty']))
+                                    {{-- WHICH tier is running, not just that one is.
+                                         With a ladder of 10 / 25 / 50 the counter
+                                         cannot otherwise tell. --}}
+                                    <span class="badge badge-light">{{ str_replace(':count', $item['wholesale_applied_min_qty'], trans('lang.wholesale_from_units')) }}</span>
+                                @endif
+                            @endif
+                            @php
+                                /* Sold in packs. Shown because the minus button
+                                   stopping at ten is otherwise indistinguishable
+                                   from a stuck cart. */
+                                $packMinimum = 0;
+                                if (($item['sale_type'] ?? 'both') === 'wholesale') {
+                                    $packTiers = $item['wholesale_tiers'] ?? [];
+                                    $packMinimum = !empty($packTiers)
+                                        ? (int) $packTiers[0]['minQty']
+                                        : (int) ($item['wholesale_min_qty'] ?? 0);
+                                }
+                            @endphp
+                            @if($packMinimum > 1)
+                                <span class="badge badge-dark">{{ str_replace(':count', $packMinimum, trans('lang.wholesale_only_minimum')) }}</span>
                             @endif
                             @if(!empty($item['variant_info']) && is_array($item['variant_info']) && !empty($item['variant_info']['variant_options']) && is_array($item['variant_info']['variant_options']))
                                 <small class="text-muted">

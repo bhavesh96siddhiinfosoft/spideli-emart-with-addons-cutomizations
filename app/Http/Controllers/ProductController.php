@@ -94,8 +94,17 @@ class ProductController extends Controller
                 'retail_base_price' => $request->original_base_price,
                 'wholesale_price' => $request->wholesale_price,
                 'wholesale_min_qty' => $request->wholesale_min_qty,
+                'wholesale_tiers' => $this->normaliseWholesaleTiers($request->wholesale_tiers),
+                'sale_type' => $this->normaliseSaleType($request->sale_type),
             ];
         }
+
+        /* A wholesale-only product is not sold singly. The counter can still
+         * type any quantity, so the floor is applied to the line rather than
+         * trusted from the screen. */
+        $cart[$productKey]['quantity'] = $this->enforceSaleTypeQuantity(
+            $cart[$productKey], (int) $cart[$productKey]['quantity']
+        );
 
         $cart[$productKey] = $this->applyWholesalePrice($cart[$productKey]);
 
@@ -213,9 +222,16 @@ class ProductController extends Controller
             // Decrease quantity
             elseif ($request->operation === 'minus') {
 
-                if ($currentQty > 1) {
+                /* A wholesale-only line stops at its pack minimum rather than
+                 * at one. Removing the line entirely is still available, so
+                 * the counter is never stuck with it. */
+                $minimum = $this->saleTypeMinimum($item);
+
+                if ($currentQty > $minimum) {
                     $cart[$index]['quantity']--;
                     $cart['item'][$cart['restaurant_id']][$index]['quantity']--;
+                } elseif ($minimum > 1) {
+                    $error = str_replace(':count', $minimum, trans('lang.wholesale_only_minimum'));
                 }
             }
 
@@ -265,18 +281,131 @@ class ProductController extends Controller
         $retail = $item['retail_base_price'] ?? $item['original_base_price'];
         $item['retail_base_price'] = $retail;
 
-        $wholesalePrice = $item['wholesale_price'] ?? '';
-        $minQty = (int) ($item['wholesale_min_qty'] ?? 0);
+        $tiers = $this->normaliseWholesaleTiers($item['wholesale_tiers'] ?? []);
 
-        $isWholesale = $wholesalePrice !== '' && $wholesalePrice !== null
-            && $minQty > 0
-            && (int) $item['quantity'] >= $minQty
-            && (float) $wholesalePrice < (float) $retail;
+        /* Nothing but the older pair - treat it as the one tier it is. Every
+         * product saved before tiers existed is in that state. */
+        if (empty($tiers)) {
+            $legacyPrice = $item['wholesale_price'] ?? '';
+            $legacyMinQty = (int) ($item['wholesale_min_qty'] ?? 0);
 
-        $item['is_wholesale'] = $isWholesale;
-        $item['original_base_price'] = $isWholesale ? (float) $wholesalePrice : $retail;
+            if ($legacyPrice !== '' && $legacyPrice !== null && is_numeric($legacyPrice) && $legacyMinQty > 0) {
+                $tiers = [['minQty' => $legacyMinQty, 'price' => (float) $legacyPrice]];
+            }
+        }
+
+        $item['wholesale_tiers'] = $tiers;
+
+        $quantity = (int) $item['quantity'];
+        $applied = null;
+
+        /* Sorted smallest first, so the last tier the quantity reaches is the
+         * deepest one it qualifies for. A tier that is not actually cheaper
+         * than the price the line already has - a product on promotion - is
+         * skipped, so buying more can never cost more. */
+        foreach ($tiers as $tier) {
+            if ($quantity >= $tier['minQty'] && $tier['price'] < (float) $retail) {
+                $applied = $tier;
+            }
+        }
+
+        $item['is_wholesale'] = $applied !== null;
+        $item['original_base_price'] = $applied !== null ? $applied['price'] : $retail;
+
+        /* What the line is actually charged on, as opposed to what the product
+         * offers. The cart line and the saved order read these. */
+        $item['wholesale_applied_min_qty'] = $applied !== null ? $applied['minQty'] : '';
+        $item['wholesale_applied_price'] = $applied !== null ? $applied['price'] : '';
 
         return $item;
+    }
+
+    /**
+     * The tier list as the item form writes it, cleaned and ordered.
+     *
+     * Arrives as an array from the session or as JSON from the screen. Rows
+     * without a usable quantity and price are dropped rather than trusted -
+     * a half-filled tier must never mis-price a sale.
+     */
+    private function normaliseWholesaleTiers($raw)
+    {
+        if (is_string($raw)) {
+            $raw = json_decode($raw, true);
+        }
+
+        if (!is_array($raw)) {
+            return [];
+        }
+
+        $tiers = [];
+        foreach ($raw as $tier) {
+            if (!is_array($tier)) {
+                continue;
+            }
+
+            $minQty = (int) ($tier['minQty'] ?? 0);
+            $price = $tier['price'] ?? '';
+
+            if ($minQty <= 0 || $price === '' || $price === null || !is_numeric($price)) {
+                continue;
+            }
+
+            $tiers[] = ['minQty' => $minQty, 'price' => (float) $price];
+        }
+
+        usort($tiers, function ($a, $b) {
+            return $a['minQty'] <=> $b['minQty'];
+        });
+
+        return $tiers;
+    }
+
+    /**
+     * The store's three-way choice, as written by the item form.
+     *
+     * "retail"    - no wholesale price at all
+     * "wholesale" - sold ONLY in wholesale quantities
+     * "both"      - retail, with a wholesale price once the quantity is met
+     *
+     * Anything else, including a product saved before the field existed,
+     * means "both" - exactly how this panel behaved before the field arrived.
+     */
+    private function normaliseSaleType($value)
+    {
+        $value = is_string($value) ? strtolower(trim($value)) : '';
+
+        return in_array($value, ['retail', 'wholesale', 'both'], true) ? $value : 'both';
+    }
+
+    /**
+     * The smallest quantity this line may be sold in.
+     *
+     * Only a wholesale-only line has one, and it is the ENTRY tier - the
+     * cheapest quantity that unlocks a wholesale price, not the deepest. A
+     * store selling in tens with a better price at fifty still sells tens.
+     */
+    private function saleTypeMinimum(array $item)
+    {
+        if (($item['sale_type'] ?? 'both') !== 'wholesale') {
+            return 1;
+        }
+
+        $tiers = $this->normaliseWholesaleTiers($item['wholesale_tiers'] ?? []);
+
+        if (empty($tiers)) {
+            $legacy = (int) ($item['wholesale_min_qty'] ?? 0);
+
+            return $legacy > 1 ? $legacy : 1;
+        }
+
+        return max(1, (int) $tiers[0]['minQty']);
+    }
+
+    private function enforceSaleTypeQuantity(array $item, $quantity)
+    {
+        $minimum = $this->saleTypeMinimum($item);
+
+        return $quantity < $minimum ? $minimum : $quantity;
     }
 
     function calculateTax($cart){

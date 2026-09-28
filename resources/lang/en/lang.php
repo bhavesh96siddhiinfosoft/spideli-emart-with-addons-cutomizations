@@ -2799,6 +2799,8 @@ return [
     'enter_positive_variant_wholesale_price_error' => 'Please enter a wholesale price greater than zero for each variant',
     'variant_wholesale_price_less_than_price_error' => 'Each variant wholesale price must be lower than its variant price',
     'wholesale_from_units' => 'from :count units',
+    'wholesale_only_minimum' => 'Sold in a minimum of :count units',
+    'wholesale_applied' => 'Wholesale price applied',
     'vendor_subscription_plural' => 'Vendor Subscriptions',
     'vendor_subscription_plans' => 'Vendor Subscription Plans',
     'vendor_subscription_plans_text' => 'Plans stores sell to their own customers',
