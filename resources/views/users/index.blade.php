@@ -395,10 +395,13 @@
         html.push('<td class="delete-all"><input type="checkbox" id="is_open_' + id + '" class="is_open" dataId="' + id + '"><label class="col-3 control-label"\n' +
             'for="is_open_' + id + '" ></label></td>');
         }
+       /* Approved business accounts carry a tick beside the name, the same
+        * mark the Business Accounts screen shows. Pending, rejected and
+        * ordinary customers show nothing. */
        if (!val.profilePictureURL || val.profilePictureURL.trim() === '') {
-            html.push('<td><img class="rounded" style="width:50px" src="' + placeholderImage + '" alt="image"><a href="' + user_view + '" class="redirecttopage left_space">' + val.firstName + ' ' + val.lastName + '</a></td>');
+            html.push('<td><img class="rounded" style="width:50px" src="' + placeholderImage + '" alt="image"><a href="' + user_view + '" class="redirecttopage left_space">' + val.firstName + ' ' + val.lastName + '</a>' + verifiedMark(val) + '</td>');
         } else {
-            html.push('<td><img class="rounded" style="width:50px" src="' + val.profilePictureURL + '"  onerror="this.onerror=null;this.src=\'' + placeholderImage + '\'"  alt="image"> <a href="' + user_view + '" class="redirecttopage left_space">' + val.firstName + ' ' + val.lastName + '</a></td>');
+            html.push('<td><img class="rounded" style="width:50px" src="' + val.profilePictureURL + '"  onerror="this.onerror=null;this.src=\'' + placeholderImage + '\'"  alt="image"> <a href="' + user_view + '" class="redirecttopage left_space">' + val.firstName + ' ' + val.lastName + '</a>' + verifiedMark(val) + '</td>');
         }
        html.push('<td>' + shortEmail(val.email) + '<br>' + (val.phoneNumber && val.phoneNumber.includes('+') ? '+' + EditPhoneNumber(val.phoneNumber.slice(1)) : EditPhoneNumber(val.phoneNumber)) + '</td>');
         var date = '';
@@ -436,6 +439,16 @@
         html.push(actionHtml);
         return html;
     }
+    function verifiedMark(val) {
+        if (!val.businessProfile || val.businessProfile.status != 'approved') {
+            return '';
+        }
+
+        return ' <i class="mdi mdi-verified business-verified" data-toggle="tooltip"' +
+            ' title="{{ trans('lang.business_account_verified') }}"' +
+            ' data-bs-original-title="{{ trans('lang.business_account_verified') }}"></i>';
+    }
+
     $("#is_active").click(function() {
         $("#userTable .is_open").prop('checked', $(this).prop('checked'));
     });
@@ -445,6 +458,7 @@
                 jQuery("#data-table_processing").show();
                 $('#userTable .is_open:checked').each(async function() {
                     var dataId = $(this).attr('dataId');
+                    await deleteBusinessDocument(dataId);
                     await deleteDocumentWithImage('users', dataId, 'profilePictureURL');
                         const getStoreName = deleteUserData(dataId);
                         setTimeout(function() {
@@ -456,6 +470,34 @@
             alert("{{trans('lang.select_delete_alert')}}");
         }
     });
+    /* The business registration document lives in Storage, and
+     * businessProfile.documentUrl is NESTED - deleteDocumentWithImage only
+     * reads top-level fields, so it would leave the file behind as an orphan
+     * nobody can reach or clear.
+     *
+     * Called BEFORE the user document is deleted, because that is the only
+     * place the URL is recorded. The businessProfile map itself needs no
+     * separate delete: it is part of the user document and goes with it. */
+    async function deleteBusinessDocument(userId) {
+        try {
+            var snapshot = await database.collection('users').doc(userId).get();
+
+            if (!snapshot.exists) {
+                return;
+            }
+
+            var profile = snapshot.data().businessProfile;
+
+            if (profile && profile.documentUrl) {
+                await deleteImageFromBucket(profile.documentUrl);
+            }
+        } catch (error) {
+            /* A missing or already-deleted file must not stop the customer
+             * being deleted - the user document is what matters. */
+            console.log('business document cleanup skipped:', error);
+        }
+    }
+
     async function deleteUserData(userId) {
         await database.collection('wallet').where('user_id', '==', userId).get().then(async function(snapshotsItem) {
             if (snapshotsItem.docs.length > 0) {
@@ -510,6 +552,7 @@
     $(document).on("click", "a[name='user-delete']", async function(e) {
         var id = this.id;
         jQuery("#data-table_processing").show();
+            await deleteBusinessDocument(id);
             await deleteDocumentWithImage('users', id, 'profilePictureURL');
             const getStoreName = deleteUserData(id);
             setTimeout(function() {

@@ -120,6 +120,50 @@
             </div>
             </div>
         </div>
+        <!-- Business account - APP-SPEC-CUSTOMER-APP.md section 6. Hidden
+             entirely for an ordinary customer, so the screen is unchanged for
+             everyone who has not applied. -->
+        <div class="restaurant_info-section mt-3" id="business_section" style="display:none;">
+            <div class="card border">
+                <div class="card-header d-flex justify-content-between align-items-center border-bottom pb-3">
+                    <div class="card-header-title">
+                        <h3 class="text-dark-2 mb-0 h4">{{trans('lang.business_account_details')}}</h3>
+                    </div>
+                    <div class="card-header-right">
+                        <span id="business_status_badge"></span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="p-0 info-list mb-0">
+                                <li class="d-flex align-items-center mb-2">
+                                    <label class="mb-0 font-wi font-semibold text-dark-2">{{trans('lang.business_account_company')}}</label>
+                                    <span id="business_company"></span>
+                                </li>
+                                <li class="d-flex align-items-center mb-2">
+                                    <label class="mb-0 font-wi font-semibold text-dark-2">{{trans('lang.business_account_registration')}}</label>
+                                    <span id="business_registration"></span>
+                                </li>
+                                <li class="d-flex align-items-center mb-2">
+                                    <label class="mb-0 font-wi font-semibold text-dark-2">{{trans('lang.business_account_submitted')}}</label>
+                                    <span id="business_submitted"></span>
+                                </li>
+                                <li class="d-flex align-items-center mb-2" id="business_reason_row" style="display:none;">
+                                    <label class="mb-0 font-wi font-semibold text-dark-2">{{trans('lang.business_account_reason')}}</label>
+                                    <span id="business_reason"></span>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="mb-2 font-wi font-semibold text-dark-2 d-block">{{trans('lang.business_account_document')}}</label>
+                            <div id="business_document"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="form-group col-12 text-center btm-btn">
 
             <a href="{!! route('users') !!}" class="btn btn-default"><i class="fa fa-undo"></i>{{trans('lang.cancel')}}</a>
@@ -227,6 +271,8 @@
                 var user = snapshots.docs[0].data();
 
                 $(".user_name").text(user.firstName + ' ' + user.lastName);
+
+                renderBusinessAccount(user);
 
                 if (user.hasOwnProperty('email') && user.email) {
                     $(".email").text(user.email);
@@ -411,4 +457,64 @@
 
 
     </script>
+
+<script>
+    /* Business account - APP-SPEC-CUSTOMER-APP.md section 6. The section stays
+     * hidden unless the customer actually applied, so nothing changes for an
+     * ordinary customer. */
+    function renderBusinessAccount(user) {
+        var profile = user ? user.businessProfile : null;
+
+        if (!profile || (user.accountType != 'business' && !profile.status)) {
+            return;
+        }
+
+        var status = profile.status || 'pending';
+        var badges = { approved: 'badge-success', rejected: 'badge-danger', pending: 'badge-warning' };
+        var labels = {
+            approved: "{{ trans('lang.business_account_status_approved') }}",
+            rejected: "{{ trans('lang.business_account_status_rejected') }}",
+            pending: "{{ trans('lang.business_account_status_pending') }}"
+        };
+
+        $('#business_status_badge').html('<span class="badge ' + (badges[status] || 'badge-warning') + '">' +
+            (labels[status] || status) + '</span>');
+
+        $('#business_company').text(profile.companyName || '-');
+        $('#business_registration').text(profile.registrationNumber || '-');
+
+        /* submittedAt is written by the app as an ISO string, not a Firestore
+         * Timestamp. Both are handled. */
+        var raw = profile.submittedAt;
+        var when = 0;
+
+        if (raw && typeof raw.toDate === 'function') {
+            when = raw.toDate().getTime();
+        } else if (raw) {
+            var parsed = Date.parse(raw);
+            when = isNaN(parsed) ? 0 : parsed;
+        }
+
+        $('#business_submitted').text(when ? new Date(when).toDateString() + ' ' + new Date(when).toLocaleTimeString('en-US') : '-');
+
+        if (status == 'rejected' && profile.rejectionReason) {
+            $('#business_reason').text(profile.rejectionReason);
+            $('#business_reason_row').show();
+        }
+
+        if (profile.documentUrl) {
+            /* Used as stored. encodeURI would re-encode the % in the
+             * already-percent-encoded Storage path and turn %2F into %252F,
+             * which 404s. */
+            var docUrl = String(profile.documentUrl).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+
+            $('#business_document').html('<a href="' + docUrl + '" target="_blank" rel="noopener noreferrer">' +
+                '<img src="' + docUrl + '" class="rounded business-account-document" alt="document"></a>');
+        } else {
+            $('#business_document').text('-');
+        }
+
+        $('#business_section').show();
+    }
+</script>
 @endsection

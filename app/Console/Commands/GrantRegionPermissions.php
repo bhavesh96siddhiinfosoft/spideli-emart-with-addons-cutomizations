@@ -32,6 +32,7 @@ class GrantRegionPermissions extends Command
             'carrier' => ['carrier.list', 'carrier.create', 'carrier.edit', 'carrier.delete'],
             'pickup-point' => ['pickup-point.list', 'pickup-point.create', 'pickup-point.edit', 'pickup-point.delete'],
             'service-group' => ['service-group.list', 'service-group.create', 'service-group.edit', 'service-group.delete'],
+            'business-account' => ['business-account.list', 'business-account.review'],
             'order-history' => ['settings.app.orderHistory'],
             'region-defaults' => ['settings.app.regionDefaults'],
             'sms-gateway' => ['settings.app.smsGateway'],

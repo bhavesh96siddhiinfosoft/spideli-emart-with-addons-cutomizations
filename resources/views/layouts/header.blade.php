@@ -36,6 +36,14 @@ $service_type = @$_COOKIE['service_type'];
             </a>
         </li>
         @endif
+        @if (in_array('business-account', $role_has_permission))
+        <li class="nav-item text-light">
+            <a class="nav-link" href="{!! route('business-accounts') !!}" aria-expanded="false">
+                <i class="mdi mdi-briefcase-check"></i>
+                <span class="hide-menu">{{ trans('lang.business_account_plural') }}</span>
+            </a>
+        </li>
+        @endif
         @if (in_array('zone', $role_has_permission))
         <li class="nav-item text-light">
             <a class="nav-link" href="{!! route('zone') !!}" aria-expanded="false">

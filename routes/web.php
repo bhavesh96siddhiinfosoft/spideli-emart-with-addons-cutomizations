@@ -820,6 +820,12 @@ Route::middleware(['permission:deliveryman,deliveryman'])->group(function () {
 
 Route::post('/send-ad-notification', [App\Http\Controllers\AdvertisementsController::class, 'sendNotification'])->name('advertisement.sendnotification');
 
+/* Business account requests - APP-SPEC-CUSTOMER-APP.md section 6. The app
+ * writes the request; this is the only place one can be approved. */
+Route::middleware(['permission:business-account,business-account.list'])->group(function () {
+    Route::get('business-accounts', [App\Http\Controllers\BusinessAccountController::class, 'index'])->name('business-accounts');
+});
+
 Route::middleware(['permission:pickup-point,pickup-point.list'])->group(function () {
     Route::get('pickup-points', [App\Http\Controllers\PickupPointController::class, 'index'])->name('pickup-points');
     Route::get('/pickup-points/parcels/{id}', [App\Http\Controllers\PickupPointController::class, 'parcels'])->name('pickup-points.parcels');
