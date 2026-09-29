@@ -181,13 +181,11 @@
         var id = database.collection("tmp").doc().id;
         var ref = database.collection('zone');
         $(document).ready(function() {
-            setTimeout(function(){
-                initMap();
-            },2500);
             $(".save-setting-btn").click(function() {
                 var name = $("#name").val();
                 var publish = $("#publish").is(":checked");
                 var coordinates_object = $('#coordinates').val();
+                var sectionId = getCookie('section_id') || '';
                 $(".error_top").empty();
                 if (name == '') {
                     $(".error_top").show();
@@ -218,6 +216,7 @@
                             'longitude': longitude,
                             'area': area,
                             'publish': publish,
+                            'sectionId': sectionId,
                         }).then(function(result) {
                             jQuery("#overlay").hide();
                             window.location.href = '{{ route('zone') }}';
@@ -303,6 +302,7 @@
                                 'longitude': longitude,
                                 'area': area,
                                 'publish': publish,
+                                'sectionId': sectionId,
                             }).then(function(result) {
                                 jQuery("#overlay").hide();
                                 window.location.href = '{{ route('zone') }}';
@@ -320,7 +320,6 @@
         var map;
         let polygon;
         let polygonPath;
-        var drawingManager;
         var selectedShape;
         var selectedKernel;
         var gmarkers = [];
@@ -335,36 +334,39 @@
         let deleteButton, dragMap;
         let selectedPolygon = null;
         var mapType = 'ONLINE';
-        
+
+        // Manual polygon-drawing state (replaces the removed DrawingManager)
+        var isDrawingMode = false;
+        var tempPoints = [];
+        var tempMarkers = [];
+        var tempPolygon = null;
+
         database.collection('settings').doc('DriverNearBy').get().then(async function(snapshots) {
             var data = snapshots.data();
             if (data && data.selectedMapType && data.selectedMapType == "osm") {
                 mapType = "OFFLINE"
             }
-            var onclick = '',
-                polygon = '',
-                deletearea = '';
             if (mapType == "OFFLINE") {
-                onclick = function() {
+                document.getElementById("select-button").onclick = function() {
                     console.log("Offline mode, no drawing available.");
                 };
-                polygon = function() {
+                document.getElementById("add-button").onclick = function() {
                     enablePolygonDrawing(map);
                 };
-            } else {
-                onclick = function() {
-                    drawingManager.setDrawingMode(null);
-                };
-                polygon = function() {
-                    drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYGON);
-                };
-                deletearea = function() {
+                document.getElementById("delete-all-button").onclick = function() {
                     clearMap();
                 };
+            } else {
+                document.getElementById("select-button").onclick = function() {
+                    window.stopDrawing && window.stopDrawing();
+                };
+                document.getElementById("add-button").onclick = function() {
+                    window.startDrawing && window.startDrawing();
+                };
+                document.getElementById("delete-all-button").onclick = function() {
+                    window.clearMap && window.clearMap();
+                };
             }
-            document.getElementById("select-button").onclick = onclick;
-            document.getElementById("add-button").onclick = polygon;
-            document.getElementById("delete-all-button").onclick = deletearea;
         });
 
         function setMapOnAll(map) {
@@ -401,17 +403,6 @@
                 document.getElementById('coordinates').value = '';
             } else {
                 document.getElementById('coordinates').value = JSON.stringify(lat_lng);
-            }
-        }
-
-        function clearMap() {
-            if (allShapes.length > 0) {
-                for (var i = 0; i < allShapes.length; i++) {
-                    allShapes[i].setMap(null);
-                }
-                allShapes = [];
-                deleteMarkers();
-                document.getElementById('coordinates').value = null;
             }
         }
 
@@ -469,6 +460,112 @@
             });
             return marker;
         }
+
+        // ---------------------------------------------------------------
+        // Manual Google-Maps polygon drawing (replacement for DrawingManager)
+        // ---------------------------------------------------------------
+        function clearTempDrawing() {
+            tempMarkers.forEach(function(m) { m.setMap(null); });
+            tempMarkers = [];
+            if (tempPolygon) {
+                tempPolygon.setMap(null);
+                tempPolygon = null;
+            }
+            tempPoints = [];
+        }
+
+        function redrawTempPolygon() {
+            if (tempPolygon) {
+                tempPolygon.setMap(null);
+            }
+            tempPolygon = new google.maps.Polygon({
+                paths: tempPoints,
+                strokeColor: shapeColor,
+                strokeWeight: 2,
+                fillColor: shapeColor,
+                fillOpacity: 0.35,
+                clickable: false,
+                editable: false,
+                draggable: false,
+                map: map
+            });
+        }
+
+        function finishCurrentPolygon() {
+            map.setOptions({ disableDoubleClickZoom: false });
+            if (tempPoints.length < 3) {
+                clearTempDrawing();
+                isDrawingMode = false;
+                map.setOptions({ draggableCursor: null });
+                return;
+            }
+            // Promote the live preview polygon into the final editable/draggable shape
+            var newShape = tempPolygon;
+            tempPolygon = null; // detach so clearTempDrawing() below won't remove it
+            newShape.setOptions({
+                clickable: true,
+                editable: true,
+                draggable: true,
+                fillOpacity: 0.4
+            });
+
+            tempMarkers.forEach(function(m) { m.setMap(null); });
+            tempMarkers = [];
+            tempPoints = [];
+            isDrawingMode = false;
+            map.setOptions({ draggableCursor: null });
+
+            allShapes.push(newShape);
+            let lat_lng = [];
+            allShapes.forEach(function(data, index) {
+                lat_lng[index] = getCoordinates(data);
+            });
+            document.getElementById('coordinates').value = JSON.stringify(lat_lng);
+            getCoordinates(newShape);
+            setSelection(newShape, 0);
+
+            google.maps.event.addListener(newShape, 'click', function(e) {
+                if (e.vertex !== undefined) {
+                    var path = newShape.getPaths().getAt(e.path);
+                    path.removeAt(e.vertex);
+                    getCoordinates(newShape);
+                    if (path.length < 3) {
+                        newShape.setMap(null);
+                    }
+                }
+                setSelection(newShape, 0);
+            });
+            google.maps.event.addListener(newShape, "dragend", function(e) {
+                getCoordinates(newShape);
+            });
+            google.maps.event.addListener(newShape.getPath(), "insert_at", function(e) {
+                getCoordinates(newShape);
+            });
+            google.maps.event.addListener(newShape.getPath(), "remove_at", function(e) {
+                getCoordinates(newShape);
+            });
+            google.maps.event.addListener(newShape.getPath(), "set_at", function(e) {
+                getCoordinates(newShape);
+            });
+        }
+
+        window.startDrawing = function() {
+            isDrawingMode = true;
+            clearTempDrawing();
+            map.setOptions({ draggableCursor: 'crosshair', disableDoubleClickZoom: true });
+        };
+
+        window.stopDrawing = function() {
+            finishCurrentPolygon();
+        };
+
+        window.clearMap = function() {
+            clearTempDrawing();
+            isDrawingMode = false;
+            map.setOptions({ draggableCursor: null, disableDoubleClickZoom: false });
+            clearMap();
+        };
+        // ---------------------------------------------------------------
 
         function enablePolygonEditingAndDragging(layer) {
             // Ensure the layer is editable and draggable
@@ -846,66 +943,33 @@
                     fullscreenControl: false
                 });
                 searchBox();
-                var shapeOptions = {
-                    strokeWeight: 1,
-                    fillOpacity: 0.4,
-                    editable: true,
-                    draggable: true
-                };
-                drawingManager = new google.maps.drawing.DrawingManager({
-                    drawingMode: null,
-                    drawingControl: false,
-                    drawingControlOptions: {
-                        position: google.maps.ControlPosition.RIGHT_CENTER,
-                        drawingModes: ['polygon']
-                    },
-                    polygonOptions: shapeOptions,
-                    map: map
-                });
-                google.maps.event.addListener(drawingManager, 'overlaycomplete', function(e) {
-                    var newShape = e.overlay;
-                    allShapes.push(newShape);
-                    let lat_lng = [];
-                    allShapes.forEach(function(data, index) {
-                        lat_lng[index] = getCoordinates(data);
-                    });
-                    document.getElementById('coordinates').value = JSON.stringify(lat_lng);
-                    newShape.setOptions({
-                        fillColor: shapeColor
-                    });
-                    getCoordinates(newShape);
-                    drawingManager.setDrawingMode(null);
-                    setSelection(newShape, 0);
-                    google.maps.event.addListener(newShape, 'click', function(e) {
-                        if (e.vertex !== undefined) {
-                            var path = newShape.getPaths().getAt(e.path);
-                            path.removeAt(e.vertex);
-                            getCoordinates(newShape);
-                            if (path.length < 3) {
-                                newShape.setMap(null);
-                            }
+
+                // Manual click-based polygon drawing (DrawingManager no longer exists in the API)
+                google.maps.event.addListener(map, 'click', function(e) {
+                    if (!isDrawingMode) {
+                        clearSelection();
+                        return;
+                    }
+                    tempPoints.push({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+                    var marker = new google.maps.Marker({
+                        position: e.latLng,
+                        map: map,
+                        icon: {
+                            path: google.maps.SymbolPath.CIRCLE,
+                            scale: 5,
+                            fillColor: shapeColor,
+                            fillOpacity: 1,
+                            strokeWeight: 1
                         }
-                        setSelection(newShape, 0);
                     });
-                    //update coordinates
-                    google.maps.event.addListener(newShape, 'click', function(e) {
-                        getCoordinates(newShape);
-                    });
-                    google.maps.event.addListener(newShape, "dragend", function(e) {
-                        getCoordinates(newShape);
-                    });
-                    google.maps.event.addListener(newShape.getPath(), "insert_at", function(e) {
-                        getCoordinates(newShape);
-                    });
-                    google.maps.event.addListener(newShape.getPath(), "remove_at", function(e) {
-                        getCoordinates(newShape);
-                    });
-                    google.maps.event.addListener(newShape.getPath(), "set_at", function(e) {
-                        getCoordinates(newShape);
-                    });
+                    tempMarkers.push(marker);
+                    redrawTempPolygon();
                 });
-                google.maps.event.addListener(drawingManager, 'drawingmode_changed', clearSelection);
-                google.maps.event.addListener(map, 'click', clearSelection);
+                google.maps.event.addListener(map, 'dblclick', function(e) {
+                    if (isDrawingMode) {
+                        finishCurrentPolygon();
+                    }
+                });
             } else {
                 $(".mapType").hide();
                 searchBox();
