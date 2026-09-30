@@ -858,6 +858,41 @@
     /* The tier list off the product card, back as an array. Returns an empty
      * list rather than throwing when a product has no wholesale pricing,
      * which is the normal case. */
+    /* A variant's wholesale figure is its TIER-ONE price, not its only
+     * price. The product's ladder keeps its quantity breaks and its steps;
+     * the variant shifts it to start at its own figure.
+     *
+     * Read the other way, a product with tiers at 10/50/150 would charge the
+     * same per piece at 150 as at 10 the moment sizes were added - which is
+     * not a tiered product at all.
+     *
+     * This MUST match variantWholesaleTiers() in the website's
+     * layouts/footer.blade.php and in the store panel's POS, or the same
+     * basket prices differently depending on which counter rings it up. */
+    function variantWholesaleTiers(tiers, variantEntryPrice) {
+        if (!Array.isArray(tiers) || tiers.length === 0) {
+            return [];
+        }
+
+        let entry = parseFloat(variantEntryPrice);
+        let base = parseFloat(tiers[0].price);
+
+        if (isNaN(entry) || entry <= 0 || isNaN(base)) {
+            return tiers.slice();
+        }
+
+        return tiers
+            .map(function (tier) {
+                return {
+                    minQty: tier.minQty,
+                    price: entry + (parseFloat(tier.price) - base)
+                };
+            })
+            .filter(function (tier) {
+                return !isNaN(tier.price) && tier.price > 0;
+            });
+    }
+
     function readWholesaleTiers(productId) {
         var raw = $('#wholesale_tiers_' + productId).val() || '';
 
@@ -898,8 +933,8 @@
             <input type="hidden" id="taxSetting_${id}" value='${JSON.stringify(data.taxSetting || [])}'>
             <input type="hidden" id="wholesale_enabled_${id}" value="${data.wholesaleEnabled === true ? '1' : '0'}">
             <input type="hidden" id="wholesale_price_${id}" value="${data.wholesalePrice || ''}">
-            <input type="hidden" id="wholesale_min_qty_${id}" value="${data.wholesaleMinQty || ''}">
-            <input type="hidden" id="wholesale_tiers_${id}" value="${encodeURIComponent(JSON.stringify(data.wholesaleTiers || []))}">
+            <input type="hidden" id="wholesale_min_qty_${id}" value="${data.wholesaleMinQty || ''}">
+            <input type="hidden" id="wholesale_tiers_${id}" value="${encodeURIComponent(JSON.stringify(data.wholesaleTiers || []))}">
             <input type="hidden" id="sale_type_${id}" value="${data.saleType || 'both'}">
         `;
     }
@@ -1578,29 +1613,26 @@
         let wholesaleEnabled = $('#wholesale_enabled_' + productId).val() === '1';
         let wholesalePrice = wholesaleEnabled ?
             (variantWholesalePrice !== '' ? variantWholesalePrice : $('#wholesale_price_' + productId).val()) : '';
-        let wholesaleMinQty = wholesaleEnabled ? $('#wholesale_min_qty_' + productId).val() : '';
-
-        /* The whole ladder, so the cart can price 100 units differently
-         * from 15 rather than only knowing the first break. Parsed here
-         * rather than posted as text, so it arrives as an array.
-         *
-         * A chosen variant has ONE wholesale price, not a ladder, so it
-         * replaces the list with itself at the entry quantity - the same
-         * resolution the website uses. */
-        let wholesaleTiers = [];
-        if (wholesaleEnabled) {
-            if (variantWholesalePrice !== '') {
-                if (wholesaleMinQty) {
-                    wholesaleTiers = [{
-                        minQty: parseInt(wholesaleMinQty) || 0,
-                        price: parseFloat(variantWholesalePrice)
-                    }];
-                }
-            } else {
-                wholesaleTiers = readWholesaleTiers(productId);
-            }
-        }
-
+        let wholesaleMinQty = wholesaleEnabled ? $('#wholesale_min_qty_' + productId).val() : '';
+
+        /* The whole ladder, so the cart can price 100 units differently
+         * from 15 rather than only knowing the first break. Parsed here
+         * rather than posted as text, so it arrives as an array.
+         *
+         * A chosen variant has ONE wholesale price, not a ladder, so it
+         * replaces the list with itself at the entry quantity - the same
+         * resolution the website uses. */
+        let wholesaleTiers = [];
+        if (wholesaleEnabled) {
+            wholesaleTiers = readWholesaleTiers(productId);
+
+            /* A variant's figure is its TIER-ONE price, not its only one:
+             * the ladder shifts to start there and keeps its steps. */
+            if (variantWholesalePrice !== '') {
+                wholesaleTiers = variantWholesaleTiers(wholesaleTiers, variantWholesalePrice);
+            }
+        }
+
         let saleType = $('#sale_type_' + productId).val() || 'both';
 
         let selectedAddons = [];

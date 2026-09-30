@@ -921,9 +921,12 @@
                                     0) {
                                     priceerror++;
                                 }
-                                if (wholesaleEnabled) {
-                                    if (variant_wholesale_price == "" ||
-                                        parseFloat(variant_wholesale_price) <= 0) {
+                                /* OPTIONAL. Blank means the product's tiers
+                                 * apply to this variant unchanged. When given it
+                                 * is the variant's TIER ONE price, so it must
+                                 * still be below the variant's own price. */
+                                if (wholesaleEnabled && variant_wholesale_price != "") {
+                                    if (parseFloat(variant_wholesale_price) <= 0) {
                                         wholesalepriceerror++;
                                     } else if (parseFloat(variant_wholesale_price) >=
                                         parseFloat(variant_price)) {
