@@ -217,13 +217,34 @@
                 'for="is_open_' + id + '" ></label></td>');
         }
         html.push('<a href="' + route1 + '"  class="redirecttopage">' + val.title + '</a>');
-        if(val.type == "driver"){
-            html.push("{{trans('lang.document_driver')}}");
-        }else if(val.type == "vendor"){
-            html.push("{{trans('lang.document_vendor')}}");
-        }else if(val.type == "owner"){
-            html.push("{{trans('lang.document_owner')}}");
-        }
+
+        /* EVERY ROW MUST PUSH EVERY CELL.
+         *
+         * This was an if / else-if chain over driver, vendor and owner with NO
+         * else - but the create and edit screens have always offered five
+         * types, PROVIDER and WORKER among them. A provider document pushed
+         * nothing here, so its row was one cell short, every later cell shifted
+         * left, and DataTables asked for a column that did not exist:
+         *
+         *     DataTables warning: table id=documentTable - Requested unknown
+         *     parameter '4' for row 5, column 4
+         *
+         * which is the client's bug report items 22 and 23 - one fault, not
+         * two. THE RECORD WAS NEVER AT FAULT: "Indentity Card" is a correctly
+         * saved provider document. The list simply could not draw it.
+         *
+         * A type nobody has a label for now falls back to the raw value rather
+         * than an empty cell. A heading the client has not translated is a
+         * small annoyance; a row that breaks the whole screen is not. */
+        var documentForLabels = {
+            'vendor': "{{trans('lang.document_vendor')}}",
+            'driver': "{{trans('lang.document_driver')}}",
+            'owner': "{{trans('lang.document_owner')}}",
+            'provider': "{{trans('lang.document_provider')}}",
+            'worker': "{{trans('lang.document_worker')}}"
+        };
+
+        html.push(documentForLabels[val.type] || val.type || '-');
         if (val.enable) {
             html.push('<label class="switch"><input type="checkbox" checked id="' + val.id + '" name="isSwitch" dataUser="' + val.type + '"><span class="slider round"></span></label>');
         } else {
