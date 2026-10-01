@@ -206,14 +206,51 @@
                 $("<option></option>").attr("value", "").attr("disabled", true).attr("selected", 'selected').text("{{ trans('lang.select_zone') }}")
             );
             
-            refZone.orderBy('name', 'asc').get().then(async function(snapshots) {
+            /* ONLY ZONES THAT SERVE THIS DRIVER'S REGION.
+             *
+             * Client bug report item 16. The CREATE screen has always filtered
+             * the zone list; this one did not, so a driver could not be placed
+             * outside the region but could be EDITED into one.
+             *
+             * Called once the record is loaded, because the region comes from
+             * it. The driver's CURRENT zone is always kept in the list even
+             * when it no longer qualifies - otherwise opening the form and
+             * saving it would silently move them.
+             *
+             * Fails open: no region on the record, or a zone never assigned to
+             * one, still offers the zone. An empty dropdown would make the
+             * form unusable. */
+            async function loadDriverZones(regionId, currentZoneId) {
+                var snapshots = await refZone.orderBy('name', 'asc').get();
+                var offered = 0;
+
                 snapshots.docs.forEach((listval) => {
                     var data = listval.data();
+                    var regions = zoneRegionIds(data);
+                    var serves = !regionId || regions.length === 0 || regions.indexOf(regionId) !== -1;
+
+                    if (!serves && data.id !== currentZoneId) {
+                        return;
+                    }
+
+                    offered++;
                     $('#zone').append($("<option></option>")
                         .attr("value", data.id)
+                        .attr("data-region", regionForZone(data))
                         .text(data.name));
-                })
-            });
+                });
+
+                if (offered === 0 && snapshots.docs.length > 0) {
+                    console.warn('no zone serves this region; offering all zones', regionId);
+                    snapshots.docs.forEach((listval) => {
+                        var data = listval.data();
+                        $('#zone').append($("<option></option>")
+                            .attr("value", data.id)
+                            .attr("data-region", regionForZone(data))
+                            .text(data.name));
+                    });
+                }
+            }
 
             let userRef = await database.collection('users').doc(id).get();
             let user = userRef.data();
@@ -229,6 +266,10 @@
             $(".user_last_name").val(user.lastName);
             $(".user_email").val(shortEmail(user.email)).prop('disabled',true);
             
+            /* Awaited so the options exist before the current one is
+             * selected. */
+            await loadDriverZones(user.regionId || '', user.zoneId || '');
+
             if (user.hasOwnProperty('zoneId') && user.zoneId != '') {
                 $("#zone").val(user.zoneId);
             }
