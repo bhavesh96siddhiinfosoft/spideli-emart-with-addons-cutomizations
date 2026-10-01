@@ -2676,5 +2676,10 @@ return [
     'business_account_reject_required' => 'A reason is required.',
     'business_account_saved' => 'The request has been updated.',
     'business_account_empty' => 'No business account requests.',
+    'assign_note_no_app' => 'التطبيق غير مثبت',
+    'assign_note_other_zone' => 'منطقة مختلفة',
+    'assign_note_far' => 'خارج المسافة المعتادة',
+    'assign_note_own_driver' => 'سائق هذا المتجر',
+    'no_assignable_driver' => 'لا يوجد سائق يمكن تعيينه لهذا الطلب',
 ];
 ?>

@@ -1406,57 +1406,115 @@
 
             let rejectedByDrivers = orderData.rejectedByDrivers || [];
 
+            /* ---- Who may be assigned to this order ---------------------------
+             *
+             * Client bug report item 9: assigning from the LIST said "No
+             * drivers found", while the order's own screen worked. The two
+             * were asking different questions.
+             *
+             * This list applied the AUTOMATIC DISPATCH rules - the ones for
+             * deciding who to OFFER a job to - to a MANUAL assignment an
+             * administrator is making deliberately. Three of them emptied it:
+             *
+             *   driver.vendorID   skipped EVERY driver belonging to a store,
+             *                     so a self-delivery order could never be
+             *                     assigned at all. On 1 Oct the only active
+             *                     driver in Cameroon was one of these.
+             *   !driver.fcmToken  skipped anyone who had not opened the app.
+             *                     Assigning still writes the order; only the
+             *                     push notification is lost.
+             *   zone mismatch     right in itself, but with the two above it
+             *                     left nothing at all.
+             *
+             * NOW: hard rules still exclude. Soft rules only ADD A NOTE, so
+             * the admin sees everyone with the reason beside them instead of
+             * an empty box and no explanation.
+             * ------------------------------------------------------------- */
+
+            let orderVendorId = orderData.vendorID || (orderData.vendor && orderData.vendor.id) || '';
+
+            /* The wallet minimum is applied IN MEMORY, not as a Firestore
+             * `>=`. An inequality silently drops every document with no
+             * `wallet_amount` field at all - 33 drivers on 1 Oct - whatever
+             * the minimum is, including zero. */
             let driverSnapshots = await database.collection("users")
                 .where('role', '==', "driver")
                 .where('isActive', '==', true)
-                .where('wallet_amount', '>=', minimumDepositToRideAccept)
                 .get();
 
             let eligibleDrivers = [];
 
             driverSnapshots.docs.forEach((snapshot) => {
                 let driver = snapshot.data();
-                if(driver.vendorID) return;
-                if(!driver.fcmToken) return;
-                if(zone_id && driver.zoneId && driver.zoneId !== zone_id) return;
-                if(rejectedByDrivers.includes(snapshot.id)) return;
-                if (singleOrderReceive) {
-                    if (Array.isArray(driver.orderRequestData) && driver.orderRequestData.length > 0) {
-                        return;
-                    }
-                }
-                if(driver.location && orderData.vendor){
-                    const distance = distanceRadius(
-                        driver.location.latitude,
-                        driver.location.longitude,
-                        orderData.vendor.latitude,
-                        orderData.vendor.longitude
-                    );
-                    if(distance > kDistanceRadiusForDispatch) return;
-                }
+
+                /* HARD: a driver who works for a DIFFERENT store is not
+                 * available to this order. One belonging to THIS store is
+                 * exactly who a self-delivery order wants. */
+                if (driver.vendorID && driver.vendorID !== orderVendorId) return;
+
+                /* HARD: they have already turned this order down. */
+                if (rejectedByDrivers.includes(snapshot.id)) return;
+
+                /* HARD: already holding a job, and the platform allows one at
+                 * a time. */
+                if (singleOrderReceive && Array.isArray(driver.orderRequestData) && driver.orderRequestData.length > 0) return;
+
+                /* HARD: below the deposit the platform requires. A missing
+                 * balance counts as zero rather than as unknown. */
+                let balance = parseFloat(driver.wallet_amount || 0) || 0;
+                if (balance < minimumDepositToRideAccept) return;
+
+                let distance = (driver.location && orderData.vendor)
+                    ? distanceRadius(driver.location.latitude, driver.location.longitude,
+                                     orderData.vendor.latitude, orderData.vendor.longitude)
+                    : null;
+
+                /* SOFT: worth telling the admin, never worth hiding them for. */
+                let notes = [];
+                if (!driver.fcmToken) notes.push("{{ trans('lang.assign_note_no_app') }}");
+                if (zone_id && driver.zoneId && driver.zoneId !== zone_id) notes.push("{{ trans('lang.assign_note_other_zone') }}");
+                if (distance !== null && distance > kDistanceRadiusForDispatch) notes.push("{{ trans('lang.assign_note_far') }}");
+
                 eligibleDrivers.push({
                     id: snapshot.id,
-                    name: driver.firstName+' '+driver.lastName,
+                    name: driver.firstName + ' ' + driver.lastName,
                     email: driver.email,
-                    distance: driver.location && orderData.vendor 
-                        ? distanceRadius(driver.location.latitude, driver.location.longitude, orderData.vendor.latitude, orderData.vendor.longitude)
-                        : null
+                    ownDriver: !!(driver.vendorID && driver.vendorID === orderVendorId),
+                    preferred: notes.length === 0,
+                    notes: notes,
+                    distance: distance
                 });
             });
 
             // Populate dropdown
             let dropdown = $("#driver-select");
             dropdown.empty();
-            if(eligibleDrivers.length > 0){
+
+            if (eligibleDrivers.length > 0) {
+                /* The store's own drivers first, then those meeting every
+                 * rule, then the rest - each carrying the reason it did not. */
                 eligibleDrivers.sort((a, b) => {
+                    if (a.ownDriver !== b.ownDriver) return a.ownDriver ? -1 : 1;
+                    if (a.preferred !== b.preferred) return a.preferred ? -1 : 1;
                     return a.name.localeCompare(b.name);
                 });
-                dropdown.append(`<option value="">{{ trans('lang.select_driver') }}</option>`);
+
+                dropdown.append($("<option></option>").attr("value", "")
+                    .text("{{ trans('lang.select_driver') }}"));
+
                 eligibleDrivers.forEach(driver => {
-                    dropdown.append(`<option value="${driver.id}">${driver.name}</option>`);
+                    let label = driver.name;
+                    if (driver.ownDriver) {
+                        label += ' - ' + "{{ trans('lang.assign_note_own_driver') }}";
+                    }
+                    if (driver.notes.length > 0) {
+                        label += ' (' + driver.notes.join(', ') + ')';
+                    }
+                    dropdown.append($("<option></option>").attr("value", driver.id).text(label));
                 });
             } else {
-                dropdown.append('<option value="">No drivers found</option>');
+                dropdown.append($("<option></option>").attr("value", "")
+                    .text("{{ trans('lang.no_assignable_driver') }}"));
             }
             
             $("#assignDriverModal").modal('show');
