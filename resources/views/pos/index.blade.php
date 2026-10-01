@@ -1918,6 +1918,9 @@
         if (vendorSnap.exists) {
             vendorDetails = vendorSnap.data();
         } else {
+            /* The spinner was already showing and was never hidden on this
+             * path, so the till froze instead of saying what was wrong. */
+            $('#data-table_processing').hide();
             Swal.fire({
                 icon: 'error',
                 text: '{{trans("lang.vendor_not_found")}}',
@@ -2030,9 +2033,26 @@
             orderData.address = defaultShippingAddress;
         }
 
-        await manageInventory(products);
-        
-        await walletTransaction(products, cart, id_order, orderVendorID, vendorDetails);
+        /* WRAPPED, because a throw in either of these is not a wrong value -
+         * it is the end of the sale. Both run BEFORE the order is written, so
+         * until now a failure here left the till with a spinner turning, no
+         * order, no message, and the stock already taken.
+         *
+         * The sale still stops - it has to - but the operator is told, rather
+         * than left wondering whether it went through. */
+        try {
+            await manageInventory(products);
+            await walletTransaction(products, cart, id_order, orderVendorID, vendorDetails);
+        } catch (error) {
+            console.error('POS: the sale could not be completed', error);
+            $('#data-table_processing').hide();
+            Swal.fire({
+                icon: 'error',
+                title: "{{trans('lang.order_failed')}}",
+                text: "{{trans('lang.there_was_issue_placing_order')}}",
+            });
+            return;
+        }
 
         await database.collection('vendor_orders').doc(id_order).set(
            orderData
@@ -2139,6 +2159,13 @@
     }
 
     async function walletTransaction(products, cart, id_order, orderVendorID, vendorDetails) {
+
+        /* RESET FIRST. These two are PAGE-LEVEL variables, so a second sale
+         * made without reloading - which is exactly what happens after a failed
+         * attempt - added its tax on top of the previous one and credited the
+         * store too much. */
+        total_tax_amount = 0;
+        orderTaxAmount = 0;
 
         let order_subtotal = 0;
         let total_discount = 0;
@@ -2265,26 +2292,56 @@
 
         const snapshotsnew = await database.collection('users').where('id', '==', vendorAuthor).get();
 
+        /* NO OWNER RECORD IS POSSIBLE. `vendorDetails.author` is a user id kept
+         * on the store, and the user it names can have been deleted - 6 of the
+         * 26 stores on 1 October point at an author that is no longer a user.
+         *
+         * Reading docs[0] regardless threw "Cannot read properties of
+         * undefined", and this runs BEFORE the order is written, so the sale
+         * failed with the stock already taken. */
+        if (snapshotsnew.docs.length === 0) {
+            console.error('POS: the store owner record is missing; wallet not credited', vendorAuthor);
+            return;
+        }
+
         var vendordata = snapshotsnew.docs[0].data();
 
         if (vendordata) {
             if (parseInt(subscriptionTotalOrders) != -1) {
                 subscriptionTotalOrders = parseInt(subscriptionTotalOrders) - 1;
+
+                /* THE STORE, NOT ITS OWNER.
+                 *
+                 * This used `vendorAuthor` - the OWNER'S USER ID - as a
+                 * `vendors` document id. On 1 October NOT ONE of the 26 stores
+                 * had an author that is also a store document id, so this
+                 * always wrote to a document that does not exist, and
+                 * Firestore's update() REJECTS when the document is missing.
+                 *
+                 * That threw out of here, out of handlePlaceOrder, and the
+                 * order was never written - with the stock already reduced.
+                 *
+                 * It fired only when subscriptionTotalOrders is not -1: 5 of
+                 * the 26 stores, which is why it looked intermittent. Three of
+                 * those carry no such field at all, and parseInt(undefined) is
+                 * NaN, which is also "not -1".
+                 *
+                 * The store panel's POS was corrected during the per-store
+                 * wallet work; this panel never was. Client bug report 02
+                 * point 1. */
                 await database.collection('vendors')
-                    .doc(vendorAuthor)
+                    .doc(orderVendorID)
                     .update({
                         'subscriptionTotalOrders': subscriptionTotalOrders.toString()
-                    });                
-            }
-            var vendorWallet = isNaN(vendordata.wallet_amount) || vendordata.wallet_amount == undefined
-                    ? 0
-                    : parseFloat(vendordata.wallet_amount);
-            var newVendorWallet = vendorWallet + vendorAmount + parseFloat(orderTaxAmount);
-            await database.collection('users')
-                    .doc(vendorAuthor)
-                    .update({
-                        'wallet_amount': parseFloat(newVendorWallet).toFixed(config.decimal_degits)
                     });
+            }
+
+            /* Credited to the store that made the sale AND to its owner's
+             * account together, which is what every other credit in this panel
+             * does. This wrote the account alone, so a store's own balance
+             * never moved on a POS sale - ADMIN-REMAINING-WORK section 1. */
+            await applyVendorWalletDelta(orderVendorID, vendorAuthor,
+                vendorAmount + parseFloat(orderTaxAmount));
         }
     }
     
