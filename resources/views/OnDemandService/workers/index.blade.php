@@ -513,8 +513,12 @@
         /* Reviewing the documents this worker has uploaded - bug report item
          * 24. Workers were offered as a document type on the Documents screen
          * but had nowhere to be reviewed. */
+        /* GUARDED WITH Route::has() - see the note in providers/index. A
+         * missing route must hide this icon, not 500 the whole screen. */
+        @if (Route::has('documents.review'))
         var workerDocumentsRoute = "{{ route('documents.review', ['role' => 'worker', 'id' => ':holder']) }}".replace(':holder', val.id);
         actionHtml = actionHtml + '<a href="' + workerDocumentsRoute + '" data-toggle="tooltip" title="{{trans('lang.documents')}}" data-bs-original-title="{{trans('lang.documents')}}"><i class="mdi mdi-file-document"></i></a>';
+        @endif
 
         if(checkDeletePermission){
             actionHtml = actionHtml + '<a id="' + val.id + '" class="delete-btn" name="worker-delete"  href="javascript:void(0)" data-toggle="tooltip" title="{{trans('lang.delete')}}"><i class="mdi mdi-delete"></i></a>';

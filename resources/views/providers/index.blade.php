@@ -477,8 +477,18 @@
         /* Reviewing the documents this provider has uploaded - bug report item
          * 24. Both tooltip namings, because this theme carries Bootstrap 4 and
          * 5 and `data-bs-original-title` alone is invisible to BS4. */
+        /* GUARDED WITH Route::has(). route() THROWS when the route is not
+         * registered, and this runs while the row is being built - so a single
+         * missing route took down the WHOLE providers screen with a 500, not
+         * just this one icon. That happened on the live server on 1 October
+         * when the view went up without routes/web.php.
+         *
+         * An action link that cannot be built should disappear, not take the
+         * page with it. */
+        @if (Route::has('documents.review'))
         var providerDocumentsRoute = "{{ route('documents.review', ['role' => 'provider', 'id' => ':holder']) }}".replace(':holder', val.id);
         actionHtml = actionHtml + '<a href="' + providerDocumentsRoute + '" data-toggle="tooltip" title="{{ trans('lang.documents') }}" data-bs-original-title="{{ trans('lang.documents') }}"><i class="mdi mdi-file-document"></i></a>';
+        @endif
         if (checkDeletePermission) {
             actionHtml = actionHtml + '<a id="' + val.id + '" class="delete-btn" name="user-delete" href="javascript:void(0)" data-toggle="tooltip" data-bs-original-title="{{ trans('lang.delete') }}"><i class="mdi mdi-delete"></i></a>';
         }
