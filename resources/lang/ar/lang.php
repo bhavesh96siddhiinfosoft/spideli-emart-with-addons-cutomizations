@@ -2681,5 +2681,13 @@ return [
     'assign_note_far' => 'خارج المسافة المعتادة',
     'assign_note_own_driver' => 'سائق هذا المتجر',
     'no_assignable_driver' => 'لا يوجد سائق يمكن تعيينه لهذا الطلب',
+    'documents' => 'المستندات',
+    'provider_document_details' => 'مستندات مزود الخدمة',
+    'worker_document_details' => 'مستندات العامل',
+    'document_nothing_uploaded' => 'لم يقم هذا الشخص برفع أي مستندات بعد. لا يمكن اعتماد أي شيء حتى يقوم بذلك.',
+    'document_none_required' => 'لم يتم إعداد أي مستندات لهذا الدور بعد. أضف مستنداً من شاشة المستندات أولاً.',
+    'document_awaiting_upload' => 'في انتظار الرفع',
+    'document_no_longer_uploaded' => 'هذا المستند لم يعد موجوداً. ربما تم رفعه من جديد أثناء فتح هذه الصفحة - يرجى إعادة التحميل.',
+    'document_save_failed' => 'تعذر الحفظ. يرجى التحقق من الاتصال والمحاولة مرة أخرى.',
 ];
 ?>

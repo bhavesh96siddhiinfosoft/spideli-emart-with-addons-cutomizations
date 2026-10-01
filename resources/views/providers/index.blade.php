@@ -474,6 +474,11 @@
         actionHtml = actionHtml + '<a href="'+trroute1+'" data-toggle="tooltip" data-bs-original-title="Wallet Transaction"><i class="mdi mdi-wallet"></i></a>';
         actionHtml = actionHtml + '<a href="' + providerView + '" data-toggle="tooltip" data-bs-original-title="{{ trans('lang.view') }}"><i class="mdi mdi-eye"></i></a>';
         actionHtml = actionHtml + '<a href="' + route1 + '" data-toggle="tooltip" data-bs-original-title="{{ trans('lang.edit') }}"><i class="mdi mdi-lead-pencil"></i></a>';
+        /* Reviewing the documents this provider has uploaded - bug report item
+         * 24. Both tooltip namings, because this theme carries Bootstrap 4 and
+         * 5 and `data-bs-original-title` alone is invisible to BS4. */
+        var providerDocumentsRoute = "{{ route('documents.review', ['role' => 'provider', 'id' => ':holder']) }}".replace(':holder', val.id);
+        actionHtml = actionHtml + '<a href="' + providerDocumentsRoute + '" data-toggle="tooltip" title="{{ trans('lang.documents') }}" data-bs-original-title="{{ trans('lang.documents') }}"><i class="mdi mdi-file-document"></i></a>';
         if (checkDeletePermission) {
             actionHtml = actionHtml + '<a id="' + val.id + '" class="delete-btn" name="user-delete" href="javascript:void(0)" data-toggle="tooltip" data-bs-original-title="{{ trans('lang.delete') }}"><i class="mdi mdi-delete"></i></a>';
         }

@@ -878,6 +878,12 @@ Route::middleware(['permission:zone,zone.edit'])->group(function () {
     Route::get('/zone/edit/{id}', [App\Http\Controllers\ZoneController::class, 'edit'])->name('zone.edit');
 });
 
+/* Reviewing one holder's uploaded documents - bug report items 24 and 25.
+ * One screen parameterised by role, serving providers and workers, which had
+ * no document review screen at all. */
+Route::middleware(['permission:documents,documents.list'])->group(function () {
+    Route::get('documents/review/{role}/{id}', [App\Http\Controllers\DocumentReviewController::class, 'index'])->name('documents.review');
+});
 Route::middleware(['permission:documents,documents.list'])->group(function () {
     Route::get('documents', [App\Http\Controllers\DocumentController::class, 'index'])->name('documents');
 });

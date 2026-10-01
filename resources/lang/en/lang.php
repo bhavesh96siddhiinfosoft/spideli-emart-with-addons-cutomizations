@@ -2871,5 +2871,13 @@ return [
     'assign_note_far' => 'outside the usual distance',
     'assign_note_own_driver' => "this store's own driver",
     'no_assignable_driver' => 'No driver can be assigned to this order',
+    'documents' => 'Documents',
+    'provider_document_details' => 'Service provider documents',
+    'worker_document_details' => 'Worker documents',
+    'document_nothing_uploaded' => 'This person has not uploaded any documents yet. Nothing can be approved until they do.',
+    'document_none_required' => 'No documents have been set up for this role yet. Add one on the Documents screen first.',
+    'document_awaiting_upload' => 'Waiting for upload',
+    'document_no_longer_uploaded' => 'That document is no longer there. It may have been re-uploaded while this page was open - please reload.',
+    'document_save_failed' => 'That could not be saved. Please check your connection and try again.',
 ];
 ?>
