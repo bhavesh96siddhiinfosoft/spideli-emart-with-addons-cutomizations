@@ -181,7 +181,7 @@
     $(document).ready(function () {
         if(id!=''){
             var wallet_route = "{{route('users.walletstransaction','id')}}";
-            $(".wallet_transaction").attr("href", wallet_route.replace('id', 'providerID='+id));
+            $(".wallet_transaction").attr("href", spideliRouteWithId(wallet_route, 'providerID='+id));
 
             getProviderNameForFilter(id);
         }

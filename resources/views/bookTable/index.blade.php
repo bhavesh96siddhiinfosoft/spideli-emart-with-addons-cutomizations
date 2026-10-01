@@ -179,7 +179,7 @@
         });
         ref = database.collection('booked_table').orderBy('createdAt', 'desc').where('vendorID', "==", vendorUserId);
         if (vendorUserId != '') {
-            $(".wallet_transaction").attr("href", wallet_route.replace('id', 'storeID=' + vendorUserId));
+            $(".wallet_transaction").attr("href", spideliRouteWithId(wallet_route, 'storeID=' + vendorUserId));
         }
         $(document).ready(function() {
 

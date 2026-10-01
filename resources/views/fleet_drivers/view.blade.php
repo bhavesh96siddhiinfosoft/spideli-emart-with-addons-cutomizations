@@ -306,7 +306,7 @@
                         $(".phone").text(EditPhoneNumber(dirver.phoneNumber));
                     }
                     var wallet_route = "{{route('users.walletstransaction','id')}}";
-                    $(".wallet_transaction").attr("href", wallet_route.replace('id', 'driverID='+dirver.id));
+                    $(".wallet_transaction").attr("href", spideliRouteWithId(wallet_route, 'driverID='+dirver.id));
 
 
                     let serviceTypes = dirver.serviceTypes || (dirver.serviceType ? [dirver.serviceType] : []);
@@ -327,7 +327,7 @@
                         }else if (serviceTypes.includes("rental-service") && serviceType == "rental-service") {
                             
                             var url = "{{route('rental_orders.driver','id')}}";
-                            url = url.replace("id", dirver.id);
+                            url = spideliRouteWithId(url, dirver.id);
                             $('.service_type_orders').html('<a href="' + url + '"><i class="ri-shopping-bag-line"></i> {{trans('lang.order_plural')}}</a>');
 
                             await database.collection('rental_orders').where('driverId', '==', dirver.id).get().then(async function (orderSnapshots) {
@@ -337,7 +337,7 @@
                         } else if (serviceTypes.includes("parcel_delivery") && serviceType == "parcel_delivery") {
                             
                             var url = "{{route('parcel_orders.driver','id')}}";
-                            url = url.replace("id", dirver.id);
+                            url = spideliRouteWithId(url, dirver.id);
                             $('.service_type_orders').html('<a href="' + url + '"><i class="ri-shopping-bag-line"></i> {{trans('lang.order_plural')}}</a>');
                             await database.collection('parcel_orders').where('driverId', '==', dirver.id).get().then(async function (orderSnapshots) {
                                 $('.total_orders').html(orderSnapshots.docs.length);

@@ -231,7 +231,7 @@
     if(driverID){
         getDriverInfo(driverID);
         var wallet_route = "{{route('users.walletstransaction','id')}}";
-        $(".wallet_transaction").attr("href", wallet_route.replace('id', 'driverID='+driverID));
+        $(".wallet_transaction").attr("href", spideliRouteWithId(wallet_route, 'driverID='+driverID));
         var refData = database.collection('parcel_orders').where('driverId','==',driverID);
         var ref = database.collection('parcel_orders').where('driverId','==',driverID).orderBy('createdAt', 'desc');
     }

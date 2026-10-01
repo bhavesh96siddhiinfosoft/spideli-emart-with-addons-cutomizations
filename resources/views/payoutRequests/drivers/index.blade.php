@@ -485,7 +485,7 @@
     if (id != "") {
         var wallet_route = "{{route('users.walletstransaction','id')}}";
 
-        $(".wallet_transaction").attr("href", wallet_route.replace('id', 'driverID='+id));
+        $(".wallet_transaction").attr("href", spideliRouteWithId(wallet_route, 'driverID='+id));
 
         var refData = database.collection('driver_payouts').where('driverID', '==', id);
 
@@ -1048,7 +1048,7 @@
 
                     var url = "{{route('rental_orders.driver','id')}}";
 
-                    url = url.replace("id", driverData.id);
+                    url = spideliRouteWithId(url, driverData.id);
 
                     $('.service_type_orders').html('<a href="' + url + '"><i class="ri-shopping-bag-line"></i>{{trans('lang.order_plural')}}</a>');
 
@@ -1056,7 +1056,7 @@
 
                     var url = "{{route('orders','id')}}";
 
-                    url = url.replace("id", 'driverId=' + driverData.id);
+                    url = spideliRouteWithId(url, 'driverId=' + driverData.id);
 
                     $('.service_type_orders').html('<a href="' + url + '"><i class="ri-shopping-bag-line"></i>{{trans('lang.order_plural')}}</a>');
 
@@ -1064,7 +1064,7 @@
 
                     var url = "{{route('parcel_orders.driver','id')}}";
 
-                    url = url.replace("id", driverData.id);
+                    url = spideliRouteWithId(url, driverData.id);
 
                     $('.service_type_orders').html('<a href="' + url + '"><i class="ri-shopping-bag-line"></i>{{trans('lang.order_plural')}}</a>');
 

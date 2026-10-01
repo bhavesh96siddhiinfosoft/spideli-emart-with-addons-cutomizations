@@ -430,17 +430,17 @@ order: [[ @if(empty($id)) 2 @else 1 @endif, "desc" ]], // Order by Amount column
 
                     } else if (driver_data.serviceType == "rental-service") {
                         var url = "{{route('rental.orders.owner','id')}}";
-                        url = url.replace("id", id);
+                        url = spideliRouteWithId(url, id);
                         $('.service_type_orders').html('<a href="' + url + '"><i class="ri-shopping-bag-line"></i>{{trans('lang.order_plural')}}</a>');
 
                     } else if (driver_data.serviceType == "delivery-service" || driver_data.serviceType == "ecommerce-service") {
                         var url = "{{route('orders.owner','id')}}";
-                        url = url.replace("id",  id);
+                        url = spideliRouteWithId(url, id);
                         $('.service_type_orders').html('<a href="' + url + '"><i class="ri-shopping-bag-line"></i>{{trans('lang.order_plural')}}</a>');
 
                     } else if (driver_data.serviceType == "parcel_delivery") {
                         var url = "{{route('parcel_orders.owner','id')}}";
-                        url = url.replace("id", id);
+                        url = spideliRouteWithId(url, id);
                         $('.service_type_orders').html('<a href="' + url + '"><i class="ri-shopping-bag-line"></i>{{trans('lang.order_plural')}}</a>');
 
                     }

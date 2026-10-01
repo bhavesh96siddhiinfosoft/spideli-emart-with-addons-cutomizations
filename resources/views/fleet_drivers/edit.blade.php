@@ -763,21 +763,21 @@
                 order_text = "{{trans('lang.rides')}}";
             } else if (type == "rental-service") {
                 url = "{{route('rental_orders.driver','id')}}";
-                url = url.replace("id", id);
+                url = spideliRouteWithId(url, id);
                 await database.collection('rental_orders').where('driverID', '==', id).get().then(async function (orderSnapshots) {
                     count_order_complete = orderSnapshots.docs.length;
                 });
                 order_text = "{{trans('lang.rental_orders')}}";
             } else if (type == "delivery-service" || type == "ecommerce-service") {
                 url = "{{route('orders','id')}}";
-                url = url.replace("id", 'driverId=' + id);
+                url = spideliRouteWithId(url, 'driverId=' + id);
                 await database.collection('vendor_orders').where('driverID', '==', id).get().then(async function (orderSnapshots) {
                     count_order_complete = orderSnapshots.docs.length;
                 });
                 order_text = "{{trans('lang.order_plural')}}";
             } else if (type == "parcel_delivery") {
                 url = "{{route('parcel_orders.driver','id')}}";
-                url = url.replace("id", id);
+                url = spideliRouteWithId(url, id);
                 await database.collection('parcel_orders').where('driverID', '==', id).get().then(async function (orderSnapshots) {
                     count_order_complete = orderSnapshots.docs.length;
                 });

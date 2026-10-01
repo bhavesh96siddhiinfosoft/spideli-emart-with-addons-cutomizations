@@ -330,7 +330,7 @@ async function getStoreNameFunction(vendorId){
             }
             var wallet_route = "{{route('users.walletstransaction','id')}}";
 
-            $(".wallet_transaction").attr("href", wallet_route.replace('id', 'storeID='+vendorData.author));
+            $(".wallet_transaction").attr("href", spideliRouteWithId(wallet_route, 'storeID='+vendorData.author));
 
             if (vendorData.section_id) {
                 let sectionSnap = await database.collection('sections').doc(vendorData.section_id).get();

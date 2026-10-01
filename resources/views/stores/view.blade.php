@@ -857,9 +857,9 @@
                     $(".vendor_cuisines").text(categoryTitleString);
 
                     var wallet_route = "{{ route('users.walletstransaction', 'id') }}";
-                    wallet_route = wallet_route.replace('id', 'storeID=' + vendor.author);
+                    wallet_route = spideliRouteWithId(wallet_route, 'storeID=' + vendor.author);
 
-                    $(".wallet_transaction").attr("href", wallet_route.replace('id', 'storeID=' +
+                    $(".wallet_transaction").attr("href", spideliRouteWithId(wallet_route, 'storeID=' +
                         vendor.author));
 
                     $(".vendor_name").text(vendor.title);

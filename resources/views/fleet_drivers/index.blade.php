@@ -507,13 +507,13 @@
                     var url = "Javascript:void(0)";
                     if (serviceTypes.includes("parcel_delivery") && sectionType == "parcel_delivery") {
                         url = "{{ route('parcel_orders.driver', 'id') }}";
-                        url = url.replace("id", val.id);
+                        url = spideliRouteWithId(url, val.id);
                     }else if(serviceTypes.includes("rental-service") && sectionType == "rental-service"){
                         url = "{{ route('rental_orders.driver', 'id') }}";
-                        url = url.replace("id", val.id);
+                        url = spideliRouteWithId(url, val.id);
                     } else if ((serviceTypes.includes("delivery-service") && sectionType == "delivery-service") || (serviceTypes.includes("ecommerce-service") && sectionType == "ecommerce-service")) {
                         url = "{{ route('orders', 'id') }}";
-                        url = url.replace("id", 'driverId=' + val.id);
+                        url = spideliRouteWithId(url, 'driverId=' + val.id);
                     }else if(serviceTypes.includes("cab-service") && sectionType == "cab-service"){
                         url = "{{ route('drivers.rides', 'driverId') }}";
                         url = url.replace('driverId', val.id);

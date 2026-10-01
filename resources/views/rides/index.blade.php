@@ -227,7 +227,7 @@
     if (id != '') {
         getDriverInfo(id);
         var wallet_route = "{{route('users.walletstransaction','id')}}";
-        $(".wallet_transaction").attr("href", wallet_route.replace('id', 'driverID='+id));
+        $(".wallet_transaction").attr("href", spideliRouteWithId(wallet_route, 'driverID='+id));
         var ref = database.collection('rides').where('driverId', '==', id).orderBy('createdAt', 'desc');
     } else if (sosId != '') {
         var ref = database.collection('rides').where('id', '==', sosId).orderBy('createdAt', 'desc');

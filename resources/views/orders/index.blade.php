@@ -348,7 +348,7 @@
 
             const getUserName = getUserNameFunction(driverID);
             var wallet_route = "{{ route('users.walletstransaction', 'id') }}";
-            $(".wallet_transaction").attr("href", wallet_route.replace('id', 'driverID=' + driverID));
+            $(".wallet_transaction").attr("href", spideliRouteWithId(wallet_route, 'driverID=' + driverID));
             
             if(service_type !== 'delivery-service' && service_type !== 'parcel_delivery'){
                 $('.vehicle_tab').show();
@@ -1241,7 +1241,7 @@
                     $(".dine_in_future").show();
                 }
                 var wallet_route = "{{ route('users.walletstransaction', 'id') }}";
-                $(".wallet_transaction_vendor").attr("href", wallet_route.replace('id', 'storeID=' + vendorData.author));
+                $(".wallet_transaction_vendor").attr("href", spideliRouteWithId(wallet_route, 'storeID=' + vendorData.author));
                 if (vendorData.section_id) {
                     let sectionSnap = await database.collection('sections').doc(vendorData.section_id).get();
                     if (sectionSnap.exists) {

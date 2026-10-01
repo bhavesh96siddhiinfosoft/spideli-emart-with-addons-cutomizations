@@ -125,7 +125,7 @@
 
     <?php if ($id != '') { ?>
         var wallet_route = "{{route('users.walletstransaction','id')}}";
-        $(".wallet_transaction").attr("href", wallet_route.replace('id', 'providerID='+id));
+        $(".wallet_transaction").attr("href", spideliRouteWithId(wallet_route, 'providerID='+id));
 
     var ref = database.collection('payouts').where('vendorID', '==', '<?php echo $id; ?>').where('paymentStatus', '==', 'Success').where('role','==','provider').orderBy('paidDate', 'desc');
     getProviderName('<?php echo $id; ?>');

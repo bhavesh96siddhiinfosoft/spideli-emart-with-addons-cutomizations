@@ -165,7 +165,7 @@
         
         if (id != '') {
             var wallet_route = "{{route('users.walletstransaction','id')}}";
-            $(".wallet_transaction").attr("href", wallet_route.replace('id', 'providerID=' + id));
+            $(".wallet_transaction").attr("href", spideliRouteWithId(wallet_route, 'providerID=' + id));
             $('.tabDiv').show();
             var ref = regionScoped(database.collection('providers_services').where('sectionId', '==', section_id).where('author', '==', id)).orderBy('createdAt', 'desc');
 

@@ -237,17 +237,17 @@
                     var ven_dinein = "{{ route('vendors.booktable', 'id') }}";
                     var advRoute="{{ route('restaurants.advertisements', 'id') }}";
                     var deliverymanRoute="{{ route('restaurants.deliveryman', 'id') }}"
-                    $(".vendor_basic").attr("href", basic.replace('id', storeID));
-                    $(".vendor_item").attr("href", items.replace('id', storeID));
-                    $(".vendor_order").attr("href", vendor_orders.replace('id', storeID));
-                    $(".vendor_review").attr("href", vendor_review.replace('id', storeID));
-                    $(".vendor_promo").attr("href", ven_promo.replace('id', storeID));
-                    $(".vendor_payout").attr("href", ven_payout.replace('id', storeID));
-                    $(".vendor_payout_request").attr("href", ven_payoutReq.replace('id', storeID));
-                    $('.deliveryman').attr("href", deliverymanRoute.replace('id', storeID));
-                    $('.advertisement').attr("href", advRoute.replace('id', storeID));
-                    $(".vendor_booktable").attr("href", ven_dinein.replace('id', storeID));
-                    $(".wallet_transaction").attr("href", wallet_route.replace('id', "storeID=" + userId));
+                    $(".vendor_basic").attr("href", spideliRouteWithId(basic, storeID));
+                    $(".vendor_item").attr("href", spideliRouteWithId(items, storeID));
+                    $(".vendor_order").attr("href", spideliRouteWithId(vendor_orders, storeID));
+                    $(".vendor_review").attr("href", spideliRouteWithId(vendor_review, storeID));
+                    $(".vendor_promo").attr("href", spideliRouteWithId(ven_promo, storeID));
+                    $(".vendor_payout").attr("href", spideliRouteWithId(ven_payout, storeID));
+                    $(".vendor_payout_request").attr("href", spideliRouteWithId(ven_payoutReq, storeID));
+                    $('.deliveryman').attr("href", spideliRouteWithId(deliverymanRoute, storeID));
+                    $('.advertisement').attr("href", spideliRouteWithId(advRoute, storeID));
+                    $(".vendor_booktable").attr("href", spideliRouteWithId(ven_dinein, storeID));
+                    $(".wallet_transaction").attr("href", spideliRouteWithId(wallet_route, "storeID=" + userId));
                 }
             } else if (providerID != '') {
                 userId = providerID;
@@ -266,12 +266,12 @@
                 $(".provider_coupons").attr("href", provider_coupons.replace('{id?}', providerID));
                 $(".provider_payout").attr("href", provider_payout.replace('{id}', providerID));
                 $(".provider_payout_request").attr("href", provider_payout_request.replace('{id?}', providerID));
-                $(".wallet_transaction").attr("href", wallet_route.replace('id', "{{ $id }}"));
+                $(".wallet_transaction").attr("href", spideliRouteWithId(wallet_route, "{{ $id }}"));
             }
 
             if (userId != '') {
                 refData = refData.where('user_id', '==', userId);
-                $(".subscription").attr("href", subscription_route.replace('id', "{{ $id }}"));
+                $(".subscription").attr("href", spideliRouteWithId(subscription_route, "{{ $id }}"));
             }
 
             $(document.body).on('click', '.redirecttopage', function() {

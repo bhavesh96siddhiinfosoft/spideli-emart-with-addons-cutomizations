@@ -467,7 +467,7 @@
                     vendorName = vendorData.title;
                     $('.vendorTitle').html('{{ trans('lang.payout_request') }} - ' + vendorName);
                     var wallet_route = "{{ route('users.walletstransaction', 'id') }}";
-                    $(".wallet_transaction").attr("href", wallet_route.replace('id', 'storeID=' + vendorData.author));
+                    $(".wallet_transaction").attr("href", spideliRouteWithId(wallet_route, 'storeID=' + vendorData.author));
                 }
             });
         }

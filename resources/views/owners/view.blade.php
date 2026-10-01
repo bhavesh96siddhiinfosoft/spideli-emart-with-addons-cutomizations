@@ -312,7 +312,7 @@
                     }
                     
                     var wallet_route = "{{route('owners.walletTransaction','id')}}";
-                    $(".wallet_transaction").attr("href",  wallet_route.replace('id', dirver.id) );
+                    $(".wallet_transaction").attr("href",  spideliRouteWithId(wallet_route, dirver.id) );
 
                     let serviceTypes = dirver.serviceTypes || (dirver.serviceType ? [dirver.serviceType] : []);
                     let serviceTypeText = serviceTypes.map(type => serviceLabels[type] || type).join(", ");

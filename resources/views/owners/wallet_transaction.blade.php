@@ -128,7 +128,7 @@
             
             if (id) {
                 ref = refData.where('user_id', '==', id).orderBy('date', 'desc');
-                $(".wallet_transaction").attr("href", wallet_route.replace('id', "{{ $id }}"));
+                $(".wallet_transaction").attr("href", spideliRouteWithId(wallet_route, "{{ $id }}"));
             } else {
                 ref = refData.orderBy('date', 'desc');
             }
@@ -147,15 +147,15 @@
                         $('.service_type_orders').html('<a href="' + url + '"><i class="ri-shopping-bag-line"></i>{{ trans('lang.order_plural') }}</a>');
                     } else if (driver.serviceType == "rental-service") {
                         var url = "{{route('rental.orders.owner','id')}}";
-                        url = url.replace("id", id);
+                        url = spideliRouteWithId(url, id);
                         $('.service_type_orders').html('<a href="' + url + '"><i class="ri-shopping-bag-line"></i>{{ trans('lang.order_plural') }}</a>');
                     } else if (driver.serviceType == "delivery-service" || driver.serviceType == "ecommerce-service") {
                         var url = "{{route('orders.owner','id')}}";
-                        url = url.replace("id",  id);
+                        url = spideliRouteWithId(url, id);
                         $('.service_type_orders').html('<a href="' + url + '"><i class="ri-shopping-bag-line"></i>{{ trans('lang.order_plural') }}</a>');
                     } else if (driver.serviceType == "parcel_delivery") {
                         var url = "{{route('parcel_orders.owner','id')}}";
-                        url = url.replace("id", id);
+                        url = spideliRouteWithId(url, id);
                         $('.service_type_orders').html('<a href="' + url + '"><i class="ri-shopping-bag-line"></i>{{ trans('lang.order_plural') }}</a>');
                     }
                 });

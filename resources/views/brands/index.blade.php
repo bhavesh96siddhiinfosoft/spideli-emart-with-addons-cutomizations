@@ -203,7 +203,7 @@
         var total= await getProductTotal(val.id);
         var brandId = val.id;
         var url = '{{url("items?brandID=id")}}';
-        url = url.replace("id", brandId);
+        url = spideliRouteWithId(url, brandId);
         html = html + '<td ><a href="' + url + '">'+total+'</a></td>';
         if (val.is_publish) {
             html = html + '<td><label class="switch"><input type="checkbox" checked id="' + val.id + '" name="isSwitch"><span class="slider round"></span></label></td>';

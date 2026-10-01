@@ -1610,6 +1610,49 @@
             return ownerSnapshot.exists ? ownerSnapshot.data() : null;
         }
 
+        /* ---- Putting an id into a route URL --------------------------------
+         *
+         * Every row link in this panel was built like this:
+         *
+         *     var url = "{{ route('parcel_orders.driver', 'id') }}";
+         *     url = spideliRouteWithId(url, driverId);
+         *
+         * route() returns an ABSOLUTE url, and `.replace` changes the FIRST
+         * match. On spideli.com the first "id" is inside the DOMAIN -
+         * sp-id-eli.com - so the driver id was substituted into the host:
+         *
+         *     https://sp76bdmwmt2gugelpful5ybeblstj3eli.com/admin/parcel_orders/id
+         *
+         * which is the broken link the client reported on 1 October, and it
+         * explains why nobody saw it in development: 192.168.1.9 and localhost
+         * contain no "id".
+         *
+         * This replaces the id only where it is a WHOLE path segment or a
+         * whole query value - after "/", "?", "=" or "&" and at the end of
+         * that part - so the host can never match.
+         *
+         * Both shapes in this panel are covered:
+         *     /admin/parcel_orders/id      ->  /admin/parcel_orders/<id>
+         *     /orders?id                   ->  /orders?driverId=<id>
+         *     /items?brandID=id            ->  /items?brandID=<id>
+         *
+         * (The last is safe for a second reason - "brandID" is uppercase - but
+         * it was still broken by the host.)
+         *
+         * Replaces the first match only, exactly as before.
+         * -------------------------------------------------------------------- */
+        function spideliRouteWithId(template, value) {
+            if (typeof template !== 'string') {
+                return template;
+            }
+
+            /* A function replacement, so a value containing $ is inserted
+             * literally rather than read as a backreference. */
+            return template.replace(/([/?=&])id(?=$|[/?#&])/, function (match, delimiter) {
+                return delimiter + value;
+            });
+        }
+
         /* `delta` is signed: positive credits, negative debits. The owner is
          * looked up from the store when it is not already known. */
         async function applyVendorWalletDelta(storeId, ownerUserId, delta) {

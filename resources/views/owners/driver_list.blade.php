@@ -197,15 +197,15 @@
                     $('.service_type_orders').html('<a href="' + url + '"><i class="ri-shopping-bag-line"></i>{{ trans('lang.order_plural') }}</a>');
                 }else if (serviceTypes.includes("rental-service") && sectionType == "rental-service") {
                     var url = "{{route('rental.orders.owner','id')}}";
-                    url = url.replace("id", id);
+                    url = spideliRouteWithId(url, id);
                     $('.service_type_orders').html('<a href="' + url + '"><i class="ri-shopping-bag-line"></i>{{ trans('lang.order_plural') }}</a>');
                  } else if ((serviceTypes.includes("delivery-service") && sectionType == "delivery-service") || (serviceTypes.includes("ecommerce-service") && sectionType == "ecommerce-service")) {
                     var url = "{{route('orders.owner','id')}}";
-                    url = url.replace("id",  id);
+                    url = spideliRouteWithId(url, id);
                     $('.service_type_orders').html('<a href="' + url + '"><i class="ri-shopping-bag-line"></i>{{ trans('lang.order_plural') }}</a>');
                 } else if (serviceTypes.includes("parcel_delivery") && sectionType == "parcel_delivery") {
                     var url = "{{route('parcel_orders.owner','id')}}";
-                    url = url.replace("id", id);
+                    url = spideliRouteWithId(url, id);
                     $('.service_type_orders').html('<a href="' + url + '"><i class="ri-shopping-bag-line"></i>{{ trans('lang.order_plural') }}</a>');
                 }
             
@@ -554,13 +554,13 @@
                     url = url.replace('ownerId', id);
                 }else if (serviceTypes.includes("rental-service") && sectionType == "rental-service") {
                     var url = "{{route('rental.orders.owner','id')}}";
-                    url = url.replace("id", id);
+                    url = spideliRouteWithId(url, id);
                 } else if ((serviceTypes.includes("delivery-service") && sectionType == "delivery-service") || (serviceTypes.includes("ecommerce-service") && sectionType == "ecommerce-service")) {
                     var url = "{{route('orders.owner','id')}}";
-                    url = url.replace("id",  id);
+                    url = spideliRouteWithId(url, id);
                 } else if (serviceTypes.includes("parcel_delivery") && sectionType == "parcel_delivery") {
                     var url = "{{route('parcel_orders.owner','id')}}";
-                    url = url.replace("id", id);
+                    url = spideliRouteWithId(url, id);
                 }
 
                 html.push(val.totalOrders > 0 ? ('<a href="' + url + '">' + val.totalOrders + '</a>') : val.totalOrders);

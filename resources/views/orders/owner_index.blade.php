@@ -699,7 +699,7 @@
                     $(".dine_in_future").show();
                 }
                 var wallet_route = "{{ route('users.walletstransaction', 'id') }}";
-                $(".wallet_transaction_vendor").attr("href", wallet_route.replace('id', 'storeID=' + vendorData.author));
+                $(".wallet_transaction_vendor").attr("href", spideliRouteWithId(wallet_route, 'storeID=' + vendorData.author));
             });
             return vendorName;
         }

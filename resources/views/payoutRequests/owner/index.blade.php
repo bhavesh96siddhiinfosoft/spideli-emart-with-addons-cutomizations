@@ -226,7 +226,7 @@
     var user_number = [];
     if (id != "") {
         var wallet_route = "{{route('users.walletstransaction','id')}}";
-        $(".wallet_transaction").attr("href", wallet_route.replace('id', 'driverID='+id));
+        $(".wallet_transaction").attr("href", spideliRouteWithId(wallet_route, 'driverID='+id));
         var refData = database.collection('driver_payouts').where('driverID', '==', id);
         database.collection('users').where("id", "==", id).get().then(async function (snapshotss) {
             if (snapshotss.docs[0]) {
@@ -499,15 +499,15 @@
                     $('.service_type_orders').html('<a href="' + url + '"><i class="ri-shopping-bag-line"></i>{{trans('lang.order_plural')}}</a>');
                 } else if (driverData.serviceType == "rental-service") {
                     var url = "{{route('rental.orders.owner','id')}}";
-                    url = url.replace("id", id);
+                    url = spideliRouteWithId(url, id);
                     $('.service_type_orders').html('<a href="' + url + '"><i class="ri-shopping-bag-line"></i>{{trans('lang.order_plural')}}</a>');
                 } else if (driverData.serviceType == "delivery-service" || driverData.serviceType == "ecommerce-service") {
                     var url = "{{route('orders.owner','id')}}";
-                    url = url.replace("id",  id);
+                    url = spideliRouteWithId(url, id);
                     $('.service_type_orders').html('<a href="' + url + '"><i class="ri-shopping-bag-line"></i>{{trans('lang.order_plural')}}</a>');
                 } else if (driverData.serviceType == "parcel_delivery") {
                     var url = "{{route('parcel_orders.owner','id')}}";
-                    url = url.replace("id", id);
+                    url = spideliRouteWithId(url, id);
                     $('.service_type_orders').html('<a href="' + url + '"><i class="ri-shopping-bag-line"></i>{{trans('lang.order_plural')}}</a>');
                 }
             }

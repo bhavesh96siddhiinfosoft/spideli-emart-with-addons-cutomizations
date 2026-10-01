@@ -159,7 +159,7 @@
 
                 arrayUsers = JSON.stringify(arrayUsers);
                 var url = "{{url('admin-users/delete', 'id')}}";
-                url = url.replace('id', arrayUsers);
+                url = spideliRouteWithId(url, arrayUsers);
 
                 $(this).attr('href', url);
             }

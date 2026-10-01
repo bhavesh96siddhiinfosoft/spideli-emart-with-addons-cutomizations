@@ -238,7 +238,7 @@
                 // $(".vendor_booktable").attr("href", ven_dinein);
                 // $(".vendor_booktable").attr("href", ven_dinein);
                 // $(".vendor_booktable").attr("href", ven_dinein);
-                $(".subscription").attr("href", subscription_route.replace('id', "storeID=" + vendorId));
+                $(".subscription").attr("href", spideliRouteWithId(subscription_route, "storeID=" + vendorId));
                 await getStoreNameFunction(storeID);
             } else if (driverID != '') {
                 id = driverID;
@@ -248,11 +248,11 @@
                 var vehicle = "{{ route('drivers.vehicle', 'id') }}";
                 var payouts = "{{ route('driver.payouts', 'id') }}";
                 var driver_payout_request = "{{ route('payoutRequests.drivers.view', 'id') }}";
-                $(".basic").attr("href", basic.replace('id', driverID));
-                $(".vehicle").attr("href", vehicle.replace('id', driverID));
-                $(".payout").attr("href", payouts.replace('id', driverID));
-                $(".driver_payout_request").attr("href", driver_payout_request.replace('id', driverID));
-                $(".subscription").attr("href", subscription_route.replace('id', "{{ $id }}"));
+                $(".basic").attr("href", spideliRouteWithId(basic, driverID));
+                $(".vehicle").attr("href", spideliRouteWithId(vehicle, driverID));
+                $(".payout").attr("href", spideliRouteWithId(payouts, driverID));
+                $(".driver_payout_request").attr("href", spideliRouteWithId(driver_payout_request, driverID));
+                $(".subscription").attr("href", spideliRouteWithId(subscription_route, "{{ $id }}"));
                 if(serviceType !== 'delivery-service' && serviceType !== 'parcel_delivery'){
                     $('.vehicle_tab').show();
                 }else{
@@ -276,11 +276,11 @@
                 $(".provider_coupons").attr("href", provider_coupons.replace('{id?}', providerID));
                 $(".provider_payout").attr("href", provider_payout.replace('{id}', providerID));
                 $(".provider_payout_request").attr("href", provider_payout_request.replace('{id?}', providerID));
-                $(".subscription").attr("href", subscription_route.replace('id', "{{ $id }}"));
+                $(".subscription").attr("href", spideliRouteWithId(subscription_route, "{{ $id }}"));
             }
             if (id) {
                 ref = refData.where('user_id', '==', id).orderBy('date', 'asc');
-                $(".wallet_transaction").attr("href", wallet_route.replace('id', "{{ $id }}"));
+                $(".wallet_transaction").attr("href", spideliRouteWithId(wallet_route, "{{ $id }}"));
             } else {
                 ref = refData.orderBy('date', 'desc');
             }
@@ -303,16 +303,16 @@
                         // var vendor_booktable = "{{ route('vendors.booktable', 'id') }}";
                         var advRoute = "{{ route('restaurants.advertisements', 'id') }}";
                         var deliveryRoute = "{{ route('restaurants.deliveryman', 'id') }}";
-                        $(".vendor_basic").attr("href", vendor_basic.replace('id', driver.vendorID));
-                        $(".vendor_item").attr("href", vendor_item.replace('id', driver.vendorID));
-                        $(".vendor_order").attr("href", vendor_order.replace('id', driver.vendorID));
-                        $(".vendor_review").attr("href", vendor_review.replace('id', driver.vendorID));
-                        $(".vendor_promo").attr("href", vendor_promo.replace('id', driver.vendorID));
-                        $(".vendor_payout").attr("href", vendor_payout.replace('id', driver.vendorID));
-                        $(".vendor_payout_request").attr("href", vendor_payout_request.replace('id', driver.vendorID));
-                        // $(".vendor_booktable").attr("href", vendor_booktable.replace('id', driver.vendorID));
-                        $(".advertisement_tab").attr("href", advRoute.replace('id', driver.vendorID));
-                        $(".deliveryman_tab").attr("href", deliveryRoute.replace('id', driver.vendorID));
+                        $(".vendor_basic").attr("href", spideliRouteWithId(vendor_basic, driver.vendorID));
+                        $(".vendor_item").attr("href", spideliRouteWithId(vendor_item, driver.vendorID));
+                        $(".vendor_order").attr("href", spideliRouteWithId(vendor_order, driver.vendorID));
+                        $(".vendor_review").attr("href", spideliRouteWithId(vendor_review, driver.vendorID));
+                        $(".vendor_promo").attr("href", spideliRouteWithId(vendor_promo, driver.vendorID));
+                        $(".vendor_payout").attr("href", spideliRouteWithId(vendor_payout, driver.vendorID));
+                        $(".vendor_payout_request").attr("href", spideliRouteWithId(vendor_payout_request, driver.vendorID));
+                        // $(".vendor_booktable").attr("href", spideliRouteWithId(vendor_booktable, driver.vendorID));
+                        $(".advertisement_tab").attr("href", spideliRouteWithId(advRoute, driver.vendorID));
+                        $(".deliveryman_tab").attr("href", spideliRouteWithId(deliveryRoute, driver.vendorID));
                     }
                     if (driver.serviceType == "cab-service") {
                         var url = "{{ route('drivers.rides', 'driverId') }}";
@@ -320,15 +320,15 @@
                         $('.service_type_orders').html('<a href="' + url + '"><i class="ri-shopping-bag-line"></i>{{ trans('lang.order_plural') }}</a>');
                     } else if (driver.serviceType == "rental-service") {
                         var url = "{{ route('rental_orders.driver', 'id') }}";
-                        url = url.replace("id", driver.id);
+                        url = spideliRouteWithId(url, driver.id);
                         $('.service_type_orders').html('<a href="' + url + '"><i class="ri-shopping-bag-line"></i>{{ trans('lang.order_plural') }}</a>');
                     } else if (driver.serviceType == "delivery-service" || driver.serviceType == "ecommerce-service") {
                         var url = "{{ route('orders', 'id') }}";
-                        url = url.replace("id", 'driverId=' + driver.id);
+                        url = spideliRouteWithId(url, 'driverId=' + driver.id);
                         $('.service_type_orders').html('<a href="' + url + '"><i class="ri-shopping-bag-line"></i>{{ trans('lang.order_plural') }}</a>');
                     } else if (driver.serviceType == "parcel_delivery") {
                         var url = "{{ route('parcel_orders.driver', 'id') }}";
-                        url = url.replace("id", driver.id);
+                        url = spideliRouteWithId(url, driver.id);
                         $('.service_type_orders').html('<a href="' + url + '"><i class="ri-shopping-bag-line"></i>{{ trans('lang.order_plural') }}</a>');
                     }
                 });
@@ -787,7 +787,7 @@
 
                     }
                     var wallet_route = "{{route('users.walletstransaction','id')}}";
-                    $(".wallet_transaction").attr("href", wallet_route.replace('id', 'storeID=' + vendorData.author));
+                    $(".wallet_transaction").attr("href", spideliRouteWithId(wallet_route, 'storeID=' + vendorData.author));
 
                     if (vendorData.section_id) {
                         let sectionSnap = await database.collection('sections').doc(vendorData.section_id).get();

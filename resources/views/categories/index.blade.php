@@ -387,7 +387,7 @@
 
         var url = '{{url("items?categoryID=id")}}';
 
-        url = url.replace("id", categoryId);
+        url = spideliRouteWithId(url, categoryId);
 
         html.push('<td ><a href="' + url + '">' + val.totalProducts + '</a></td>');
 

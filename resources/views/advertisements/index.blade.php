@@ -226,7 +226,7 @@
             database.collection('vendors').where("id", "==", '<?php echo $id; ?>').get().then(async function(snapshots) {
                 var vendorData = snapshots.docs[0].data();
                 var wallet_route = "{{ route('users.walletstransaction', 'id') }}";
-                $(".wallet_transaction").attr("href", wallet_route.replace('id', 'storeID=' + vendorData.author));
+                $(".wallet_transaction").attr("href", spideliRouteWithId(wallet_route, 'storeID=' + vendorData.author));
                 if (vendorData.hasOwnProperty('dine_in_active') && vendorData.dine_in_active == true) {
                     $(".dine_in_future").show();
                 }

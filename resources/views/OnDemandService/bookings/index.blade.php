@@ -416,7 +416,7 @@
         var endTimestamp = firebase.firestore.Timestamp.fromDate(endOfToday);
         if (id != '') {
             var wallet_route = "{{ route('users.walletstransaction', 'id') }}";
-            $(".wallet_transaction").attr("href", wallet_route.replace('id', 'providerID=' + id));
+            $(".wallet_transaction").attr("href", spideliRouteWithId(wallet_route, 'providerID=' + id));
             $('.tabDiv').show();
             var newBookingRef = database.collection('provider_orders').where('sectionId', '==', active_id).where('status', '==', 'Order Placed').where('provider.author', '==', id).orderBy('createdAt', 'desc');
             var todayBookingRef = database.collection('provider_orders').where('sectionId', '==', active_id).where('newScheduleDateTime', '>=', startTimestamp).where('newScheduleDateTime', '<=', endTimestamp).where('status', 'in', ['Order Accepted', 'Order Assigned', 'Order Ongoing']).where('provider.author', '==', id);
