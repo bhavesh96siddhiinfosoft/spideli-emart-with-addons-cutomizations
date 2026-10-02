@@ -886,15 +886,11 @@
                     $("#trackng_number").text(id);
 
                 }
-                if (order.address && order.address.hasOwnProperty('address')) {
-                    $("#billing_line1").text(order.address.address);
-                }
-                if (order.address && order.address.hasOwnProperty('locality')) {
-                    billingAddressstring = billingAddressstring + order.address.locality;
-                }
-                if (order.address && order.address.hasOwnProperty('landmark') && order.address.landmark != null) {
-                    billingAddressstring = billingAddressstring + " " + order.address.landmark;
-                }
+                /* 02#18: hasOwnProperty is TRUE when the field holds null, which is
+                 * how "null" reached the screen. The helper drops absent parts and
+                 * strips "null" out of an already-joined locality. */
+                $("#billing_line1").text(spideliCleanAddressPart(order.address && order.address.address));
+                billingAddressstring = spideliFormatAddress(order.address, ['locality', 'landmark']);
                 if (order.takeAway == true) {
                     billingAddressstring = '';
                     $('#billing_adrs').hide();

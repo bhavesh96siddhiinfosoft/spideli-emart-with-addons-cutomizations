@@ -583,17 +583,8 @@
 
                                 destination = '';
 
-                                if (val.address.hasOwnProperty('address')) {
-
-                                    destination = val.address.address;
-
-                                    if (val.address.hasOwnProperty('locality')) {
-
-                                        destination = destination + val.address.locality;
-
-                                    }
-
-                                }
+                                /* 02#18 - a rider's destination showed "null" the same way. */
+                                destination = spideliFormatAddress(val.address, ['address', 'locality']);
 
                                
 

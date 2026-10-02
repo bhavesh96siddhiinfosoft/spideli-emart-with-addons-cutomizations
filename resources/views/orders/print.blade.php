@@ -280,17 +280,8 @@
 
             var billingAddressstring = '';
 
-            if (order.address.hasOwnProperty('address') ) {
-            billingAddressstring = billingAddressstring + order.address.address;
-            }
-           
-
-            if (order.address.hasOwnProperty('locality')) {
-            billingAddressstring = billingAddressstring +","+ order.address.locality;
-            }
-            if (order.address.hasOwnProperty('landmark')) {
-            billingAddressstring = billingAddressstring + " " + order.address.landmark;
-            }
+            /* 02#18 - see the note in orders/edit. */
+            billingAddressstring = spideliFormatAddress(order.address);
 
             if (order.author.hasOwnProperty('phoneNumber')) {
 

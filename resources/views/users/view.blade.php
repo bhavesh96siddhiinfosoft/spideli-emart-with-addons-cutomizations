@@ -338,7 +338,7 @@
                         address += '<div class="gold-members d-flex align-items-start transactions-list">';
 
                         address = address + '<div class="media transactions-list-left w-100">';
-                        address = address + '<div class="media-body"><h6 class="date">' + listval.address + "," + listval.locality + " " + listval.landmark + '</h6>';
+                        address = address + '<div class="media-body"><h6 class="date">' + spideliFormatAddress(listval) + '</h6>';
 
                         address = address + '<span class="badge badge-info py-2 px-3">' + listval.addressAs + '</span>' + defaultBtnHtml;
                         address += '</div></div>';

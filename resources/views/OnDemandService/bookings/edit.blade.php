@@ -790,15 +790,9 @@
             $('#billing_name').html('<a href="' + user_view + '">' + billing_name + '</a>');
 
             var billingAddressstring = '';
-            if (order.address.hasOwnProperty('address')) {
-                $("#billing_line1").text(order.address.address);
-            }
-            if (order.address.hasOwnProperty('locality')) {
-                billingAddressstring = billingAddressstring + order.address.locality;
-            }
-            if (order.address.hasOwnProperty('landmark') && order.address.landmark != null) {
-                billingAddressstring = billingAddressstring + " " + order.address.landmark;
-            }
+            /* 02#18 - see the note in orders/edit. */
+            $("#billing_line1").text(spideliCleanAddressPart(order.address && order.address.address));
+            billingAddressstring = spideliFormatAddress(order.address, ['locality', 'landmark']);
             $("#billing_line2").text(billingAddressstring);
             if (order.author.hasOwnProperty('phoneNumber')) {
                 if(order.author.phoneNumber.includes('+')){

@@ -300,12 +300,8 @@
                                 html += '<div class="location-ride">';
                                 html += '<div class="from-ride"><span>' + val.vendor.location + '</span></div>';
                                 destination = '';
-                                if (val.address.hasOwnProperty('address')) {
-                                    destination = val.address.address;
-                                    if (val.address.hasOwnProperty('locality')) {
-                                        destination = destination + val.address.locality;
-                                    }
-                                }
+                                /* 02#18 - see map/cab. */
+                                destination = spideliFormatAddress(val.address, ['address', 'locality']);
                              
                                 html += '<div class="to-ride"><span>' + destination + '</span></div>';
                                 html += '</div>';

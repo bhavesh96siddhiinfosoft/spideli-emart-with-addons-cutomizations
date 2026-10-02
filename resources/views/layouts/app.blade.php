@@ -1653,6 +1653,89 @@
             });
         }
 
+
+        /* ---- Addresses: never print the word "null" ----------------------
+         *
+         * Bug report 02 point 18: *"123 Yaounde St, null, Tsinga"*.
+         *
+         * There are TWO sources of that word and this handles both.
+         *
+         * 1. THE PANELS PRODUCE IT. Every address join here is guarded with
+         *    `hasOwnProperty('address')`, which is TRUE when the field exists
+         *    and holds null - so `'' + order.address.address` appends the
+         *    string "null". Live on 2 Oct: `address` is null on 56 of 123
+         *    orders and `landmark` on 66, so this is the common case by far.
+         *
+         * 2. IT IS BAKED INTO THE STORED TEXT. `locality` arrives from the
+         *    phone already joined, with "null" where the geocoder had no
+         *    component: "18, null, Yaounde, Region du Centre, null, Cameroun".
+         *    27 orders carry that exact string. NO GUARD CAN FIX THOSE - the
+         *    word is inside the value - so the segments are dropped here
+         *    instead, which repairs the history on screen without a migration.
+         *
+         * Keeping both in one place matters: there are 25 of these joins
+         * across the three panels, and they had all drifted apart.
+         * ------------------------------------------------------------------ */
+
+        /* One address component, cleaned. Splits on commas because the value
+         * is often itself a joined string (see 2 above). */
+        function spideliCleanAddressPart(value) {
+            if (value === null || value === undefined) {
+                return '';
+            }
+
+            var text = String(value).trim();
+
+            if (text === '') {
+                return '';
+            }
+
+            var parts = text.split(',').map(function (part) {
+                return part.trim();
+            }).filter(function (part) {
+                var lower = part.toLowerCase();
+                return part !== '' && lower !== 'null' && lower !== 'undefined' && lower !== 'nil';
+            });
+
+            return parts.join(', ');
+        }
+
+        /* The whole address as one line. `keys` picks which parts and in what
+         * order; the default is how an address reads aloud.
+         *
+         * Returns '' when there is nothing to show, so the caller can hide the
+         * row rather than print an empty label. */
+        function spideliFormatAddress(address, keys) {
+            if (!address || typeof address !== 'object') {
+                return '';
+            }
+
+            var order = keys || ['address', 'locality', 'landmark'];
+            var seen = {};
+            var out = [];
+
+            order.forEach(function (key) {
+                var cleaned = spideliCleanAddressPart(address[key]);
+
+                if (cleaned === '') {
+                    return;
+                }
+
+                /* The same text is often held in two of these fields. Print it
+                 * once: "Tsinga, Tsinga" reads like a different kind of bug. */
+                var fingerprint = cleaned.toLowerCase();
+
+                if (seen[fingerprint]) {
+                    return;
+                }
+
+                seen[fingerprint] = true;
+                out.push(cleaned);
+            });
+
+            return out.join(', ');
+        }
+
         /* `delta` is signed: positive credits, negative debits. The owner is
          * looked up from the store when it is not already known. */
         async function applyVendorWalletDelta(storeId, ownerUserId, delta) {
