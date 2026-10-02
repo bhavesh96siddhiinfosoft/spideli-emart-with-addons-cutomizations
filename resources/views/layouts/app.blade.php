@@ -2003,6 +2003,151 @@
             }, 250);
         }
 
+
+        /* ---- Reading a Google place without throwing ------------------------
+         *
+         * Related to bug report 02 point 27. The client reports the WORKER
+         * CREATION SCREEN CRASHING on location input. Their wording - "closes
+         * automatically" - describes the phone, so the reported fault is the
+         * app's. THIS PANEL HAS THE SAME FAULT ANYWAY, and it was found while
+         * checking.
+         *
+         * What was here:
+         *
+         *     place.address_components
+         *         .filter(f => JSON.stringify(f.types) === JSON.stringify(['locality','political']))
+         *         [0].long_name
+         *
+         * That demands the `types` list match EXACTLY - same members, same
+         * order, nothing extra. Google varies all three routinely. When nothing
+         * matches, filter() returns [] and [0].long_name THROWS.
+         *
+         * Measured against address shapes Google really returns:
+         *
+         *     a tidy city address .................. survives
+         *     a Yaounde plus-code .................. survives
+         *     no locality (rural or regional) ...... THROWS
+         *     locality with one extra type ......... THROWS
+         *     types in a different order ........... THROWS
+         *     a city-state (no state level) ........ THROWS
+         *     a business picked by name ............ THROWS
+         *
+         * The tidy case working is exactly why this was never noticed.
+         *
+         * WHY IT LOOKS LIKE A CRASH RATHER THAN A WARNING: the listener dies
+         * before the line that writes lat and lng onto the input. The address
+         * box fills in, the coordinates never do, and the save then reads
+         * parseFloat(attr('lng')) as NaN and rejects the address. The user
+         * picks a real address and is told it is invalid.
+         * ------------------------------------------------------------------ */
+
+        /* One component, by type. Matches on MEMBERSHIP of the types list, not
+         * on the whole list, and never throws. */
+        function spideliPlaceComponent(place, type) {
+            if (!place || !place.address_components || !place.address_components.length) {
+                return '';
+            }
+
+            for (var i = 0; i < place.address_components.length; i++) {
+                var component = place.address_components[i];
+
+                if (!component || !component.types || !component.types.length) {
+                    continue;
+                }
+
+                for (var j = 0; j < component.types.length; j++) {
+                    if (component.types[j] === type) {
+                        return component.long_name || component.short_name || '';
+                    }
+                }
+            }
+
+            return '';
+        }
+
+        /* The town, under whichever name this country uses for it. Plenty of
+         * addresses have no `locality` at all. */
+        function spideliPlaceCity(place) {
+            return spideliPlaceComponent(place, 'locality')
+                || spideliPlaceComponent(place, 'postal_town')
+                || spideliPlaceComponent(place, 'administrative_area_level_2')
+                || spideliPlaceComponent(place, 'sublocality_level_1')
+                || spideliPlaceComponent(place, 'sublocality');
+        }
+
+        /* Writes a chosen place onto the address input the old code wrote to -
+         * same attributes, same names, so nothing downstream changes.
+         *
+         * Returns whether COORDINATES were set. A place typed but never chosen
+         * from the list has no geometry, and the caller needs to know that
+         * rather than save a worker with no position. */
+        function spideliApplyPlaceToAddressInput(input, place) {
+            var field = $(input);
+
+            if (!field.length || !place) {
+                return false;
+            }
+
+            var address = place.formatted_address || place.name || '';
+
+            if (address !== '') {
+                field.val(address);
+            }
+
+            field.attr('city', spideliPlaceCity(place));
+            field.attr('state', spideliPlaceComponent(place, 'administrative_area_level_1'));
+            field.attr('country', spideliPlaceComponent(place, 'country'));
+
+            var geometry = place.geometry;
+            var location = geometry && geometry.location;
+
+            if (!location || typeof location.lat !== 'function' || typeof location.lng !== 'function') {
+                /* Left as they were rather than cleared: on an edit screen the
+                 * record already has a position, and wiping it because someone
+                 * clicked the box would be worse than leaving it alone. */
+                return false;
+            }
+
+            field.attr('lat', location.lat());
+            field.attr('lng', location.lng());
+
+            return true;
+        }
+
+        /* Attaches the autocomplete ONCE.
+         *
+         * The old code called initialize() from a click handler on the input,
+         * so every click built another Autocomplete with another listener on
+         * the same box - they stacked up for as long as the page was open. */
+        function spideliAttachPlaceAutocomplete(id, onPicked) {
+            var input = document.getElementById(id);
+
+            if (!input || typeof google === 'undefined' || !google.maps || !google.maps.places) {
+                return;
+            }
+
+            if ($(input).data('spideli-places')) {
+                return;
+            }
+
+            $(input).data('spideli-places', true);
+
+            var autocomplete = new google.maps.places.Autocomplete(input);
+
+            autocomplete.addListener('place_changed', function () {
+                var place = autocomplete.getPlace();
+                var hasCoordinates = spideliApplyPlaceToAddressInput(input, place);
+
+                if (!hasCoordinates) {
+                    console.warn('that place has no coordinates; pick one from the list rather than typing it');
+                }
+
+                if (typeof onPicked === 'function') {
+                    onPicked(place, hasCoordinates);
+                }
+            });
+        }
+
         /* `delta` is signed: positive credits, negative debits. The owner is
          * looked up from the store when it is not already known. */
         async function applyVendorWalletDelta(storeId, ownerUserId, delta) {

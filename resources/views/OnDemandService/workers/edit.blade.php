@@ -388,10 +388,21 @@
                 autocomplete.addListener('place_changed', function () {
                     var place = autocomplete.getPlace();
                     var placeaddress = autocomplete.getPlace().address_components;
-                    var city = place.address_components.filter(f => JSON.stringify(f.types) === JSON.stringify(['locality', 'political']))[0].long_name;
-                    var state = place.address_components.filter(f => JSON.stringify(f.types) === JSON.stringify(['administrative_area_level_1', 'political']))[0].long_name;
-                    var country = place.address_components.filter(f => JSON.stringify(f.types) === JSON.stringify(['country', 'political']))[0].long_name;
-                    $("#" + id).val(place.formatted_address).attr('data-latitude', place.geometry.location.lat()).attr('data-longitude', place.geometry.location.lng()).attr('data-city', city).attr('data-state', state).attr('data-country', country)
+                    /* 02#27: these three lines compared the whole `types` list with
+                     * JSON.stringify, which throws whenever Google returns an extra
+                     * type, a different order, or no locality at all - killing the
+                     * listener before the coordinates below were ever set. The helper
+                     * matches on membership and returns '' instead of throwing. */
+                    var city = spideliPlaceCity(place);
+                    var state = spideliPlaceComponent(place, 'administrative_area_level_1');
+                    var country = spideliPlaceComponent(place, 'country');
+                    
+                    /* A place typed but never chosen from the list has no geometry,
+                     * and reading .lat() off it throws the same way. */
+                    var placeLocation = place.geometry && place.geometry.location;
+                    var placeLat = (placeLocation && typeof placeLocation.lat === 'function') ? placeLocation.lat() : '';
+                    var placeLng = (placeLocation && typeof placeLocation.lng === 'function') ? placeLocation.lng() : '';
+                    $("#" + id).val(place.formatted_address).attr('data-latitude', placeLat).attr('data-longitude', placeLng).attr('data-city', city).attr('data-state', state).attr('data-country', country)
                 });
             }
     }
