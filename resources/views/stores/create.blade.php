@@ -134,6 +134,25 @@
                                     </div>
                                 </div>
 
+                                {{-- 02#15's neighbour, 02#2: say plainly WHERE the store is.
+                                     Hidden entirely on any screen that does not include this block, and the
+                                     script does nothing when #store_location_preview is absent. --}}
+                                <div class="form-group row width-100" id="store_location_preview">
+                                    <label class="col-3 control-label">{{ trans('lang.store_location_selected') }}</label>
+                                    <div class="col-7">
+                                        <div class="border rounded p-3">
+                                            <div class="mb-1"><strong id="store_location_address"></strong></div>
+                                            <div class="mb-2 text-muted small" id="store_location_coords"></div>
+                                            <div class="alert alert-warning py-2 px-3 mb-2" id="store_location_warning" style="display:none;"></div>
+                                            <div id="store_location_map" style="height:260px;width:100%;display:none;"></div>
+                                            <a href="#" target="_blank" rel="noopener" id="store_location_link" class="small" style="display:none;">
+                                                <i class="mdi mdi-map-marker mr-1"></i>{{ trans('lang.store_location_open_in_maps') }}
+                                            </a>
+                                            <div class="form-text text-muted mt-2">{{ trans('lang.store_location_help') }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div class="form-group row width-100">
                                     <label class="col-3 control-label ">{{ trans('lang.vendor_description') }}</label>
                                     <div class="col-7">
@@ -1054,6 +1073,10 @@
         var emailSetting = database.collection('settings').doc('emailSetting');
 
         $(document).ready(async function() {
+            /* 02#2: draws the location panel under the coordinates.
+             * Does nothing on a screen without it. */
+            spideliInitStoreLocation();
+
             jQuery("#data-table_processing").show();
             jQuery("#country_selector").select2({
                 templateResult: formatState,

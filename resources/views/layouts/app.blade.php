@@ -1736,6 +1736,273 @@
             return out.join(', ');
         }
 
+
+        /* ---- Showing a store's location, instead of three unrelated boxes ----
+         *
+         * Bug report 02 point 2: *"when creating a store, display the selected
+         * store location clearly."*
+         *
+         * NOTHING IS SELECTED TODAY. The form has a free-text address box and
+         * two number boxes for latitude and longitude, with a link out to
+         * latlong.net. The three are typed by hand and NOTHING CHECKS THEY
+         * AGREE - you can save "Yaounde" at coordinates in Gujarat and the
+         * panel will not notice.
+         *
+         * Live on 2 Oct: 23 of 26 stores have coordinates, 3 have an EMPTY
+         * STRING for both. Those three cannot be found on a map at all.
+         *
+         * So this does two things: it lets a place be PICKED (filling all
+         * three at once from the same source), and it SHOWS the result on a
+         * map so a human can see whether it landed where they meant.
+         *
+         * EVERYTHING DEGRADES. If Google Maps is unavailable - no key, a key
+         * restricted to another domain, the network - the three boxes still
+         * work exactly as they do today and the store still saves. A store
+         * form that cannot be submitted because a map failed would be far
+         * worse than the bug being fixed.
+         * ------------------------------------------------------------------ */
+
+        /* A latitude/longitude pair, or why it is not one.
+         *
+         * Blank is NOT an error here - a half-filled form is normal while
+         * someone is typing. The existing save validation still rejects it. */
+        function spideliParseLatLng(latValue, lngValue) {
+            var rawLat = (latValue === null || latValue === undefined) ? '' : String(latValue).trim();
+            var rawLng = (lngValue === null || lngValue === undefined) ? '' : String(lngValue).trim();
+
+            if (rawLat === '' || rawLng === '') {
+                return { ok: false, reason: 'empty' };
+            }
+
+            var lat = Number(rawLat);
+            var lng = Number(rawLng);
+
+            if (!isFinite(lat) || !isFinite(lng)) {
+                return { ok: false, reason: 'not_a_number' };
+            }
+
+            if (lat < -90 || lat > 90) {
+                return { ok: false, reason: 'latitude_out_of_range' };
+            }
+
+            if (lng < -180 || lng > 180) {
+                return { ok: false, reason: 'longitude_out_of_range' };
+            }
+
+            /* Exactly 0,0 is in the Atlantic off Ghana. It is never a real
+             * store and always means "nothing was entered". */
+            if (lat === 0 && lng === 0) {
+                return { ok: false, reason: 'null_island' };
+            }
+
+            return { ok: true, lat: lat, lng: lng };
+        }
+
+        /* What a Google place gives us, with nothing assumed to be present.
+         *
+         * An existing screen in this panel does
+         *     place.address_components.filter(...)[0].long_name
+         * which throws the moment a component is missing - and for a plus-code
+         * or a rural address, one usually is. Not copied. */
+        function spideliPlaceToLocation(place) {
+            if (!place || typeof place !== 'object') {
+                return { ok: false };
+            }
+
+            var geometry = place.geometry;
+            var location = geometry && geometry.location;
+
+            if (!location || typeof location.lat !== 'function' || typeof location.lng !== 'function') {
+                /* A place chosen by typing rather than from the list has no
+                 * geometry. The address is still worth keeping. */
+                return { ok: false, address: place.formatted_address || place.name || '' };
+            }
+
+            return {
+                ok: true,
+                address: place.formatted_address || place.name || '',
+                lat: location.lat(),
+                lng: location.lng()
+            };
+        }
+
+        /* Six decimal places is about 10cm. More is noise and makes the box
+         * look broken. */
+        function spideliRoundCoordinate(value) {
+            return Math.round(Number(value) * 1000000) / 1000000;
+        }
+
+        /* A link anyone can open, used when there is no map to draw. */
+        function spideliMapLink(lat, lng) {
+            return 'https://www.google.com/maps/search/?api=1&query=' +
+                encodeURIComponent(lat + ',' + lng);
+        }
+
+        /* The preview itself. Call it once the form is on screen; it is safe
+         * to call when there is no #store_location_preview, which is how every
+         * other screen in the panel is left alone. */
+        var spideliStoreMap = null;
+        var spideliStoreMarker = null;
+
+        function spideliStoreLocationInputs() {
+            return {
+                address: $('.vendor_address'),
+                lat: $('.vendor_latitude'),
+                lng: $('.vendor_longitude')
+            };
+        }
+
+        /* Redraws the words under the boxes, and the map when there is one.
+         * This is the whole point of 02#2: say plainly what is currently
+         * chosen, including when the answer is "nothing usable". */
+        function spideliRenderStoreLocation() {
+            var panel = $('#store_location_preview');
+
+            if (!panel.length) {
+                return;
+            }
+
+            var inputs = spideliStoreLocationInputs();
+            var parsed = spideliParseLatLng(inputs.lat.val(), inputs.lng.val());
+            var address = $.trim(inputs.address.val() || '');
+
+            $('#store_location_address').text(
+                address === '' ? "{{ trans('lang.store_location_no_address') }}" : address);
+
+            if (!parsed.ok) {
+                $('#store_location_coords').text("{{ trans('lang.store_location_none') }}");
+                $('#store_location_link').hide();
+                $('#store_location_map').hide();
+                $('#store_location_warning')
+                    .text("{{ trans('lang.store_location_not_set') }}")
+                    .show();
+                return;
+            }
+
+            $('#store_location_coords').text(parsed.lat + ', ' + parsed.lng);
+            $('#store_location_link').attr('href', spideliMapLink(parsed.lat, parsed.lng)).show();
+            $('#store_location_warning').hide();
+
+            /* No Google Maps on this page - the link above is the whole
+             * preview, and that is a complete answer rather than a broken
+             * one. */
+            if (typeof google === 'undefined' || !google.maps) {
+                $('#store_location_map').hide();
+                return;
+            }
+
+            $('#store_location_map').show();
+
+            var position = { lat: parsed.lat, lng: parsed.lng };
+
+            if (!spideliStoreMap) {
+                spideliStoreMap = new google.maps.Map(document.getElementById('store_location_map'), {
+                    center: position,
+                    zoom: 16,
+                    mapTypeControl: false,
+                    streetViewControl: false
+                });
+
+                spideliStoreMarker = new google.maps.Marker({
+                    map: spideliStoreMap,
+                    position: position,
+                    draggable: true
+                });
+
+                /* Dragging the pin is the quickest correction there is, so it
+                 * writes straight back into the boxes the form saves from. */
+                spideliStoreMarker.addListener('dragend', function (event) {
+                    inputs.lat.val(spideliRoundCoordinate(event.latLng.lat()));
+                    inputs.lng.val(spideliRoundCoordinate(event.latLng.lng()));
+                    spideliRenderStoreLocation();
+                });
+            } else {
+                spideliStoreMap.setCenter(position);
+                spideliStoreMarker.setPosition(position);
+            }
+        }
+
+        /* Picking a place fills the address AND both coordinates from the same
+         * source, which is the only way they can be trusted to agree. */
+        function spideliAttachStoreAutocomplete() {
+            var input = $('.vendor_address').get(0);
+
+            if (!input || typeof google === 'undefined' || !google.maps || !google.maps.places) {
+                return;
+            }
+
+            if ($(input).data('spideli-autocomplete')) {
+                return;
+            }
+
+            $(input).data('spideli-autocomplete', true);
+
+            var autocomplete = new google.maps.places.Autocomplete(input);
+
+            autocomplete.addListener('place_changed', function () {
+                var picked = spideliPlaceToLocation(autocomplete.getPlace());
+
+                if (picked.address) {
+                    $('.vendor_address').val(picked.address);
+                }
+
+                if (picked.ok) {
+                    $('.vendor_latitude').val(spideliRoundCoordinate(picked.lat));
+                    $('.vendor_longitude').val(spideliRoundCoordinate(picked.lng));
+                }
+
+                spideliRenderStoreLocation();
+            });
+
+            /* The browser's own suggestions sit on top of Google's. */
+            $(input).attr('autocomplete', 'off');
+        }
+
+        function spideliInitStoreLocation() {
+            if (!$('#store_location_preview').length) {
+                return;
+            }
+
+            /* Draw what we have straight away - the address, the coordinates
+             * and the link need no map at all. */
+            spideliRenderStoreLocation();
+
+            /* Typed coordinates must move the pin too - plenty of stores were
+             * set up from latlong.net and that has to keep working. */
+            $(document).on('change keyup', '.vendor_latitude, .vendor_longitude, .vendor_address',
+                function () { spideliRenderStoreLocation(); });
+
+            /* GOOGLE MAPS IS NOT READY YET AND USUALLY WILL NOT BE.
+             *
+             * The admin layout reads the key out of Firestore and only then
+             * appends the script, with async and defer - so on a normal load
+             * `google` is still undefined when the page is ready. Attaching
+             * the autocomplete here and walking away would mean it never
+             * attached at all.
+             *
+             * So wait for it, briefly, and give up quietly. Giving up is a
+             * supported outcome: the panel above already shows the address,
+             * the coordinates and a link out. */
+            var waited = 0;
+            var waitForMaps = setInterval(function () {
+                var ready = typeof google !== 'undefined' && google.maps && google.maps.places;
+
+                if (ready) {
+                    clearInterval(waitForMaps);
+                    spideliAttachStoreAutocomplete();
+                    spideliRenderStoreLocation();
+                    return;
+                }
+
+                waited += 250;
+
+                if (waited >= 15000) {
+                    clearInterval(waitForMaps);
+                    console.warn('Google Maps did not load; the store location is shown without a map');
+                }
+            }, 250);
+        }
+
         /* `delta` is signed: positive credits, negative debits. The owner is
          * looked up from the store when it is not already known. */
         async function applyVendorWalletDelta(storeId, ownerUserId, delta) {
