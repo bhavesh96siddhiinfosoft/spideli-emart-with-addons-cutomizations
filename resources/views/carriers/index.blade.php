@@ -89,6 +89,7 @@
                                                     <th>{{ trans('lang.carrier_name') }}</th>
                                                     <th>{{ trans('lang.carrier_code') }}</th>
                                                     <th>{{ trans('lang.carrier_regions') }}</th>
+                                                    <th>{{ trans('lang.carrier_driver_count') }}</th>
                                                     <th>{{ trans('lang.carrier_delivery_time') }}</th>
                                                     <th>{{ trans('lang.status') }}</th>
                                                     <th>{{ trans('lang.actions') }}</th>
@@ -176,17 +177,52 @@
      * carrier - either direction, so a link made by the app in future is
      * honoured too.
      * -------------------------------------------------------------------- */
+    /* How many drivers each carrier has, keyed by carrier id.
+     *
+     * A driver belongs to a company through `companyId`, and a carrier names
+     * its company through `ownerId` - so the chain is
+     * driver.companyId -> company -> carrier.ownerId.
+     *
+     * ON 2 OCTOBER EVERY COUNT IS ZERO. Not one driver anywhere carries a
+     * filled-in companyId. That is the app's half of bug report 02 point 19,
+     * and showing the number is how an administrator sees it: a carrier with no
+     * drivers cannot deliver anything, however complete its rate card looks. */
+    var driverCountByCarrier = {};
+
     async function loadPendingCompanies(carriers) {
         var linkedCompanyIds = {};
+        var carrierByCompany = {};
 
         carriers.forEach(function (carrier) {
             if (carrier.ownerId) {
                 linkedCompanyIds[carrier.ownerId] = true;
+                carrierByCompany[carrier.ownerId] = carrier.id;
             }
         });
 
         var snapshots = await database.collection('users').where('role', '==', 'driver').get();
         var pending = [];
+
+        driverCountByCarrier = {};
+
+        /* Counted from the same read the companies use, rather than a query per
+         * carrier. */
+        snapshots.docs.forEach(function (doc) {
+            var driver = doc.data() || {};
+            var companyId = driver.companyId;
+
+            if (!companyId) {
+                return;
+            }
+
+            var carrierId = carrierByCompany[companyId];
+
+            if (carrierId) {
+                driverCountByCarrier[carrierId] = (driverCountByCarrier[carrierId] || 0) + 1;
+            }
+        });
+
+        renderCarrierDriverCounts();
 
         snapshots.docs.forEach(function (doc) {
             var driver = doc.data() || {};
@@ -243,6 +279,21 @@
         }).join(''));
     }
 
+    /* Writes each count into the row already on screen. A carrier with none
+     * is shown as 0 and marked, because that is the thing worth noticing. */
+    function renderCarrierDriverCounts() {
+        $('.carrier-driver-count').each(function () {
+            var carrierId = $(this).attr('data-carrier');
+            var count = driverCountByCarrier[carrierId] || 0;
+
+            if (count > 0) {
+                $(this).text(count);
+            } else {
+                $(this).html('<span class="badge badge-warning">0</span>');
+            }
+        });
+    }
+
     function escapeHtml(value) {
         return $('<div></div>').text(value === undefined || value === null ? '' : value).html();
     }
@@ -290,14 +341,20 @@
         if (checkDeletePermission) {
             $('#carrierTable').DataTable({
                 order: [[1, 'asc']],
-                columnDefs: [{orderable: false, targets: [0, 3, 5, 6]}],
+                /* With the delete column: 0 select, 1 name, 2 code, 3 regions,
+                 * 4 DRIVERS, 5 delivery time, 6 status, 7 actions. The driver
+                 * count column pushed status and actions along by one - leaving
+                 * these stale is how the Documents screen broke on 1 October. */
+                columnDefs: [{orderable: false, targets: [0, 3, 4, 6, 7]}],
                 "language": datatableLang,
                 responsive: true
             });
         } else {
             $('#carrierTable').DataTable({
                 order: [[0, 'asc']],
-                columnDefs: [{orderable: false, targets: [2, 4, 5]}],
+                /* Without it: 0 name, 1 code, 2 regions, 3 DRIVERS,
+                 * 4 delivery time, 5 status, 6 actions. */
+                columnDefs: [{orderable: false, targets: [2, 3, 5, 6]}],
                 "language": datatableLang,
                 responsive: true
             });
@@ -339,6 +396,9 @@
         html += '<td>' + logo + '<a href="' + route1 + '" class="left_space">' + (val.name || '') + '</a></td>';
         html += '<td>' + (val.code || '') + '</td>';
         html += '<td>' + regionLabel + '</td>';
+        /* Filled by renderCarrierDriverCounts() once the drivers have been
+         * read - the rows are drawn first so the table is never held up by it. */
+        html += '<td class="carrier-driver-count" data-carrier="' + val.id + '">-</td>';
         html += '<td>' + time + '</td>';
         html += '<td><label class="switch"><input type="checkbox" ' + (val.publish ? 'checked' : '') + ' id="' + val.id + '" name="isSwitch"><span class="slider round"></span></label></td>';
         html += '<td class="action-btn"><a href="' + route1 + '" data-toggle="tooltip" data-bs-original-title="{{ trans("lang.edit") }}"><i class="mdi mdi-lead-pencil"></i></a>';

@@ -2885,5 +2885,12 @@ return [
     'carrier_from_company_note' => 'These details came from the company that registered. Please check them, and set the delivery charges below - a carrier with no charges cannot quote for anything.',
     'carrier_registration_number' => 'Registration number',
     'carrier_pending_companies_none' => 'No companies are waiting. Every company that has registered already has a carrier record.',
+    'driver_type' => 'Driver type',
+    'driver_type_individual' => 'Individual driver',
+    'driver_type_company' => 'Company',
+    'driver_type_help' => 'A company owns drivers rather than driving itself, and appears under Carrier Management.',
+    'company_name_error' => 'Please enter the company name.',
+    'carrier_driver_count' => 'Drivers',
+    'driver_type_company_note' => 'This record is a company. It owns drivers rather than driving itself, and appears under Carrier Management. The type cannot be changed here.',
 ];
 ?>

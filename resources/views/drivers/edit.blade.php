@@ -54,6 +54,62 @@
                     <div class="vendor_payout_create-inner">
                         <fieldset>
                             <legend>{{trans('lang.driver_details')}}</legend>
+
+                            {{-- Shown only when the record being edited IS a company.
+                                 The type itself is NOT changeable here: turning an
+                                 existing driver into a company, or the reverse, would
+                                 change whether they own drivers and whether they
+                                 appear in the drivers list, with orders already
+                                 against them. That is a different operation from
+                                 editing details. --}}
+                            <div id="company_fields" style="display:none;">
+                                <div class="form-group row width-100">
+                                    <div class="col-12">
+                                        <div class="alert alert-info mb-3">{{trans('lang.driver_type_company_note')}}</div>
+                                    </div>
+                                </div>
+                                <div class="form-group row width-50">
+                                    <label class="col-3 control-label">{{trans('lang.company_name')}}</label>
+                                    <div class="col-7">
+                                        <input type="text" class="form-control" id="company_name">
+                                        <div class="form-text text-muted">{{trans('lang.company_name_help')}}</div>
+                                    </div>
+                                </div>
+                                <div class="form-group row width-50">
+                                    <label class="col-3 control-label">{{trans('lang.company_address')}}</label>
+                                    <div class="col-7">
+                                        <input type="text" class="form-control" id="company_address">
+                                    </div>
+                                </div>
+                                <div class="form-group row width-50">
+                                    <label class="col-3 control-label">{{trans('lang.carrier_registration_number')}}</label>
+                                    <div class="col-7">
+                                        <input type="text" class="form-control" id="commercial_register">
+                                        <input type="file" class="form-control-file mt-2" onchange="handleCompanyDocUpload(event, 'commercialRegisterFile')">
+                                        <span id="uploading_commercialRegisterFile" class="text-muted small"></span>
+                                        <div id="uploaded_commercialRegisterFile"></div>
+                                    </div>
+                                </div>
+                                <div class="form-group row width-50">
+                                    <label class="col-3 control-label">{{trans('lang.carrier_operating_licence')}}</label>
+                                    <div class="col-7">
+                                        <input type="text" class="form-control" id="operating_licence">
+                                        <input type="file" class="form-control-file mt-2" onchange="handleCompanyDocUpload(event, 'operatingLicenceFile')">
+                                        <span id="uploading_operatingLicenceFile" class="text-muted small"></span>
+                                        <div id="uploaded_operatingLicenceFile"></div>
+                                    </div>
+                                </div>
+                                <div class="form-group row width-50">
+                                    <label class="col-3 control-label">{{trans('lang.carrier_unique_id')}}</label>
+                                    <div class="col-7">
+                                        <input type="text" class="form-control" id="unique_id_number">
+                                        <input type="file" class="form-control-file mt-2" onchange="handleCompanyDocUpload(event, 'uniqueIdNumberFile')">
+                                        <span id="uploading_uniqueIdNumberFile" class="text-muted small"></span>
+                                        <div id="uploaded_uniqueIdNumberFile"></div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="form-group row width-50">
                                 <label class="col-3 control-label">{{trans('lang.first_name')}}</label>
                                 <div class="col-7">
@@ -335,6 +391,33 @@
 
             let userRef = await database.collection('users').doc(id).get();
             let user = userRef.data();
+
+            /* A company looks like a driver but is not one - it owns them. Its
+             * details live nowhere else in this panel, so without this an
+             * administrator could see a company in Carrier Management and have
+             * no way to correct its registration number. */
+            if (user.driverType === 'company' || user.isCompany === true) {
+                isCompanyRecord = true;
+
+                $('#company_fields').show();
+                $('#companyDriverShowDiv').show();
+                $('#companyDriverHideDiv').hide();
+                $('.vehicle-details').hide();
+
+                $('#company_name').val(user.companyName || '');
+                $('#company_address').val(user.companyAddress || '');
+                $('#commercial_register').val(user.commercialRegister || '');
+                $('#operating_licence').val(user.operatingLicence || '');
+                $('#unique_id_number').val(user.uniqueIdNumber || '');
+
+                companyDocs.commercialRegisterFile = user.commercialRegisterFile || '';
+                companyDocs.operatingLicenceFile = user.operatingLicenceFile || '';
+                companyDocs.uniqueIdNumberFile = user.uniqueIdNumberFile || '';
+
+                renderCompanyDocLink('commercialRegisterFile');
+                renderCompanyDocLink('operatingLicenceFile');
+                renderCompanyDocLink('uniqueIdNumberFile');
+            }
 
             /* A driver outside the region the admin is working in must not be
              * reachable by editing the url. */
@@ -843,7 +926,8 @@
                         'sectionIds': selectedSections.sectionIds,
                         'serviceTypes': selectedSections.serviceTypes,
                         'sectionNames': selectedSections.sectionNames,
-                        'vehicleDetails': selectedSections.vehicleDetails
+                        'vehicleDetails': selectedSections.vehicleDetails,
+                        ...companyFieldsForSave()
                     }).then(function (result) {
                         window.location.href = '{{ route("drivers")}}';
                     });
@@ -856,6 +940,84 @@
                 });
             }
         });
+
+        /* ---- The company half, mirroring drivers/create ----------------------
+         * Only the details are editable here; the TYPE is not. See the note in
+         * the markup.
+         * ------------------------------------------------------------------ */
+        var isCompanyRecord = false;
+
+        var companyDocs = {
+            commercialRegisterFile: '',
+            operatingLicenceFile: '',
+            uniqueIdNumberFile: ''
+        };
+
+        function handleCompanyDocUpload(evt, key) {
+            var file = evt.target.files[0];
+
+            if (!file) {
+                return;
+            }
+
+            $('#uploading_' + key).text("{{ trans('lang.carrier_document_uploading') }}");
+
+            var reader = new FileReader();
+            reader.onload = (function () {
+                return function (e) {
+                    var payload = e.target.result.split(',')[1];
+                    var name = 'companyDocument/' + Date.now() + '_' + file.name;
+
+                    firebase.storage().ref().child(name)
+                        .putString(payload, 'base64', { contentType: file.type })
+                        .then(function (task) {
+                            task.ref.getDownloadURL().then(function (downloadURL) {
+                                companyDocs[key] = downloadURL;
+                                $('#uploading_' + key).text("{{ trans('lang.carrier_document_uploaded') }}");
+                                renderCompanyDocLink(key);
+                            });
+                        })
+                        .catch(function (error) {
+                            console.error('company document upload failed', error);
+                            $('#uploading_' + key).text("{{ trans('lang.carrier_document_upload_failed') }}");
+                        });
+                };
+            })(file);
+            reader.readAsDataURL(file);
+        }
+
+        function renderCompanyDocLink(key) {
+            var url = companyDocs[key];
+
+            if (!url) {
+                $('#uploaded_' + key).html('');
+                return;
+            }
+
+            $('#uploaded_' + key).html(
+                '<a href="' + url + '" target="_blank" rel="noopener"><i class="mdi mdi-file-document mr-1"></i>' +
+                "{{ trans('lang.carrier_view_document') }}" + '</a>'
+            );
+        }
+
+        /* Returns {} for an ordinary driver, so every existing edit is
+         * untouched. */
+        function companyFieldsForSave() {
+            if (!isCompanyRecord) {
+                return {};
+            }
+
+            return {
+                'companyName': $('#company_name').val().trim(),
+                'companyAddress': $('#company_address').val().trim(),
+                'commercialRegister': $('#commercial_register').val().trim(),
+                'operatingLicence': $('#operating_licence').val().trim(),
+                'uniqueIdNumber': $('#unique_id_number').val().trim(),
+                'commercialRegisterFile': companyDocs.commercialRegisterFile,
+                'operatingLicenceFile': companyDocs.operatingLicenceFile,
+                'uniqueIdNumberFile': companyDocs.uniqueIdNumberFile
+            };
+        }
 
         $(document).on('change', '.car_make', function () {
             const cab_make_name = $(this).val();
