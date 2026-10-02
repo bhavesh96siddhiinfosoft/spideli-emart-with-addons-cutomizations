@@ -18,6 +18,13 @@
             <div class="card-body">
                 <div class="error_top" style="display:none"></div>
 
+                {{-- Shown only when the screen was opened from a registered
+                     company, so it is clear why the fields are already filled
+                     and what still has to be decided. --}}
+                <div id="company_source_note" class="alert alert-info" style="display:none;">
+                    {{ trans('lang.carrier_from_company_note') }}
+                </div>
+
                 @include('carriers.partials.form')
 
                 <div class="form-group col-12 text-center btm-btn">
@@ -37,18 +44,69 @@
 <script type="text/javascript">
     var database = firebase.firestore();
     var carrierId = database.collection('tmp').doc().id;
+
+    /* Set when this screen was opened from a registered company on the carrier
+     * list - bug report 02 point 19. Empty for an ordinary new carrier. */
+    var fromCompanyId = "<?php echo addslashes($fromCompany); ?>";
 </script>
 @include('carriers.partials.form_scripts')
 <script type="text/javascript">
-    $(document).ready(function () {
+    /* A company driver's record, mapped into the shape initCarrierForm()
+     * already understands, so the existing form fills itself in and no field
+     * is duplicated here.
+     *
+     * The rate card is left empty on purpose - see CarrierController. */
+    function carrierFromCompanyDriver(driver) {
+        return {
+            name: driver.companyName || ((driver.firstName || '') + ' ' + (driver.lastName || '')).trim(),
+            code: '',
+            phone: driver.phoneNumber || '',
+            email: driver.email || '',
+            countryCode: driver.countryCode || '',
+            operatingLicence: driver.operatingLicence || '',
+            commercialRegister: driver.commercialRegister || '',
+            uniqueIdNumber: driver.uniqueIdNumber || '',
+            operatingLicenceFile: driver.operatingLicenceFile || '',
+            commercialRegisterFile: driver.commercialRegisterFile || '',
+            uniqueIdNumberFile: driver.uniqueIdNumberFile || '',
+            photo: driver.profilePictureURL || '',
+            regionIds: driver.regionId ? [driver.regionId] : [],
+            /* Not verified by arriving. An administrator decides. */
+            isVerified: false,
+            publish: false
+        };
+    }
+
+    $(document).ready(async function () {
         jQuery("#data-table_processing").show();
-        initCarrierForm(null).then(function () {
-            jQuery("#data-table_processing").hide();
-        });
+
+        var prefill = null;
+
+        if (fromCompanyId !== '') {
+            try {
+                var snapshot = await database.collection('users').doc(fromCompanyId).get();
+
+                if (snapshot.exists) {
+                    prefill = carrierFromCompanyDriver(snapshot.data() || {});
+                    $('#company_source_note').show();
+                } else {
+                    /* The link was built from a company that has since gone.
+                     * An empty form is still usable, so say so and carry on. */
+                    console.warn('company driver not found; starting an empty carrier', fromCompanyId);
+                    fromCompanyId = '';
+                }
+            } catch (err) {
+                console.error('company driver could not be read', err);
+                fromCompanyId = '';
+            }
+        }
+
+        await initCarrierForm(prefill);
+        jQuery("#data-table_processing").hide();
     });
 
     $('.save-carrier-btn').click(function () {
-        saveCarrier(carrierId, false);
+        saveCarrier(carrierId, false, fromCompanyId);
     });
 </script>
 @endsection

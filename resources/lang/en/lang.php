@@ -2879,5 +2879,11 @@ return [
     'document_awaiting_upload' => 'Waiting for upload',
     'document_no_longer_uploaded' => 'That document is no longer there. It may have been re-uploaded while this page was open - please reload.',
     'document_save_failed' => 'That could not be saved. Please check your connection and try again.',
+    'carrier_pending_companies' => 'Companies waiting to become carriers',
+    'carrier_pending_companies_text' => 'These companies registered as drivers but do not have a carrier record yet, so they cannot be given deliveries.',
+    'carrier_create_from_company' => 'Create carrier',
+    'carrier_from_company_note' => 'These details came from the company that registered. Please check them, and set the delivery charges below - a carrier with no charges cannot quote for anything.',
+    'carrier_registration_number' => 'Registration number',
+    'carrier_pending_companies_none' => 'No companies are waiting. Every company that has registered already has a carrier record.',
 ];
 ?>

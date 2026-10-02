@@ -237,7 +237,9 @@
         return parseFloat(raw);
     }
 
-    async function saveCarrier(id, isEdit) {
+    /* `linkCompanyId` is set only when the carrier is being created from a
+     * registered company - bug report 02 point 19. */
+    async function saveCarrier(id, isEdit, linkCompanyId) {
         $('.err').html('');
 
         var name = $('#name').val().trim();
@@ -322,7 +324,36 @@
         } else {
             payload.id = id;
             payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+
+            /* THE TWO POINT AT EACH OTHER.
+             *
+             * `ownerId` on the carrier names the company that registered; the
+             * company's own user record gets `carrierId` back. Either side can
+             * then be found from the other, which is what
+             * APP-SPEC-ADMIN.md section 19 has been asking for since September -
+             * until a carrier is linked to its drivers, its orders are offered
+             * to every driver.
+             *
+             * A company's own drivers already carry `companyId` pointing at the
+             * company, so once this link exists the carrier's drivers are
+             * reachable in one step. */
+            if (linkCompanyId) {
+                payload.ownerId = linkCompanyId;
+            }
+
             await database.collection('delivery_carriers').doc(id).set(payload);
+
+            if (linkCompanyId) {
+                try {
+                    await database.collection('users').doc(linkCompanyId).update({ 'carrierId': id });
+                } catch (err) {
+                    /* The carrier exists and is the thing that was asked for.
+                     * A failed back-link is worth reporting, not worth undoing
+                     * the carrier for - the list shows unlinked companies, so
+                     * this one simply appears again. */
+                    console.error('carrier created, but the company could not be linked back to it', err);
+                }
+            }
         }
 
         window.location.href = '{{ route("carriers") }}';
