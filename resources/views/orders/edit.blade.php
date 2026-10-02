@@ -142,6 +142,15 @@
                                                         </div>
                                                     </div>
 
+                                                    <div class="form-group row width-100" id="cancel_reason_row" style="display:none;">
+                                                        <label class="col-3 control-label">{{ trans('lang.cancel_reason_shown') }}
+                                                            :</label>
+                                                        <div class="col-7">
+                                                            <p class="mb-1" id="cancel_reason_text"></p>
+                                                            <small class="text-muted" id="cancel_reason_meta"></small>
+                                                        </div>
+                                                    </div>
+
                                                     <div class="form-group row width-100 non-printable">
                                                         <label class="col-3 control-label"></label>
                                                         <div class="col-7 text-right">
@@ -1096,6 +1105,11 @@
                 vendorId = order.vendor.id;
                 old_order_status = order.status;
 
+                /* 02#15: show WHY, when the record says so. Written by the
+                 * store panel and, once they match, by the vendor app. Nothing
+                 * writes it here - the admin reads it. */
+                renderCancellationReason(order);
+
                 userId = order.author.id;
                 order_sectionId = order.section_id;
 
@@ -1492,6 +1506,62 @@
                         window.location.href = '{{ route('orders') }}';
                     }
                 });
+            }
+
+            /* ---- 02#15: the reason an order was stopped -------------------------
+             *
+             * Read only. The store panel writes these fields; the vendor app will too
+             * once it matches. On 2 Oct not one of the 38 cancelled or rejected orders
+             * carries them, so EVERY EXISTING ORDER SHOWS NOTHING NEW - the row stays
+             * hidden unless there is something to say.
+             *
+             * `cancelledAt` may be a Firestore timestamp, a string, or absent. All
+             * three happen in this database, so all three are handled rather than
+             * assumed.
+             * ------------------------------------------------------------------- */
+            function renderCancellationReason(order) {
+                if (!order) {
+                    return;
+                }
+
+                var reason = order.cancelReason;
+
+                if (reason === null || reason === undefined || String(reason).trim() === '') {
+                    $('#cancel_reason_row').hide();
+                    return;
+                }
+
+                $('#cancel_reason_text').text(String(reason).trim());
+
+                var meta = [];
+                var by = order.cancelledBy;
+
+                if (by) {
+                    var known = {
+                        vendor: "{{ trans('lang.cancelled_by_vendor') }}",
+                        customer: "{{ trans('lang.cancelled_by_customer') }}",
+                        driver: "{{ trans('lang.cancelled_by_driver') }}",
+                        admin: "{{ trans('lang.cancelled_by_admin') }}"
+                    };
+                    meta.push(known[String(by).toLowerCase()] || String(by));
+                }
+
+                var when = order.cancelledAt;
+
+                if (when) {
+                    try {
+                        var date = (typeof when.toDate === 'function') ? when.toDate() : new Date(when);
+
+                        if (!isNaN(date.getTime())) {
+                            meta.push(date.toLocaleDateString() + ' ' + date.toLocaleTimeString());
+                        }
+                    } catch (error) {
+                        console.error('the cancellation time could not be read', error);
+                    }
+                }
+
+                $('#cancel_reason_meta').text(meta.join(' · '));
+                $('#cancel_reason_row').show();
             }
 
             $(".save_order_btn").click(async function() {
