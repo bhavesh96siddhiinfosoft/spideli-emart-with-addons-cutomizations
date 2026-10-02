@@ -2265,6 +2265,8 @@ return [
     'vendor_management' => 'إدارة البائعين',
     'customer_management' => 'إدارة العملاء',
     'owner_and_fleet_management' => 'إدارة المالك والسائقين',
+    'company_owners_management' => 'إدارة مالكي الشركات',
+    'fleet_driver_management' => 'إدارة سائقي الأسطول',
     'ecommerce_multivendor_management' => 'إدارة التجارة الإلكترونية / متعدد البائعين',
     'report_and_analytics' => 'التقارير والتحليلات',
     'business_setup' => 'إعداد الأعمال',
@@ -2695,12 +2697,5 @@ return [
     'carrier_from_company_note' => 'هذه البيانات مأخوذة من الشركة التي سجلت. يرجى مراجعتها وتحديد رسوم التوصيل أدناه - شركة النقل بدون رسوم لا يمكنها تسعير أي شيء.',
     'carrier_registration_number' => 'رقم السجل',
     'carrier_pending_companies_none' => 'لا توجد شركات في الانتظار. كل شركة سجلت لديها بالفعل سجل شركة نقل.',
-    'driver_type' => 'نوع السائق',
-    'driver_type_individual' => 'سائق فردي',
-    'driver_type_company' => 'شركة',
-    'driver_type_help' => 'الشركة تملك سائقين ولا تقود بنفسها، وتظهر ضمن إدارة شركات النقل.',
-    'company_name_error' => 'يرجى إدخال اسم الشركة.',
-    'carrier_driver_count' => 'السائقون',
-    'driver_type_company_note' => 'هذا السجل يخص شركة. الشركة تملك سائقين ولا تقود بنفسها، وتظهر ضمن إدارة شركات النقل. لا يمكن تغيير النوع من هنا.',
 ];
 ?>

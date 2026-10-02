@@ -31,71 +31,6 @@ foreach ($countries as $keycountry => $valuecountry) {
                     <div class="vendor_payout_create-inner">
                         <fieldset>
                             <legend>{{trans('lang.driver_details')}}</legend>
-
-                            {{-- INDIVIDUAL OR COMPANY.
-                                 The app has always been able to register a company;
-                                 this panel could not, which is why every company in
-                                 the system carries appIdentifier "android".
-                                 Client bug report 02 point 8. --}}
-                            <div class="form-group row width-50">
-                                <label class="col-3 control-label">{{trans('lang.driver_type')}}</label>
-                                <div class="col-7">
-                                    <select class="form-control" id="driver_type">
-                                        <option value="individual">{{trans('lang.driver_type_individual')}}</option>
-                                        <option value="company">{{trans('lang.driver_type_company')}}</option>
-                                    </select>
-                                    <div class="form-text text-muted">{{trans('lang.driver_type_help')}}</div>
-                                </div>
-                            </div>
-
-                            {{-- Shown only for a company. The three numbers are what a
-                                 carrier record needs to identify the business, so the
-                                 same details carry straight through to Carrier
-                                 Management. --}}
-                            <div id="company_fields" style="display:none;">
-                                <div class="form-group row width-50">
-                                    <label class="col-3 control-label">{{trans('lang.company_name')}}</label>
-                                    <div class="col-7">
-                                        <input type="text" class="form-control" id="company_name">
-                                        <div class="form-text text-muted">{{trans('lang.company_name_help')}}</div>
-                                        <div id="error_company_name" class="err text-danger"></div>
-                                    </div>
-                                </div>
-                                <div class="form-group row width-50">
-                                    <label class="col-3 control-label">{{trans('lang.company_address')}}</label>
-                                    <div class="col-7">
-                                        <input type="text" class="form-control" id="company_address">
-                                    </div>
-                                </div>
-                                <div class="form-group row width-50">
-                                    <label class="col-3 control-label">{{trans('lang.carrier_registration_number')}}</label>
-                                    <div class="col-7">
-                                        <input type="text" class="form-control" id="commercial_register">
-                                        <input type="file" class="form-control-file mt-2" onchange="handleCompanyDocUpload(event, 'commercialRegisterFile')">
-                                        <span id="uploading_commercialRegisterFile" class="text-muted small"></span>
-                                        <div id="uploaded_commercialRegisterFile"></div>
-                                    </div>
-                                </div>
-                                <div class="form-group row width-50">
-                                    <label class="col-3 control-label">{{trans('lang.carrier_operating_licence')}}</label>
-                                    <div class="col-7">
-                                        <input type="text" class="form-control" id="operating_licence">
-                                        <input type="file" class="form-control-file mt-2" onchange="handleCompanyDocUpload(event, 'operatingLicenceFile')">
-                                        <span id="uploading_operatingLicenceFile" class="text-muted small"></span>
-                                        <div id="uploaded_operatingLicenceFile"></div>
-                                    </div>
-                                </div>
-                                <div class="form-group row width-50">
-                                    <label class="col-3 control-label">{{trans('lang.carrier_unique_id')}}</label>
-                                    <div class="col-7">
-                                        <input type="text" class="form-control" id="unique_id_number">
-                                        <input type="file" class="form-control-file mt-2" onchange="handleCompanyDocUpload(event, 'uniqueIdNumberFile')">
-                                        <span id="uploading_uniqueIdNumberFile" class="text-muted small"></span>
-                                        <div id="uploaded_uniqueIdNumberFile"></div>
-                                    </div>
-                                </div>
-                            </div>
-
                             <div class="form-group row width-50">
                                 <label class="col-3 control-label">{{trans('lang.first_name')}}</label>
                                 <div class="col-7">
@@ -589,15 +524,7 @@ foreach ($countries as $keycountry => $valuecountry) {
         var selectedSections = getSelectedSections();
         var id = database.collection("tmp").doc().id;
 
-        /* A company's name is the thing it is known by, and it is what the
-         * carrier record is built from - so it is required, while the contact
-         * person's own name is checked below as it always was. */
-        if (isCompanyDriver() && $('#company_name').val().trim() === '') {
-            $(".error_top").show();
-            $(".error_top").html("");
-            $(".error_top").append("<p>{{trans('lang.company_name_error')}}</p>");
-            window.scrollTo(0, 0);
-        } else if (userFirstName == '') {
+        if (userFirstName == '') {
             $(".error_top").show();
             $(".error_top").html("");
             $(".error_top").append("<p>{{trans('lang.user_firstname_error')}}</p>");
@@ -709,11 +636,7 @@ foreach ($countries as $keycountry => $valuecountry) {
                             'createdAt': createdAt,
                             'isDocumentVerify':false,
                             'isAutoVerify':isAutoVerify,
-                            /* A COMPANY OWNS DRIVERS, so it is an owner. This is
-                             * also why companies never appeared in the drivers
-                             * list, which asks for non-owners - they belong in
-                             * Carrier Management instead. */
-                            'isOwner': isCompanyDriver(),
+                            'isOwner': false,
                             'ownerId': null,
                             'vendorID': '',
                             'zoneId': zoneId,
@@ -723,8 +646,7 @@ foreach ($countries as $keycountry => $valuecountry) {
                             'sectionIds': selectedSections.sectionIds,
                             'serviceTypes': selectedSections.serviceTypes,
                             'sectionNames': selectedSections.sectionNames,
-                            'vehicleDetails': selectedSections.vehicleDetails,
-                            ...companyFieldsForSave()
+                            'vehicleDetails': selectedSections.vehicleDetails
                         }).then(function (result) {
                             window.location.href = '{{ route("drivers")}}';
                         });
@@ -802,133 +724,6 @@ foreach ($countries as $keycountry => $valuecountry) {
             return true;
         }
     }
-    /* ---- Creating a company rather than a person -------------------------
-     *
-     * A company registered through the app is a `users` record with
-     * `role: "driver"`, `driverType: "company"` and `isOwner: true` - it owns
-     * drivers rather than being one. Everything written below mirrors what the
-     * app writes, read field by field from a live record on 2 October, so a
-     * company made here is indistinguishable from one made on a phone.
-     *
-     * The three identity numbers are what Carrier Management needs, so a
-     * company created here can become a carrier without anything being retyped.
-     * -------------------------------------------------------------------- */
-    var companyDocs = {
-        commercialRegisterFile: '',
-        operatingLicenceFile: '',
-        uniqueIdNumberFile: ''
-    };
-
-    function isCompanyDriver() {
-        return $('#driver_type').val() === 'company';
-    }
-
-    /* A company has no vehicle and no bank details of its own - its drivers
-     * carry those. The two placeholders below were already in this form,
-     * unused, waiting for exactly this. */
-    $(document).on('change', '#driver_type', function () {
-        var company = isCompanyDriver();
-
-        $('#company_fields').toggle(company);
-        $('#companyDriverShowDiv').toggle(company);
-        $('#companyDriverHideDiv').toggle(!company);
-        $('.vehicle-details').toggle(!company);
-    });
-
-    /* Mirrors the carrier form's document upload, so both screens behave the
-     * same way and a file uploaded here is readable there. */
-    function handleCompanyDocUpload(evt, key) {
-        var file = evt.target.files[0];
-
-        if (!file) {
-            return;
-        }
-
-        $('#uploading_' + key).text("{{ trans('lang.carrier_document_uploading') }}");
-
-        var reader = new FileReader();
-        reader.onload = (function () {
-            return function (e) {
-                var payload = e.target.result.split(',')[1];
-                var name = 'companyDocument/' + Date.now() + '_' + file.name;
-
-                firebase.storage().ref().child(name)
-                    .putString(payload, 'base64', { contentType: file.type })
-                    .then(function (task) {
-                        task.ref.getDownloadURL().then(function (downloadURL) {
-                            companyDocs[key] = downloadURL;
-                            $('#uploading_' + key).text("{{ trans('lang.carrier_document_uploaded') }}");
-                            renderCompanyDocLink(key);
-                        });
-                    })
-                    .catch(function (error) {
-                        console.error('company document upload failed', error);
-                        $('#uploading_' + key).text("{{ trans('lang.carrier_document_upload_failed') }}");
-                    });
-            };
-        })(file);
-        reader.readAsDataURL(file);
-    }
-
-    function renderCompanyDocLink(key) {
-        var url = companyDocs[key];
-
-        if (!url) {
-            $('#uploaded_' + key).html('');
-            return;
-        }
-
-        $('#uploaded_' + key).html(
-            '<a href="' + url + '" target="_blank" rel="noopener"><i class="mdi mdi-file-document mr-1"></i>' +
-            "{{ trans('lang.carrier_view_document') }}" + '</a>'
-        );
-    }
-
-    /* The company half of the record. Returns {} for an individual, so the
-     * existing write is untouched for every driver created today. */
-    function companyFieldsForSave() {
-        if (!isCompanyDriver()) {
-            return {};
-        }
-
-        return {
-            'driverType': 'company',
-            /* Older app records use isCompany; newer ones driverType. Both are
-             * written so either reader finds it. */
-            'isCompany': true,
-
-            /* THE DIALLING CODE IS HELD APART, as the app holds it: countryCode
-             * "+237" with phoneNumber "635263696". This form otherwise
-             * concatenates the two into phoneNumber and writes no countryCode
-             * at all - which would make Carrier Management show the code twice
-             * when it fills its form from this record.
-             *
-             * Overrides the two set above, which is why they appear after. */
-            'countryCode': country_code,
-            'phoneNumber': userPhone,
-
-            /* DEFAULTS THE APP ALWAYS WRITES, and worth writing here for one
-             * specific reason: a Firestore equality filter DROPS any document
-             * that lacks the field. A company created without `isActive` would
-             * be invisible to every query asking for it - which is exactly how
-             * the drivers list lost 174 drivers and the POS lost 33. */
-            'isActive': false,
-            'inProgressOrderID': [],
-            'orderRequestData': [],
-            'orderCompleted': 0,
-            'reviewsCount': '0',
-            'reviewsSum': '0',
-            'companyName': $('#company_name').val().trim(),
-            'companyAddress': $('#company_address').val().trim(),
-            'commercialRegister': $('#commercial_register').val().trim(),
-            'operatingLicence': $('#operating_licence').val().trim(),
-            'uniqueIdNumber': $('#unique_id_number').val().trim(),
-            'commercialRegisterFile': companyDocs.commercialRegisterFile,
-            'operatingLicenceFile': companyDocs.operatingLicenceFile,
-            'uniqueIdNumberFile': companyDocs.uniqueIdNumberFile
-        };
-    }
-
     async function storeImageData() {
         var newPhoto = [];
         newPhoto['profile'] = '';

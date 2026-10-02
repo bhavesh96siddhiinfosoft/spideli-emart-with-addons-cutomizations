@@ -180,48 +180,59 @@ $service_type = @$_COOKIE['service_type'];
             @endif
         @endif
 
-        @if($service_type == "cab-service" || $service_type == "parcel_delivery" || $service_type == "rental-service")
-        @if (
-            in_array('owners', $role_has_permission) || 
-            in_array('approve_owners', $role_has_permission) || 
-            in_array('pending_owners', $role_has_permission) || 
-            in_array('fleet-drivers', $role_has_permission)
-            )
-            <li class="nav-subtitle"><span class="nav-subtitle-span">{{ trans('lang.owner_and_fleet_management') }}</span></li>
-            @if(in_array('owners', $role_has_permission) || in_array('approve_owners', $role_has_permission) || in_array('pending_owners', $role_has_permission))
+        {{-- COMPANY OWNERS - the company module.
 
-                @if (in_array('owners', $role_has_permission))
-                <li><a class="waves-effect waves-dark" href="{!! route('owners') !!}" aria-expanded="false">
-                        <i class="ri-account-box-2-fill"></i>
-                        <span class="hide-menu">{{ trans('lang.all_owners') }}</span>
-                    </a>
-                </li>
-                @endif
-                @if (in_array('approve_owners', $role_has_permission))
-                <li><a class="waves-effect waves-dark" href="{!! route('owners.approved') !!}" aria-expanded="false">
-                        <i class="ri-account-pin-box-fill"></i>
-                        <span class="hide-menu">{{ trans('lang.approved_owners') }}</span>
-                    </a>
-                </li>
-                @endif
-                @if (in_array('pending_owners', $role_has_permission))
-                <li><a class="waves-effect waves-dark" href="{!! route('owners.pending') !!}" aria-expanded="false">
-                        <i class="ri-account-box-fill"></i>
-                        <span class="hide-menu">{{ trans('lang.approval_pending_owners') }}</span>
-                    </a>
-                </li>
-                @endif
-                    
+             NO $service_type GATE, deliberately, exactly like Access Management
+             further up. A company is a business that owns drivers; it is not a
+             property of one service type, and gating it to Rental Service is
+             why this module could not be found from anywhere else.
+
+             Permission still decides who sees it. All three routes are
+             registered unconditionally in routes/web.php, so route() cannot
+             throw here - an unregistered route name brings down the whole
+             sidebar, and with it every screen in the panel. --}}
+        @if (
+            in_array('owners', $role_has_permission) ||
+            in_array('approve_owners', $role_has_permission) ||
+            in_array('pending_owners', $role_has_permission)
+            )
+            <li class="nav-subtitle"><span class="nav-subtitle-span">{{ trans('lang.company_owners_management') }}</span></li>
+
+            @if (in_array('owners', $role_has_permission))
+            <li><a class="waves-effect waves-dark" href="{!! route('owners') !!}" aria-expanded="false">
+                    <i class="ri-account-box-2-fill"></i>
+                    <span class="hide-menu">{{ trans('lang.all_owners') }}</span>
+                </a>
+            </li>
             @endif
-            @if (in_array('fleet-drivers', $role_has_permission))
-                <li>
-                    <a class="waves-effect waves-dark" href="{!! route('fleet.drivers') !!}" aria-expanded="false">
-                        <i class="ri-car-fill"></i>
-                        <span class="hide-menu">{{ trans('lang.fleet_drivers') }}</span>
-                    </a>
-                </li>
+            @if (in_array('approve_owners', $role_has_permission))
+            <li><a class="waves-effect waves-dark" href="{!! route('owners.approved') !!}" aria-expanded="false">
+                    <i class="ri-account-pin-box-fill"></i>
+                    <span class="hide-menu">{{ trans('lang.approved_owners') }}</span>
+                </a>
+            </li>
             @endif
+            @if (in_array('pending_owners', $role_has_permission))
+            <li><a class="waves-effect waves-dark" href="{!! route('owners.pending') !!}" aria-expanded="false">
+                    <i class="ri-account-box-fill"></i>
+                    <span class="hide-menu">{{ trans('lang.approval_pending_owners') }}</span>
+                </a>
+            </li>
+            @endif
+
         @endif
+
+        {{-- FLEET DRIVERS - its own section with its own heading now, since the
+             owners above no longer share one with it. Also ungated, so the
+             heading does not appear in some sections and not others. --}}
+        @if (in_array('fleet-drivers', $role_has_permission))
+            <li class="nav-subtitle"><span class="nav-subtitle-span">{{ trans('lang.fleet_driver_management') }}</span></li>
+            <li>
+                <a class="waves-effect waves-dark" href="{!! route('fleet.drivers') !!}" aria-expanded="false">
+                    <i class="ri-car-fill"></i>
+                    <span class="hide-menu">{{ trans('lang.fleet_drivers') }}</span>
+                </a>
+            </li>
         @endif
 
         @if($service_type == "delivery-service" || $service_type == "ecommerce-service")
