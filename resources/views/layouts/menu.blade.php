@@ -372,7 +372,15 @@ $service_type = @$_COOKIE['service_type'];
         in_array('advertisements', $role_has_permission) || 
         in_array('documents', $role_has_permission)
         )
-            @if($service_type != "ondemand-service")
+            {{-- Report 03, raised 5 Oct: DOCUMENT MANAGEMENT was hidden in the
+                 On Demand section, heading and link both. That is the one
+                 section where service providers and workers live, so it was
+                 the one place the client most needed to configure their
+                 document types - and the only place they could not reach it.
+
+                 Second time a built, permitted module has been hidden by a
+                 service-type condition; the Owners module was the first, on
+                 2 October. Shown everywhere now. --}}
             <li class="nav-subtitle">
                 <span class="nav-subtitle-span">
                     @if($service_type == "delivery-service" || $service_type == "ecommerce-service")
@@ -382,7 +390,6 @@ $service_type = @$_COOKIE['service_type'];
                     @endif
                 </span>
             </li>
-            @endif
         
             @if($service_type == "delivery-service" || $service_type == "ecommerce-service")
             @if (in_array('orders', $role_has_permission))
@@ -439,14 +446,13 @@ $service_type = @$_COOKIE['service_type'];
             @endif
             @endif
             
-            @if($service_type != "ondemand-service")
+            {{-- See the note on the heading above. --}}
             @if (in_array('documents', $role_has_permission))
                 <li><a class="waves-effect waves-dark" href="{!! route('documents') !!}" aria-expanded="false">
                         <i class="ri-file-pdf-fill"></i>
                         <span class="hide-menu">{{ trans('lang.document_plural') }}</span>
                     </a>
                 </li>
-            @endif
             @endif
         @endif
 
