@@ -986,6 +986,8 @@ return [
     'total_days' => 'Total days',
     'sub_total_plural' => 'Sub Total',
     'company_details' => 'Company Details',
+    'company_documents' => 'Company documents',
+    'company_documents_none' => 'No documents have been uploaded.',
     'delete' => 'Delete',
     'total_orders' => 'Total Orders',
     'rental_vehicle' => 'Rental Vehicle',

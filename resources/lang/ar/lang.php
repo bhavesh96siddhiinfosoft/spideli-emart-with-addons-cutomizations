@@ -987,6 +987,8 @@ return [
     'total_days' => 'إجمالي الأيام',
     'sub_total_plural' => 'المجموع الفرعي',
     'company_details' => 'تفاصيل الشركة',
+    'company_documents' => 'مستندات الشركة',
+    'company_documents_none' => 'لم يتم رفع أي مستندات.',
     'delete' => 'حذف',
     'total_orders' => 'إجمالي الطلبات',
     'rental_vehicle' => 'مركبة للإيجار',

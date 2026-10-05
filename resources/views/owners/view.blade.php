@@ -143,6 +143,63 @@
             </div>
             </div>
         </div>
+        {{-- Report 03 point 39: a delivery company registers with company
+             details and documents, and NOTHING IN THIS PANEL EVER SHOWED THEM.
+             Hidden entirely unless the record is a company, so an ordinary
+             owner's page is unchanged. --}}
+        <div class="restaurant_info-section" id="company_details_section" style="display:none;">
+            <div class="card border">
+            <div class="card-header d-flex justify-content-between align-items-center border-bottom pb-3">
+                <div class="card-header-title">
+                    <h3 class="text-dark-2 mb-0 h4">{{trans('lang.company_details')}}</h3>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="restaurant_info_left">
+                            <ul class="p-0 info-list mb-0">
+                                <li class="d-flex align-items-center mb-2">
+                                    <label class="mb-0 font-wi font-semibold text-dark-2">{{trans('lang.company_name')}}</label>
+                                    <span id="company_name"></span>
+                                </li>
+                                <li class="d-flex align-items-center mb-2">
+                                    <label class="mb-0 font-wi font-semibold text-dark-2">{{trans('lang.company_address')}}</label>
+                                    <span id="company_address"></span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="restaurant_info_left">
+                            <ul class="p-0 info-list mb-0">
+                                <li class="d-flex align-items-center mb-2">
+                                    <label class="mb-0 font-wi font-semibold text-dark-2">{{trans('lang.carrier_registration_number')}}</label>
+                                    <span id="company_commercial_register"></span>
+                                </li>
+                                <li class="d-flex align-items-center mb-2">
+                                    <label class="mb-0 font-wi font-semibold text-dark-2">{{trans('lang.carrier_operating_licence')}}</label>
+                                    <span id="company_operating_licence"></span>
+                                </li>
+                                <li class="d-flex align-items-center mb-2">
+                                    <label class="mb-0 font-wi font-semibold text-dark-2">{{trans('lang.carrier_unique_id')}}</label>
+                                    <span id="company_unique_id"></span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <label class="mb-2 font-wi font-semibold text-dark-2 d-block">{{trans('lang.company_documents')}}</label>
+                        <div id="company_documents"></div>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </div>
+
         <!-- Bank detail -->
         <div class="restaurant_info-section">
             <div class="card border">
@@ -303,6 +360,9 @@
                     
                     $('.page-title').html("{{trans('lang.owner_details')}} - " + dirver.firstName + ' ' + dirver.lastName);
                     $(".driver_name").text(dirver.firstName + ' ' + dirver.lastName);
+
+                    /* Report 03 point 39 - see the card in the markup. */
+                    renderCompanyDetails(dirver);
                     $(".email").text(shortEmail(dirver.email));
 
                     if(dirver.phoneNumber.includes('+')){
@@ -429,7 +489,81 @@
             })
         });
         // });
-        $("#add-wallet-btn").click(function () {
+        /* ---- Report 03 point 39 ---------------------------------------------
+         *
+         * *"When we create a delivery company, we have to specify Company
+         * information and Company documents. But … we do not see this informations
+         * in the admin web panel."*
+         *
+         * Correct. `owners/view`, `owners/edit` and `drivers/view` between them
+         * carried NOT ONE reference to companyName, commercialRegister,
+         * operatingLicence or uniqueIdNumber. A company registered from the phone,
+         * the details were stored, and there was nowhere to look at them.
+         *
+         * All six companies carry the three reference numbers. Only two carry the
+         * document files, and NONE carries companyAddress - so every field has to
+         * cope with being absent rather than assume it is there.
+         * ------------------------------------------------------------------- */
+        function renderCompanyDetails(owner) {
+            if (!owner) {
+                return;
+            }
+
+            var isCompany = owner.driverType === 'company' || owner.isCompany === true;
+
+            if (!isCompany) {
+                return;
+            }
+
+            $('#company_details_section').show();
+
+            function orDash(value) {
+                var text = (value === null || value === undefined) ? '' : String(value).trim();
+                return text === '' ? '-' : text;
+            }
+
+            $('#company_name').text(orDash(owner.companyName));
+            $('#company_address').text(orDash(owner.companyAddress));
+            $('#company_commercial_register').text(orDash(owner.commercialRegister));
+            $('#company_operating_licence').text(orDash(owner.operatingLicence));
+            $('#company_unique_id').text(orDash(owner.uniqueIdNumber));
+
+            /* Four of the six companies uploaded no files at all, so saying so
+             * plainly beats three dead links. */
+            var files = [
+                { url: owner.commercialRegisterFile, label: "{{trans('lang.carrier_registration_number')}}" },
+                { url: owner.operatingLicenceFile,   label: "{{trans('lang.carrier_operating_licence')}}" },
+                { url: owner.uniqueIdNumberFile,     label: "{{trans('lang.carrier_unique_id')}}" }
+            ].filter(function (f) {
+                return typeof f.url === 'string' && f.url.trim() !== '';
+            });
+
+            if (files.length === 0) {
+                $('#company_documents').html('<span class="text-muted">' +
+                    "{{trans('lang.company_documents_none')}}" + '</span>');
+                return;
+            }
+
+            var html = files.map(function (f) {
+                /* NOT encodeURI'd - a Firebase Storage url is already encoded and
+                 * encoding it again breaks the token. */
+                return '<a href="' + escapeHtmlAttribute(f.url) + '" target="_blank" rel="noopener" ' +
+                       'class="badge badge-info mr-2 mb-2"><i class="mdi mdi-file-document mr-1"></i>' +
+                       escapeHtmlText(f.label) + '</a>';
+            }).join('');
+
+            $('#company_documents').html(html);
+        }
+
+        function escapeHtmlText(value) {
+            return $('<div>').text(value === null || value === undefined ? '' : String(value)).html();
+        }
+
+        function escapeHtmlAttribute(value) {
+            return escapeHtmlText(value).replace(/"/g, '&quot;');
+        }
+
+            $("#add-wallet-btn").click(function () {
             var date = firebase.firestore.FieldValue.serverTimestamp();
             var amount = $('#amount').val();
             if (amount == '' || amount <= 0) {
