@@ -830,6 +830,7 @@ return [
     'enter_parcel_title_error' => "Please enter Parcel's Title",
     'enter_parcel_set_order' => "Please enter Parcel's Set Order",
     'parcel_weight' => 'Parcel Weight',
+    'parcel_weight_delete_confirm' => 'Delete this weight band? Parcel prices that use it will fall back to the default charge.',
     'parcel_coupons' => 'Parcel Coupons',
     'parcel_orders' => 'Parcel Orders',
     'parcel_title_error' => "Please enter Title",

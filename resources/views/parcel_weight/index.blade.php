@@ -222,12 +222,22 @@
         }
 
         function editData(count, actionId) {
-            if (is_disable_delete == 1) {
-                alert(doNotUpdateAlert);
-                e.preventDefault();
-                e.stopImmediatePropagation();
-                return false;
-            }
+            /* 02-report point 32: "We were unable to modify the setting in
+             * parcel weight".
+             *
+             * A demo-mode guard stood here and KILLED THIS FUNCTION ON EVERY
+             * CLICK. It read three identifiers that are declared nowhere in
+             * this panel - `is_disable_delete`, `doNotUpdateAlert` and
+             * `doNotDeleteAlert` - and called `e.preventDefault()` where there
+             * is no `e` to call it on. The first line threw a ReferenceError
+             * and nothing below it ever ran.
+             *
+             * That is why ADDING a weight worked and EDITING one silently did
+             * nothing: saveData() below has no such guard.
+             *
+             * Removed rather than repaired. It is dead theme code for a demo
+             * mode this installation does not have, and leaving a guard that
+             * blocks every administrator is worse than having none. */
 			
             var title = $("#title_" + actionId).val();
             var price = $("#price_" + actionId).val();
@@ -263,10 +273,9 @@
         }
 
         function deleteData(actionId) {
-            if (is_disable_delete == 1) {
-                alert(doNotDeleteAlert);
-                e.preventDefault();
-                e.stopImmediatePropagation();
+            /* 02-report point 32 - the same dead guard as editData() above,
+             * which is why Delete did nothing either. */
+            if (!confirm("{{ trans('lang.parcel_weight_delete_confirm') }}")) {
                 return false;
             }
 			

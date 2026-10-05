@@ -831,6 +831,7 @@ return [
     'enter_parcel_title_error' => 'يرجى إدخال عنوان الطرد',
     'enter_parcel_set_order' => 'يرجى إدخال ترتيب الطرد',
     'parcel_weight' => 'وزن الطرد',
+    'parcel_weight_delete_confirm' => 'هل تريد حذف نطاق الوزن هذا؟ ستعود أسعار الطرود التي تستخدمه إلى الرسوم الافتراضية.',
     'parcel_coupons' => 'كوبونات الطرود',
     'parcel_orders' => 'طلبات الطرود',
     'parcel_title_error' => 'يرجى إدخال العنوان',
