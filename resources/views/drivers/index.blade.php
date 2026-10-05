@@ -503,11 +503,20 @@
                 var chatViewRoute = "{{ route('drivers.chat', ':id') }}".replace(':id', val.id);
                 actionHtml += '<span class="action-btn">';
                 
-                if(val.isAutoVerify !== true){
-                    var document_list_view = "{{ route('drivers.document', ':id') }}";
-                    document_list_view = document_list_view.replace(':id', val.id);
-                    actionHtml += '<a href="' + document_list_view + '" data-toggle="tooltip" data-bs-original-title="{{ trans('lang.document') }}"><i class="fa fa-file"></i></a>';
-                }
+                /* Report 03 point 38: "We were unable to validate documents for the
+                 * driver create by a delivery company."
+                 *
+                 * This link used to be hidden whenever `isAutoVerify` was true -
+                 * 7 of 230 drivers, including one belonging to IT ADVISORY. An
+                 * auto-verified driver needs no approval, but that is not a
+                 * reason to HIDE what they uploaded: an administrator asked to
+                 * check a driver's licence then has nowhere to go.
+                 *
+                 * The screen itself still shows the real status of each
+                 * document, so nothing is misrepresented by showing the link. */
+                var document_list_view = "{{ route('drivers.document', ':id') }}";
+                document_list_view = document_list_view.replace(':id', val.id);
+                actionHtml += '<a href="' + document_list_view + '" data-toggle="tooltip" data-bs-original-title="{{ trans('lang.document') }}"><i class="fa fa-file"></i></a>';
 
                 var payoutRequests = '{{ route('users.walletstransaction', ':id') }}';
                 payoutRequests = payoutRequests.replace(':id', 'driverID=' + val.id);
