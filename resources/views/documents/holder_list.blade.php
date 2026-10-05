@@ -133,13 +133,32 @@
         }
     }
 
+    /* Turns a key the app invented into something readable.
+     *
+     *     commercialRegister        -> Commercial register
+     *     uniqueIdNumber            -> Unique id number
+     *     worker_identity_document  -> Worker identity document
+     *
+     * Only used when no document type defines the key, so the admin sees a
+     * name rather than a camelCase identifier. */
+    function readableDocumentKey(key) {
+        var text = String(key === null || key === undefined ? '' : key);
+
+        if (text === '') {
+            return '-';
+        }
+
+        text = text.replace(/[_-]+/g, ' ')
+                   .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+                   .replace(/\s+/g, ' ')
+                   .trim()
+                   .toLowerCase();
+
+        return text.charAt(0).toUpperCase() + text.slice(1);
+    }
+
     async function renderDocuments() {
         var required = await requiredDocsRef.get();
-
-        if (required.docs.length === 0) {
-            $('#nothing_uploaded').text("{{ trans('lang.document_none_required') }}").show();
-            return;
-        }
 
         /* READ ONCE, not once per row. The driver screen re-reads this same
          * document inside the loop, which is one read per required document. */
@@ -147,6 +166,40 @@
         var uploaded = (verifySnapshot.exists && Array.isArray(verifySnapshot.data().documents))
             ? verifySnapshot.data().documents
             : [];
+
+        var requiredIds = required.docs.map(function (ele) { return ele.data().id; });
+
+        /* ---- Report 03 point 37 ------------------------------------------
+         *
+         * *"We were unable to validate Commercial register and Unique
+         * identification number documents for the service provider. Only the
+         * ID Card and Identity Card documents were created."*
+         *
+         * Exactly right, and this is why. The loop below walks the DOCUMENT
+         * TYPES an admin has defined and looks for a matching upload. A
+         * provider has two types defined - "ID Card" and "Indentity Card" -
+         * so two rows were drawn, and nothing else could ever appear.
+         *
+         * But the app uploads under keys of its own that match no type:
+         *
+         *     commercialRegister        5 uploads, 5 real providers
+         *     uniqueIdNumber            5 uploads
+         *     worker_identity_document  2 uploads
+         *
+         * Those were invisible - not pending, not rejected, ABSENT - so there
+         * was no way to validate them and no sign they existed.
+         *
+         * They are now listed after the required ones. The proper fix is for
+         * the app to use a real document type id; until it does, an upload
+         * nobody can see is worse than one with an awkward name. */
+        var extras = uploaded.filter(function (d) {
+            return d && d.documentId && requiredIds.indexOf(d.documentId) === -1;
+        });
+
+        if (required.docs.length === 0 && extras.length === 0) {
+            $('#nothing_uploaded').text("{{ trans('lang.document_none_required') }}").show();
+            return;
+        }
 
         if (uploaded.length === 0) {
             $('#nothing_uploaded').show();
@@ -165,6 +218,16 @@
             html += documentRow(doc, sent);
         });
 
+        /* Approve and reject work on these exactly as on the rest: the handler
+         * matches on documentId, and that is what `id` carries here. */
+        extras.forEach(function (sent) {
+            html += documentRow({
+                id: sent.documentId,
+                title: readableDocumentKey(sent.documentId),
+                notConfigured: true
+            }, sent);
+        });
+
         html += '</tbody></table>';
 
         $('.doc-body').html(html);
@@ -181,7 +244,16 @@
 
         /* EVERY ROW EMITS EVERY CELL, whatever is missing - the fault behind
          * bug report items 22 and 23 on the Documents list. */
-        row += '<td>' + escapeHtml(doc.title || '-') + imageLinks(doc, sent) + '</td>';
+        row += '<td>' + escapeHtml(doc.title || '-');
+
+        /* Says plainly why this one has no proper name: the app sent a key
+         * nobody configured. Without the note it looks like a typo. */
+        if (doc.notConfigured) {
+            row += ' <span class="badge badge-warning">' +
+                   "{{ trans('lang.document_not_configured') }}" + '</span>';
+        }
+
+        row += imageLinks(doc, sent) + '</td>';
 
         var status = sent && sent.status ? sent.status : 'pending';
         row += '<td>' + statusBadge(status) + '</td>';
