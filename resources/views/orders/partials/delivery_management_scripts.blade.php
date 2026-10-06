@@ -66,35 +66,21 @@
     async function openAssignModal() {
         $('#dm_driver_error').html('');
         $('#dm_note').val('');
-        var $list = $('#dm_driver_list');
-        /* Rebuilt on every open, so any previous select2 has to be torn down
-         * first or it keeps rendering the stale option list. */
-        if ($list.hasClass('select2-hidden-accessible')) {
-            $list.select2('destroy');
-        }
-        $list.empty().append($('<option></option>').attr('value', '').text(''));
-
-        var snapshot = await regionScoped(
-            database.collection('users').where('role', '==', 'driver').where('isActive', '==', true)
-        ).get();
+        /* 02 point 47: the list itself now comes from spideliAssignableDrivers()
+         * in the layout, so the orders screen and this one cannot drift apart.
+         * The behaviour here is unchanged - that function IS this rule, moved
+         * somewhere both screens can reach it. */
+        var assignable = await spideliAssignableDrivers({
+            orderId: dmOrderId,
+            currentDriverId: (dmOrder.driver && dmOrder.driver.id) ? dmOrder.driver.id : ''
+        });
 
         dmDriverCache = {};
-        snapshot.docs.forEach(function (doc) {
-            var driver = doc.data();
-            dmDriverCache[driver.id] = driver;
-
-            var label = (driver.firstName || '') + ' ' + (driver.lastName || '');
-            /* A driver already carrying another order is shown but flagged, so
-             * the admin makes the call rather than the list hiding options. */
-            if (driver.inProgressOrderID && driver.inProgressOrderID.length > 0
-                && driver.inProgressOrderID.indexOf(dmOrderId) === -1) {
-                label += " ({{ trans('lang.occupied') }})";
-            }
-            if (dmOrder.driver && dmOrder.driver.id === driver.id) {
-                label += " ({{ trans('lang.currently_assigned') }})";
-            }
-            $list.append($('<option></option>').attr('value', driver.id).text(label));
+        assignable.forEach(function (row) {
+            dmDriverCache[row.id] = row.driver;
         });
+
+        spideliFillDriverSelect('#dm_driver_list', assignable, '');
 
         $('#dmAssignModal').modal('show');
 

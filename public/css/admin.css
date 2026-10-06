@@ -247,13 +247,21 @@ ul.rating {
 
    Left alone they pull this control out of flow, truncate its label to a few
    characters and leave the dropdown positioned against the wrong box. These
-   rules undo them for this modal only. */
+   rules undo them.
+
+   BOTH assign modals are listed on every rule - the order screen's
+   (#dmAssignModal) and the orders list's (#assignDriverModal). The orders list
+   was missing from here, and that alone was why its dropdown appeared a few
+   characters wide in the top-left corner of the window while the order
+   screen's looked right. The markup and the script were never the problem.
+   Anything that opens a driver select2 in a modal has to be added here too. */
 /* Only the selection box. select2 also gives the dropdown wrapper the
    .select2-container class, and forcing position/left/top on that would
    override the coordinates select2 calculates for it - which lands the
    dropdown in the page corner instead of under the control. The selection box
    is the one that additionally carries .select2, so match on that. */
-#dmAssignModal .select2.select2-container {
+#dmAssignModal .select2.select2-container,
+#assignDriverModal .select2.select2-container {
     position: relative !important;
     left: 0 !important;
     top: 0 !important;
@@ -261,31 +269,37 @@ ul.rating {
     width: 100% !important;
 }
 
-#dmAssignModal .select2.select2-container .select2-selection--single {
+#dmAssignModal .select2.select2-container .select2-selection--single,
+#assignDriverModal .select2.select2-container .select2-selection--single {
     height: 38px;
     border: 1px solid #b1b8bb;
     border-radius: 4px;
 }
 
-#dmAssignModal .select2-container--default .select2-selection--single .select2-selection__rendered {
+#dmAssignModal .select2-container--default .select2-selection--single .select2-selection__rendered,
+#assignDriverModal .select2-container--default .select2-selection--single .select2-selection__rendered {
     max-width: none !important;
     line-height: 36px;
     padding-left: 10px;
 }
 
-#dmAssignModal .select2-container--default .select2-selection--single .select2-selection__arrow {
+#dmAssignModal .select2-container--default .select2-selection--single .select2-selection__arrow,
+#assignDriverModal .select2-container--default .select2-selection--single .select2-selection__arrow {
     height: 36px;
 }
 
 /* The dropdown is parented here, so this must be a positioned ancestor for
    select2's absolute coordinates to resolve against. */
-#dmAssignModal .modal-body .form-group {
+#dmAssignModal .modal-body .form-group,
+#assignDriverModal .modal-body .form-group {
     position: relative;
 }
 
 /* Above the modal, which sits at z-index 1050+ */
 #dmAssignModal .select2-dropdown,
-#dmAssignModal .select2-container--open {
+#assignDriverModal .select2-dropdown,
+#dmAssignModal .select2-container--open,
+#assignDriverModal .select2-container--open {
     z-index: 1060;
 }
 

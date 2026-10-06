@@ -2065,6 +2065,80 @@
             return '';
         }
 
+        /* ---- Report 03 point 47: one driver list, not two ------------------
+         *
+         * *"When we want to assign an order to a driver, the list of drivers
+         * displayed on these two screens is different."*
+         *
+         * It was. The orders list built its own list with rules of its own;
+         * the order screen's Delivery Management modal built a different one.
+         * The client has told us the Delivery Management list is the right
+         * one, so this is it - and BOTH screens now call this, so they cannot
+         * drift apart again.
+         *
+         * The rule: every ACTIVE driver in the region being worked in, shown
+         * whatever their state, with the state written beside the name. An
+         * admin decides; the list does not decide for them.
+         * ------------------------------------------------------------------ */
+        async function spideliAssignableDrivers(options) {
+            var opts = options || {};
+            var orderId = opts.orderId || '';
+            var currentDriverId = opts.currentDriverId || '';
+
+            var snapshot = await regionScoped(
+                database.collection('users').where('role', '==', 'driver').where('isActive', '==', true)
+            ).get();
+
+            var out = [];
+
+            snapshot.docs.forEach(function (doc) {
+                var driver = doc.data() || {};
+                /* Some driver records carry no `id` field of their own. */
+                var id = driver.id || doc.id;
+
+                var label = ((driver.firstName || '') + ' ' + (driver.lastName || '')).trim();
+
+                if (label === '') {
+                    label = id;
+                }
+
+                /* Already carrying another order - shown but flagged, so the
+                 * admin makes the call rather than the list hiding options. */
+                if (driver.inProgressOrderID && driver.inProgressOrderID.length > 0
+                    && driver.inProgressOrderID.indexOf(orderId) === -1) {
+                    label += " ({{ trans('lang.occupied') }})";
+                }
+
+                if (currentDriverId && currentDriverId === id) {
+                    label += " ({{ trans('lang.currently_assigned') }})";
+                }
+
+                out.push({ id: id, label: label, driver: driver });
+            });
+
+            return out;
+        }
+
+        /* Fills a <select> from that list. Kept here too so the two screens
+         * cannot describe the same thing differently. */
+        function spideliFillDriverSelect(selector, drivers, placeholder) {
+            var $list = $(selector);
+
+            if (!$list.length) {
+                return;
+            }
+
+            if ($list.hasClass('select2-hidden-accessible')) {
+                $list.select2('destroy');
+            }
+
+            $list.empty().append($('<option></option>').attr('value', '').text(placeholder || ''));
+
+            drivers.forEach(function (row) {
+                $list.append($('<option></option>').attr('value', row.id).text(row.label));
+            });
+        }
+
         /* The town, under whichever name this country uses for it. Plenty of
          * addresses have no `locality` at all. */
         function spideliPlaceCity(place) {
