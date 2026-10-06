@@ -125,38 +125,22 @@
             </div>
         </fieldset>
 
+        {{-- Report 03 point 44: a carrier serves several regions and charges a
+             different price in each, so one set of prices was never enough.
+
+             This section is now DRAWN FROM "Regions Served" above - one block
+             of four charges per region, added when a region is chosen and
+             removed when it is taken away.
+
+             Choosing no region at all still means "available everywhere", so
+             that case keeps a single block, which is what every existing
+             carrier has. --}}
         <fieldset>
             <legend><i class="mr-3 mdi mdi-cash"></i>{{ trans('lang.carrier_pricing') }}</legend>
 
-            <div class="form-group row width-50">
-                <label class="col-3 control-label">{{ trans('lang.carrier_base_charge') }}</label>
-                <div class="col-7">
-                    <input type="number" step="any" class="form-control" id="base_charge">
-                    <div class="form-text text-muted">{{ trans('lang.carrier_base_charge_help') }}</div>
-                </div>
-            </div>
+            <div class="form-text text-muted mb-3" id="carrier_pricing_hint"></div>
 
-            <div class="form-group row width-50">
-                <label class="col-3 control-label">{{ trans('lang.carrier_per_km_charge') }}</label>
-                <div class="col-7">
-                    <input type="number" step="any" class="form-control" id="per_km_charge">
-                </div>
-            </div>
-
-            <div class="form-group row width-50">
-                <label class="col-3 control-label">{{ trans('lang.carrier_per_kg_charge') }}</label>
-                <div class="col-7">
-                    <input type="number" step="any" class="form-control" id="per_kg_charge">
-                    <div class="form-text text-muted">{{ trans('lang.carrier_per_kg_charge_help') }}</div>
-                </div>
-            </div>
-
-            <div class="form-group row width-50">
-                <label class="col-3 control-label">{{ trans('lang.carrier_minimum_charge') }}</label>
-                <div class="col-7">
-                    <input type="number" step="any" class="form-control" id="minimum_charge">
-                </div>
-            </div>
+            <div id="carrier_pricing_blocks"></div>
         </fieldset>
 
         <fieldset>

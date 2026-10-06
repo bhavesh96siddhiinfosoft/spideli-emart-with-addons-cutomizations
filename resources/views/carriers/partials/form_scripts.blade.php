@@ -163,6 +163,206 @@
         );
     }
 
+    /* ---- Report 03 point 44: a price per region -------------------------
+     *
+     * *"Allow carrier manager to set pricing according to each zone they
+     * serve, because they can serve multiple zones."*
+     *
+     * The Pricing section is now drawn from "Regions Served": one block of
+     * four charges per region, created when a region is chosen and removed
+     * when it is taken away - which is the client's second requirement.
+     *
+     * CHOOSING NO REGION STILL MEANS "EVERYWHERE", so that case keeps a
+     * single block. Every carrier created before today is in exactly that
+     * state, and must go on working untouched.
+     * ------------------------------------------------------------------ */
+
+    /* Prices typed but not yet saved, kept here so that re-drawing the blocks
+     * does not wipe what somebody is in the middle of entering.
+     * Keyed by region id, or by ALL_REGIONS when none is chosen. */
+    var CARRIER_PRICING_ALL = '__all__';
+    var carrierPricingDraft = {};
+
+    var CARRIER_CHARGE_FIELDS = [
+        { key: 'baseCharge',    label: "{{ trans('lang.carrier_base_charge') }}",
+          help: "{{ trans('lang.carrier_base_charge_help') }}" },
+        { key: 'perKmCharge',   label: "{{ trans('lang.carrier_per_km_charge') }}", help: '' },
+        { key: 'perKgCharge',   label: "{{ trans('lang.carrier_per_kg_charge') }}",
+          help: "{{ trans('lang.carrier_per_kg_charge_help') }}" },
+        { key: 'minimumCharge', label: "{{ trans('lang.carrier_minimum_charge') }}", help: '' }
+    ];
+
+    function carrierPricingEscape(value) {
+        return $('<div>').text(value === null || value === undefined ? '' : String(value)).html();
+    }
+
+    /* Reads whatever is on screen back into the draft, so nothing is lost when
+     * the blocks are rebuilt. */
+    function captureCarrierPricing() {
+        $('#carrier_pricing_blocks .carrier-charge').each(function () {
+            var scope = $(this).attr('data-scope');
+            var field = $(this).attr('data-field');
+
+            if (!carrierPricingDraft[scope]) {
+                carrierPricingDraft[scope] = {};
+            }
+
+            carrierPricingDraft[scope][field] = $(this).val();
+        });
+    }
+
+    function carrierPricingBlock(scope, heading) {
+        var saved = carrierPricingDraft[scope] || {};
+        var html = '<div class="card border mb-3" data-pricing-scope="' + carrierPricingEscape(scope) + '">';
+
+        html += '<div class="card-header py-2"><strong>' + carrierPricingEscape(heading) + '</strong></div>';
+        html += '<div class="card-body pb-1">';
+
+        CARRIER_CHARGE_FIELDS.forEach(function (field) {
+            var value = saved[field.key];
+            value = (value === null || value === undefined) ? '' : value;
+
+            html += '<div class="form-group row width-50">';
+            html += '<label class="col-3 control-label">' + carrierPricingEscape(field.label) + '</label>';
+            html += '<div class="col-7">';
+            html += '<input type="number" step="any" class="form-control carrier-charge"' +
+                    ' data-scope="' + carrierPricingEscape(scope) + '"' +
+                    ' data-field="' + carrierPricingEscape(field.key) + '"' +
+                    ' value="' + carrierPricingEscape(value) + '">';
+
+            if (field.help) {
+                html += '<div class="form-text text-muted">' + carrierPricingEscape(field.help) + '</div>';
+            }
+
+            html += '</div></div>';
+        });
+
+        return html + '</div></div>';
+    }
+
+    /* Draws one block per selected region, or a single block when none is
+     * selected. Safe to call as often as you like. */
+    function renderCarrierPricing() {
+        if (!$('#carrier_pricing_blocks').length) {
+            return;
+        }
+
+        captureCarrierPricing();
+
+        var selected = $('#region_ids').val() || [];
+        var html = '';
+
+        if (selected.length === 0) {
+            $('#carrier_pricing_hint').text("{{ trans('lang.carrier_pricing_all_regions_hint') }}");
+            html = carrierPricingBlock(CARRIER_PRICING_ALL,
+                "{{ trans('lang.carrier_pricing_all_regions') }}");
+        } else {
+            $('#carrier_pricing_hint').text("{{ trans('lang.carrier_pricing_per_region_hint') }}");
+
+            selected.forEach(function (regionId) {
+                /* The name from the dropdown, so it reads as the admin chose
+                 * it rather than as an id. */
+                var name = $('#region_ids option[value="' + regionId + '"]').text() || regionId;
+                html += carrierPricingBlock(regionId, name);
+            });
+        }
+
+        $('#carrier_pricing_blocks').html(html);
+
+        /* A region taken away keeps nothing behind: its prices go with it,
+         * which is what the client asked for. Done AFTER drawing so a region
+         * put back within the same session is not punished for it. */
+        var keep = {};
+
+        if (selected.length === 0) {
+            keep[CARRIER_PRICING_ALL] = carrierPricingDraft[CARRIER_PRICING_ALL] || {};
+        } else {
+            selected.forEach(function (regionId) {
+                keep[regionId] = carrierPricingDraft[regionId] || {};
+            });
+        }
+
+        carrierPricingDraft = keep;
+    }
+
+    /* What gets saved. Returns both shapes:
+     *   regionPricing  - the map, the source of truth from today
+     *   the four flat fields - kept so anything already reading them still
+     *                          gets a number. They carry the "everywhere"
+     *                          price, or the FIRST region's when regions are
+     *                          set. Documented for the app team. */
+    function carrierPricingForSave() {
+        captureCarrierPricing();
+
+        var selected = $('#region_ids').val() || [];
+        var out = { regionPricing: {}, flat: {} };
+
+        function numbers(scope) {
+            var saved = carrierPricingDraft[scope] || {};
+            var row = {};
+
+            CARRIER_CHARGE_FIELDS.forEach(function (field) {
+                var raw = saved[field.key];
+
+                if (raw === '' || raw === null || raw === undefined) {
+                    row[field.key] = null;
+                    return;
+                }
+
+                var value = Number(raw);
+                row[field.key] = isFinite(value) ? value : null;
+            });
+
+            return row;
+        }
+
+        if (selected.length === 0) {
+            out.flat = numbers(CARRIER_PRICING_ALL);
+            return out;
+        }
+
+        selected.forEach(function (regionId) {
+            out.regionPricing[regionId] = numbers(regionId);
+        });
+
+        out.flat = out.regionPricing[selected[0]];
+
+        return out;
+    }
+
+    /* Puts a saved carrier back on screen. Older carriers have no
+     * regionPricing at all - their flat fields become the price for every
+     * region they serve, so nothing reads as blank after an upgrade. */
+    function loadCarrierPricing(carrier) {
+        carrierPricingDraft = {};
+
+        var flat = {
+            baseCharge: carrier ? carrier.baseCharge : '',
+            perKmCharge: carrier ? carrier.perKmCharge : '',
+            perKgCharge: carrier ? carrier.perKgCharge : '',
+            minimumCharge: carrier ? carrier.minimumCharge : ''
+        };
+
+        carrierPricingDraft[CARRIER_PRICING_ALL] = flat;
+
+        var saved = (carrier && carrier.regionPricing) ? carrier.regionPricing : null;
+        var regionIds = (carrier && carrier.regionIds) ? carrier.regionIds : [];
+
+        regionIds.forEach(function (regionId) {
+            if (saved && saved[regionId]) {
+                carrierPricingDraft[regionId] = saved[regionId];
+            } else {
+                /* An existing carrier priced before today: carry its single
+                 * price into each region rather than show empty boxes. */
+                carrierPricingDraft[regionId] = {
+                    baseCharge: flat.baseCharge,
+                    perKmCharge: flat.perKmCharge,
+                    perKgCharge: flat.perKgCharge,
+                    minimumCharge: flat.minimumCharge
+                };
+            }
+        });
+    }
     /* Fills the form. Pass null on create, the carrier document on edit. */
     async function initCarrierForm(carrier) {
         var regions = await getPublishedRegions();
@@ -185,10 +385,6 @@
             carrierDocs.operatingLicenceFile = carrier.operatingLicenceFile || '';
             carrierDocs.commercialRegisterFile = carrier.commercialRegisterFile || '';
             carrierDocs.uniqueIdNumberFile = carrier.uniqueIdNumberFile || '';
-            $('#base_charge').val(carrier.baseCharge);
-            $('#per_km_charge').val(carrier.perKmCharge);
-            $('#per_kg_charge').val(carrier.perKgCharge);
-            $('#minimum_charge').val(carrier.minimumCharge);
             $('#min_delivery_time').val(carrier.minDeliveryTime);
             $('#max_delivery_time').val(carrier.maxDeliveryTime);
             $('#delivery_time_unit').val(carrier.deliveryTimeUnit || 'hours');
@@ -222,6 +418,13 @@
 
         $regions.show().chosen({"placeholder_text": "{{ trans('lang.carrier_regions') }}"});
         $regions.trigger('chosen:updated');
+
+        /* 02#44: the price blocks follow the regions. chosen fires the native
+         * change on the underlying select, so one handler covers both the
+         * dropdown and anything that sets the value in code. */
+        loadCarrierPricing(carrier);
+        renderCarrierPricing();
+        $regions.off('change.carrierPricing').on('change.carrierPricing', renderCarrierPricing);
 
         renderCarrierLogo();
         renderCarrierDocLink('operatingLicenceFile');
@@ -289,6 +492,9 @@
             return;
         }
 
+        /* 02#44: read the per-region blocks once, before the payload. */
+        var carrierPricing = carrierPricingForSave();
+
         var payload = {
             'photo': logoUrl,
             'name': name,
@@ -306,10 +512,14 @@
             'operatingLicenceFile': carrierDocs.operatingLicenceFile,
             'commercialRegisterFile': carrierDocs.commercialRegisterFile,
             'uniqueIdNumberFile': carrierDocs.uniqueIdNumberFile,
-            'baseCharge': numberOrNull('#base_charge'),
-            'perKmCharge': numberOrNull('#per_km_charge'),
-            'perKgCharge': numberOrNull('#per_kg_charge'),
-            'minimumCharge': numberOrNull('#minimum_charge'),
+            /* 02#44: the map is the source of truth; the four flat fields
+             * are kept so anything already reading them still gets a number.
+             * See carrierPricingForSave(). */
+            'regionPricing': carrierPricing.regionPricing,
+            'baseCharge': carrierPricing.flat.baseCharge,
+            'perKmCharge': carrierPricing.flat.perKmCharge,
+            'perKgCharge': carrierPricing.flat.perKgCharge,
+            'minimumCharge': carrierPricing.flat.minimumCharge,
             'minDeliveryTime': minTime,
             'maxDeliveryTime': maxTime,
             'deliveryTimeUnit': $('#delivery_time_unit').val(),
