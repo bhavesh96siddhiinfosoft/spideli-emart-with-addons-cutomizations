@@ -2905,5 +2905,12 @@ return [
     'carrier_from_company_note' => 'These details came from the company that registered. Please check them, and set the delivery charges below - a carrier with no charges cannot quote for anything.',
     'carrier_registration_number' => 'Registration number',
     'carrier_pending_companies_none' => 'No companies are waiting. Every company that has registered already has a carrier record.',
+    'parcel_sms_fee' => 'Parcel Receiver SMS Fee (FCFA)',
+    'parcel_sms_fee_help' => 'Cost in FCFA added to the order total when the sender chooses to notify the receiver via SMS. Default is 50 FCFA.',
+    'receiver_sms_notification' => 'Receiver SMS Notification',
+    'notify_receiver_sms' => 'Notify receiver via SMS',
+    'notify_receiver_sms_help' => 'Send an SMS notification to the receiver with the sender name and phone number once the parcel order is placed.',
+    'sms_sent' => 'SMS Sent',
+    'sms_not_sent' => 'SMS Not Sent',
 ];
 ?>

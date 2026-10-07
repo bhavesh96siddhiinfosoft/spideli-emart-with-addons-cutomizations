@@ -62,6 +62,14 @@
                     </div>
 
                     <div class="form-group row width-100">
+                        <label class="col-4 control-label">{{ trans('lang.parcel_sms_fee') }}</label>
+                        <div class="col-7">
+                            <input type="number" step="any" min="0" class="form-control" id="parcel_sms_fee" placeholder="50">
+                            <div class="form-text text-muted">{{ trans('lang.parcel_sms_fee_help') }}</div>
+                        </div>
+                    </div>
+
+                    <div class="form-group row width-100">
                         <label class="col-4 control-label">{{ trans('lang.sms_balance') }}</label>
                         <div class="col-7">
                             <span id="sms_balance" class="mr-3">-</span>
@@ -142,7 +150,8 @@
             $('#is_enabled').is(':checked') ? '1' : '0',
             $('#api_key').val().trim(),
             $('#sender_id').val().trim(),
-            $('#api_url').val().trim()
+            $('#api_url').val().trim(),
+            $('#parcel_sms_fee').val().trim()
         ].join('|');
     }
 
@@ -158,6 +167,9 @@
             $('#api_key').val(data.apiKey || '');
             $('#sender_id').val(data.senderId || '');
             $('#api_url').val(data.apiUrl || '');
+            $('#parcel_sms_fee').val(data.parcelSmsFee !== undefined ? data.parcelSmsFee : 50);
+        } else {
+            $('#parcel_sms_fee').val(50);
         }
 
         savedSnapshot = currentSnapshot();
@@ -179,6 +191,10 @@
         var isEnabled = $('#is_enabled').is(':checked');
         var apiKey = $('#api_key').val().trim();
         var senderId = $('#sender_id').val().trim();
+        var parcelSmsFee = parseFloat($('#parcel_sms_fee').val());
+        if (isNaN(parcelSmsFee) || parcelSmsFee < 0) {
+            parcelSmsFee = 50;
+        }
 
         /* Only checked when SMS is switched on, so the credentials can be
          * cleared and the feature left off without the form objecting. */
@@ -203,6 +219,7 @@
             'apiKey': apiKey,
             'senderId': senderId,
             'apiUrl': $('#api_url').val().trim(),
+            'parcelSmsFee': parcelSmsFee,
             'updatedAt': firebase.firestore.FieldValue.serverTimestamp()
         }, {merge: true});
 

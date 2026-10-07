@@ -206,6 +206,9 @@
                                     <p><strong>{{trans('lang.note')}}:</strong>
                                         <span id="receiver_note"></span>
                                     </p>
+                                    <p><strong>{{trans('lang.receiver_sms_notification')}}:</strong>
+                                        <span id="receiver_sms_status"></span>
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -435,6 +438,14 @@
                 $("#receiver_phone").text(EditPhoneNumber(cleanedReceiverPhone));
             } else {
                 $("#receiver_phone").text(EditPhoneNumber('+' + cleanedReceiverPhone));
+            }
+
+            if (order.sendReceiverSms) {
+                let smsSentBadge = (order.smsSent && order.smsSent.placed) ? ' ({{ trans('lang.sms_sent') }})' : ' ({{ trans('lang.sms_not_sent') }})';
+                let smsAmount = parseFloat(order.smsCharge || 50);
+                $('#receiver_sms_status').html('<span class="badge badge-success">{{ trans('lang.yes') }} (+' + formatCurrency(smsAmount, currencyData) + ')</span>' + smsSentBadge);
+            } else {
+                $('#receiver_sms_status').html('<span class="badge badge-secondary">{{ trans('lang.no') }}</span>');
             }
 
 
@@ -751,8 +762,15 @@
             });
         });
 
+        // SMS notification charge
+        let smsCharge = 0;
+        if (orderData.sendReceiverSms) {
+            smsCharge = parseFloat(orderData.smsCharge !== undefined ? orderData.smsCharge : 50);
+            if (isNaN(smsCharge)) smsCharge = 50;
+        }
+
         // Final price
-        let order_total = (order_subtotal - total_discount) + platformFee + total_tax_amount;
+        let order_total = (order_subtotal - total_discount) + platformFee + total_tax_amount + smsCharge;
         
         html = html + '<tr><td class="seprater" colspan="2"><hr><span>{{ trans('lang.sub_total') }}</span></td></tr>';
         html = html +
@@ -773,6 +791,12 @@
         html = html + '<tr><td class="seprater" colspan="2"><hr><span>{{ trans('lang.platform_charge') }}</span></td></tr>';
         html = html +'<tr><td class="label">{{ trans('lang.platform_charge') }}</td><td class="platform_charge " id="greenColor">+' +
                 formatCurrency(platformFee, currencyData) + '</td></tr>';
+
+        if (orderData.sendReceiverSms && smsCharge > 0) {
+            html = html + '<tr><td class="seprater" colspan="2"><hr><span>{{ trans('lang.receiver_sms_notification') }}</span></td></tr>';
+            html = html + '<tr><td class="label">{{ trans('lang.receiver_sms_notification') }}</td><td class="sms_charge" id="greenColor">+' +
+                formatCurrency(smsCharge, currencyData) + '</td></tr>';
+        }
 
         html = html + '<tr><td class="seprater" colspan="2"><hr><span>{{ trans('lang.tax_calculation') }}</span></td></tr>';
         html = html + renderTaxSection('order', 'Tax on Order Total');
