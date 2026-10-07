@@ -856,26 +856,46 @@
             }
         });
         
+        function b64EncodeUnicode(str) {
+            if (!str) return '';
+            try {
+                return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function (match, p1) {
+                    return String.fromCharCode('0x' + p1);
+                }));
+            } catch (e) {
+                try {
+                    return btoa(unescape(encodeURIComponent(str)));
+                } catch (err) {
+                    return btoa(str);
+                }
+            }
+        }
+
         async function sendEmail(url, subject, message, recipients) {
             var checkFlag = false;
-            await $.ajax({
-                type: 'POST',
-                data: {
-                    subject: subject,
-                    message: btoa(message),
-                    recipients: recipients
-                },
-                url: url,
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                },
-                success: function (data) {
-                    checkFlag = true;
-                },
-                error: function (xhr, status, error) {
-                    checkFlag = true;
-                }
-            });
+            try {
+                await $.ajax({
+                    type: 'POST',
+                    data: {
+                        subject: subject,
+                        message: b64EncodeUnicode(message),
+                        recipients: recipients
+                    },
+                    url: url,
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function (data) {
+                        checkFlag = true;
+                    },
+                    error: function (xhr, status, error) {
+                        checkFlag = true;
+                    }
+                });
+            } catch (e) {
+                console.error('Error in sendEmail:', e);
+                checkFlag = true;
+            }
             return checkFlag;
         }
 
