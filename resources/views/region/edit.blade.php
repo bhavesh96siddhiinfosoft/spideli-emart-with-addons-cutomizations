@@ -78,6 +78,14 @@
                                 </div>
                             </div>
 
+                            <div class="form-group row width-50">
+                                <label class="col-3 control-label">{{ trans('lang.parcel_sms_fee') }}</label>
+                                <div class="col-7">
+                                    <input type="number" step="any" min="0" class="form-control" id="parcel_sms_fee" placeholder="0">
+                                    <div class="form-text text-muted">{{ trans('lang.parcel_sms_fee_help') }}</div>
+                                </div>
+                            </div>
+
                             <div class="form-group row width-100">
                                 <label class="col-3 control-label">{{ trans('lang.region_zones') }}</label>
                                 <div class="col-7">
@@ -182,6 +190,7 @@
         $('#country').val(selectedCountry || null).trigger('change');
 
         $('#currency_id').val(region.currencyId || '');
+        $('#parcel_sms_fee').val(region.parcelSmsFee !== undefined ? region.parcelSmsFee : 0);
 
         originalZoneIds = region.zoneIds || [];
         $('#zone_ids').val(originalZoneIds);
@@ -255,12 +264,18 @@
             return false;
         }
 
+        var parcelSmsFee = parseFloat($('#parcel_sms_fee').val());
+        if (isNaN(parcelSmsFee) || parcelSmsFee < 0) {
+            parcelSmsFee = 0;
+        }
+
         await database.collection('regions').doc(regionId).update({
             'name': name,
             'code': code,
             'countryCode': countryCode,
             'countryName': countryName,
             'currencyId': currencyId || '',
+            'parcelSmsFee': parcelSmsFee,
             'zoneIds': zoneIds,
             'publish': publish,
             'updatedAt': firebase.firestore.FieldValue.serverTimestamp()

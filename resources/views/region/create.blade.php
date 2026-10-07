@@ -78,6 +78,14 @@
                                 </div>
                             </div>
 
+                            <div class="form-group row width-50">
+                                <label class="col-3 control-label">{{ trans('lang.parcel_sms_fee') }}</label>
+                                <div class="col-7">
+                                    <input type="number" step="any" min="0" class="form-control" id="parcel_sms_fee" placeholder="0">
+                                    <div class="form-text text-muted">{{ trans('lang.parcel_sms_fee_help') }}</div>
+                                </div>
+                            </div>
+
                             <div class="form-group row width-100">
                                 <label class="col-3 control-label">{{ trans('lang.region_zones') }}</label>
                                 <div class="col-7">
@@ -211,6 +219,11 @@
             return false;
         }
 
+        var parcelSmsFee = parseFloat($('#parcel_sms_fee').val());
+        if (isNaN(parcelSmsFee) || parcelSmsFee < 0) {
+            parcelSmsFee = 0;
+        }
+
         await database.collection('regions').doc(regionId).set({
             'id': regionId,
             'name': name,
@@ -218,6 +231,7 @@
             'countryCode': countryCode,
             'countryName': countryName,
             'currencyId': currencyId || '',
+            'parcelSmsFee': parcelSmsFee,
             'zoneIds': zoneIds,
             'publish': publish,
             'createdAt': firebase.firestore.FieldValue.serverTimestamp()
