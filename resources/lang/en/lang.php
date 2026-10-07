@@ -2912,5 +2912,6 @@ return [
     'notify_receiver_sms_help' => 'Send an SMS notification to the receiver with the sender name and phone number once the parcel order is placed.',
     'sms_sent' => 'SMS Sent',
     'sms_not_sent' => 'SMS Not Sent',
+    'delete_item_confirm' => 'Are you sure you want to delete this product?',
 ];
 ?>

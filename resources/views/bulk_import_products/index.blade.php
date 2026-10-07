@@ -569,6 +569,9 @@
     });
 
     $(document).on("click","a[name='item-delete']",async function(e) {
+        if (!confirm("{{ trans('lang.delete_item_confirm') }}")) {
+            return false;
+        }
         var id=this.id;
         await deleteDocumentWithImage('admin_products',id,'photo','photos');
         window.location.reload();

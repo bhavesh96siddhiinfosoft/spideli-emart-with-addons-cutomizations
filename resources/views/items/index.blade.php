@@ -1154,6 +1154,10 @@ async function productBrand(brand) {
 
 $(document).on("click", "a[name='item-delete']", function (e) {
 
+    if (!confirm("{{ trans('lang.delete_item_confirm') }}")) {
+        return false;
+    }
+
     var id = this.id;
 
     jQuery("#data-table_processing").show();
