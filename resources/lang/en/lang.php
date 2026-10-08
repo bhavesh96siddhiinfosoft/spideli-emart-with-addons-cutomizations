@@ -2913,5 +2913,12 @@ return [
     'sms_sent' => 'SMS Sent',
     'sms_not_sent' => 'SMS Not Sent',
     'delete_item_confirm' => 'Are you sure you want to delete this product?',
+    'admin_and_store_manager_customize_delivery_charges' => 'Admin and Store manager can be able to customize the Delivery charges',
+    'add_delivery_charge' => 'Add Delivery Charge',
+    'delivery_distance' => 'Distance',
+    'delivery_charge_amount' => 'Charge',
+    'enter_delivery_charge_error' => 'Please add at least one delivery charge.',
+    'invalid_delivery_charge_error' => 'Please enter valid values for Delivery Charges Per Km, Minimum Delivery Charges, and Minimum Delivery Charge Within Km in all rows.',
+    'max_delivery_charges_warning' => 'You can add a maximum of 5 delivery charges only.',
 ];
 ?>

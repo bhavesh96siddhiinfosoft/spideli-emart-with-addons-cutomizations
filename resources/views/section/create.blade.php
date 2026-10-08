@@ -116,6 +116,17 @@
                                 <label for="both">{{ trans('lang.both') }}</label>
                             </div>
                         </div>
+                        <div class="form-group row width-100" id="delivery_charge_customization_div" style="display: none;">
+                            <div class="col-12 switch-box">
+                                <div class="switch-box-inner">
+                                    <label class="control-label" for="is_delivery_charge_customization">{{ trans('lang.admin_and_store_manager_customize_delivery_charges') }}</label>
+                                    <label class="switch">
+                                        <input type="checkbox" id="is_delivery_charge_customization">
+                                        <span class="slider round"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
                         <div class="form-group row width-100">
                             <div class="form-check">
                                 <input type="checkbox" class="section_active" id="section_active">
@@ -336,7 +347,9 @@
                 snapshots.docs.forEach((listval) => {
                     var data = listval.data();
                     $('#service_type').append($("<option></option>")
-                        .attr("value", data.name).attr("flag", data.flag)
+                        .attr("value", data.name)
+                        .attr("flag", data.flag)
+                        .attr("data-id", (data.id ? data.id : listval.id))
                         .text(data.name));
                 })
             });
@@ -398,6 +411,17 @@
                 var platformFee = enable_platform_fee ? { enable: true, fee: platform_fee }  : { enable: false, fee: "0" };
                 var packagingChargeEnable = $("#packagingChargeEnable").is(":checked");
 
+                var is_delivery_charge_customization = $("#is_delivery_charge_customization").is(":checked");
+                var service_type_id = $('#service_type option:selected').attr('data-id');
+                var isDeliveryCustomizationEligible = (
+                    service_type_flag === "delivery-service" ||
+                    service_type_flag === "ecommerce-service" ||
+                    service_type_id === "TGTP44Pgu5G6BU2up7iY" ||
+                    service_type_id === "ny3sssVJ7FCrPgxvsZNO" ||
+                    service_type === "Multivendor Delivery Service" ||
+                    service_type === "Ecommerce Service"
+                );
+
                 $(".error_top").hide().html("");
                 if (name == '') {
                     $(".error_top").show().append("<p>{{ trans('lang.enter_section_name_error') }}</p>");
@@ -457,6 +481,9 @@
                      * region, which keeps existing sections working unchanged. */
                     'regionIds': getRegionAssignment(),
                 };
+                if (isDeliveryCustomizationEligible) {
+                    sectionData.is_delivery_charge_customization = is_delivery_charge_customization;
+                }
                 //add this new code 
                 if (
                     service_type === "Multivendor Delivery Service" ||
@@ -588,6 +615,25 @@
         });
         $('.service_type').change(function() {
             var serviceType = $(this).val();
+            var serviceTypeFlag = $('#service_type option:selected').attr('flag');
+            var serviceTypeId = $('#service_type option:selected').attr('data-id');
+
+            var isDeliveryCustomizationEligible = (
+                serviceTypeFlag === "delivery-service" ||
+                serviceTypeFlag === "ecommerce-service" ||
+                serviceTypeId === "TGTP44Pgu5G6BU2up7iY" ||
+                serviceTypeId === "ny3sssVJ7FCrPgxvsZNO" ||
+                serviceType === "Multivendor Delivery Service" ||
+                serviceType === "Ecommerce Service"
+            );
+
+            if (isDeliveryCustomizationEligible) {
+                $('#delivery_charge_customization_div').show();
+            } else {
+                $('#delivery_charge_customization_div').hide();
+                $('#is_delivery_charge_customization').prop('checked', false);
+            }
+
             if (serviceType == "Cab Service") {
                 $('.diliverychargeDiv').hide();
                 $('.packingChargeDiv').hide();

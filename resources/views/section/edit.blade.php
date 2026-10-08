@@ -115,6 +115,17 @@
                                 <label for="both">{{ trans('lang.both') }}</label>
                             </div>
                         </div>
+                        <div class="form-group row width-100" id="delivery_charge_customization_div" style="display: none;">
+                            <div class="col-12 switch-box">
+                                <div class="switch-box-inner">
+                                    <label class="control-label" for="is_delivery_charge_customization">{{ trans('lang.admin_and_store_manager_customize_delivery_charges') }}</label>
+                                    <label class="switch">
+                                        <input type="checkbox" id="is_delivery_charge_customization">
+                                        <span class="slider round"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
                         <div class="form-group row width-100">
                             <div class="form-check">
                                 <input type="checkbox" class="section_active" id="section_active">
@@ -330,9 +341,14 @@
                 snapshots.docs.forEach((listval) => {
                     var data = listval.data();
                     $('#service_type').append($("<option></option>")
-                        .attr("value", data.name).attr("flag", data.flag)
+                        .attr("value", data.name)
+                        .attr("flag", data.flag)
+                        .attr("data-id", (data.id ? data.id : listval.id))
                         .text(data.name));
-                })
+                });
+                if ($('#service_type').val()) {
+                    $('#service_type').trigger('change');
+                }
             })
             ref.get().then(async function(snapshots) {
                 if (snapshots.docs) {
@@ -342,6 +358,9 @@
                     $("#color").val(section.color);
                     if (section.isActive) {
                         $("#section_active").prop('checked', true);
+                    }
+                    if (section.is_delivery_charge_customization || section.deliveryChargeCustomization || section.isDeliveryChargeCustomization) {
+                        $("#is_delivery_charge_customization").prop('checked', true);
                     }
                     if (section.markerIcon) {
                         $("input[name='marker_icon'][value='" + section.markerIcon + "']").prop("checked", true);
@@ -372,6 +391,15 @@
                     }
                     if (section.is_product_details) {
                         $("#is_product_details").prop('checked', true);
+                    }
+                    var isEligibleOnLoad = (
+                        section.serviceTypeFlag == "delivery-service" ||
+                        section.serviceTypeFlag == "ecommerce-service" ||
+                        section.serviceType == "Multivendor Delivery Service" ||
+                        section.serviceType == "Ecommerce Service"
+                    );
+                    if (isEligibleOnLoad) {
+                        $('#delivery_charge_customization_div').show();
                     }
                     if (section.serviceType) {
                         $('#service_type').val(section.serviceType).trigger('change');
@@ -479,6 +507,17 @@
                 var platform_fee = $('#platform_fee').val();
                 var platformFee = enable_platform_fee ? { enable: true, fee: platform_fee }  : { enable: false, fee: "0" };
                 var packagingChargeEnable = $("#packagingChargeEnable").is(":checked");
+
+                var is_delivery_charge_customization = $("#is_delivery_charge_customization").is(":checked");
+                var service_type_id = $('#service_type option:selected').attr('data-id');
+                var isDeliveryCustomizationEligible = (
+                    service_type_flag === "delivery-service" ||
+                    service_type_flag === "ecommerce-service" ||
+                    service_type_id === "TGTP44Pgu5G6BU2up7iY" ||
+                    service_type_id === "ny3sssVJ7FCrPgxvsZNO" ||
+                    service_type === "Multivendor Delivery Service" ||
+                    service_type === "Ecommerce Service"
+                );
                 
                 if (name == '') {
                     $(".error_top").show();
@@ -536,6 +575,13 @@
                          * region, which keeps existing sections working. */
                         'regionIds': getRegionAssignment(),
                     };
+                    if (isDeliveryCustomizationEligible) {
+                        sectionData.is_delivery_charge_customization = is_delivery_charge_customization;
+                    } else {
+                        sectionData.is_delivery_charge_customization = firebase.firestore.FieldValue.delete();
+                        sectionData.deliveryChargeCustomization = firebase.firestore.FieldValue.delete();
+                        sectionData.isDeliveryChargeCustomization = firebase.firestore.FieldValue.delete();
+                    }
                     //add this new code 
                     const radiusServices = ["Multivendor Delivery Service", "On Demand Service", "Ecommerce Service"];
                     const inputVal = $("#vendor_nearby_radius").val().trim();
@@ -639,6 +685,25 @@
         });
         $('.service_type').change(function() {
             var serviceType = $(this).val();
+            var serviceTypeFlag = $('#service_type option:selected').attr('flag');
+            var serviceTypeId = $('#service_type option:selected').attr('data-id');
+
+            var isDeliveryCustomizationEligible = (
+                serviceTypeFlag === "delivery-service" ||
+                serviceTypeFlag === "ecommerce-service" ||
+                serviceTypeId === "TGTP44Pgu5G6BU2up7iY" ||
+                serviceTypeId === "ny3sssVJ7FCrPgxvsZNO" ||
+                serviceType === "Multivendor Delivery Service" ||
+                serviceType === "Ecommerce Service"
+            );
+
+            if (isDeliveryCustomizationEligible) {
+                $('#delivery_charge_customization_div').show();
+            } else {
+                $('#delivery_charge_customization_div').hide();
+                $('#is_delivery_charge_customization').prop('checked', false);
+            }
+
             if (serviceType == "Cab Service") {
                 $('.diliverychargeDiv').hide();
                 $('.packingChargeDiv').hide();

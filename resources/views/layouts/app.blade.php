@@ -564,7 +564,14 @@
             try {
                 var snapshot = await database.collection('vendors').doc(vendorId).get();
                 if (snapshot.exists) {
-                    regionId = snapshot.data().regionId || null;
+                    var vData = snapshot.data();
+                    regionId = vData.regionId || null;
+                    if (!regionId && vData.zoneId) {
+                        var zoneSnap = await database.collection('zone').doc(vData.zoneId).get();
+                        if (zoneSnap.exists) {
+                            regionId = zoneSnap.data().regionId || null;
+                        }
+                    }
                 }
             } catch (err) {
                 console.error("Error resolving a store's region:", err);
