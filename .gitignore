@@ -18,8 +18,9 @@ yarn-error.log
 
 # internal working documents - not part of the application
 /docs
-/firebase-functions
+#/firebase-functions
 DRIVER_DISPATCH_DOCUMENTATION.md
 
 # local archives
 *.zip
+serviceAccountKey.json
