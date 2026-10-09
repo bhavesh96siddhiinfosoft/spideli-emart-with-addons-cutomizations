@@ -4,6 +4,10 @@ namespace App\Http\Controllers;
 
 class CarrierController extends Controller
 {
+    /* Point 35, 9 Oct 2026: Carrier Management is reached from Owners for now.
+     * Set to true to bring the Settings menu entry and the list page back. */
+    public const LIST_ENABLED = false;
+
     public function __construct()
     {
         $this->middleware('auth');
@@ -11,6 +15,9 @@ class CarrierController extends Controller
 
     public function index()
     {
+        if (!self::LIST_ENABLED) {
+            return redirect()->route('owners');
+        }
         return view('carriers.index');
     }
 
@@ -30,11 +37,16 @@ class CarrierController extends Controller
      */
     public function create()
     {
-        return view('carriers.create')->with('fromCompany', request('fromCompany', ''));
+        return view('carriers.create')
+            ->with('fromCompany', request('fromCompany', ''))
+            ->with('back', request('back', ''));
     }
 
     public function edit($id)
     {
-        return view('carriers.edit')->with('id', $id);
+        return view('carriers.edit')
+            ->with('id', $id)
+            ->with('fromCompany', request('fromCompany', ''))
+            ->with('back', request('back', ''));
     }
 }

@@ -8,7 +8,19 @@
         <div class="col-md-7 align-self-center">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">{{ trans('lang.dashboard') }}</a></li>
-                <li class="breadcrumb-item"><a href="{!! route('carriers') !!}">{{ trans('lang.carrier_plural') }}</a></li>
+                @if (\App\Http\Controllers\CarrierController::LIST_ENABLED)
+                    <li class="breadcrumb-item"><a href="{!! route('carriers') !!}">{{ trans('lang.carrier_plural') }}</a></li>
+                @else
+                    @php
+                        $backRoute = route('owners');
+                        if (!empty($back) && $back === 'approved') {
+                            $backRoute = route('owners.approved');
+                        } elseif (!empty($back) && $back === 'pending') {
+                            $backRoute = route('owners.pending');
+                        }
+                    @endphp
+                    <li class="breadcrumb-item"><a href="{!! $backRoute !!}">{{ trans('lang.owner_plural') }}</a></li>
+                @endif
                 <li class="breadcrumb-item active">{{ trans('lang.carrier_create') }}</li>
             </ol>
         </div>
@@ -31,7 +43,21 @@
                     <button type="button" class="btn btn-primary save-carrier-btn">
                         <i class="fa fa-save"></i> {{ trans('lang.save') }}
                     </button>
-                    <a href="{!! route('carriers') !!}" class="btn btn-default">
+                    @php
+                        $cancelRoute = route('carriers');
+                        if (!\App\Http\Controllers\CarrierController::LIST_ENABLED || !empty($fromCompany)) {
+                            if (!empty($back) && $back === 'approved') {
+                                $cancelRoute = route('owners.approved');
+                            } elseif (!empty($back) && $back === 'pending') {
+                                $cancelRoute = route('owners.pending');
+                            } elseif (!empty($back) && $back === 'owner_view') {
+                                $cancelRoute = route('owners.view', $fromCompany) . '#carrier';
+                            } else {
+                                $cancelRoute = route('owners');
+                            }
+                        }
+                    @endphp
+                    <a href="{!! $cancelRoute !!}" class="btn btn-default">
                         <i class="fa fa-undo"></i>{{ trans('lang.cancel') }}
                     </a>
                 </div>
@@ -48,6 +74,7 @@
     /* Set when this screen was opened from a registered company on the carrier
      * list - bug report 02 point 19. Empty for an ordinary new carrier. */
     var fromCompanyId = "<?php echo addslashes($fromCompany); ?>";
+    var backParam = "<?php echo addslashes($back ?? ''); ?>";
 </script>
 @include('carriers.partials.form_scripts')
 <script type="text/javascript">
@@ -87,8 +114,36 @@
                 var snapshot = await database.collection('users').doc(fromCompanyId).get();
 
                 if (snapshot.exists) {
-                    prefill = carrierFromCompanyDriver(snapshot.data() || {});
-                    $('#company_source_note').show();
+                    var userData = snapshot.data() || {};
+                    if (userData.isOwner !== true) {
+                        console.warn('user is not an owner; starting an empty carrier', fromCompanyId);
+                        fromCompanyId = '';
+                    } else if (userData.carrierId && String(userData.carrierId).trim() !== '') {
+                        /* Owner already has carrierId -> redirect to edit screen */
+                        var editUrl = '{{ route("carriers.edit", ":id") }}'.replace(':id', encodeURIComponent(userData.carrierId)) + '?fromCompany=' + encodeURIComponent(fromCompanyId) + '&back=' + encodeURIComponent(backParam);
+                        window.location.replace(editUrl);
+                        return;
+                    } else {
+                        /* Check if back-link failed: carrier exists with ownerId == fromCompanyId */
+                        var carrierSnap = await database.collection('delivery_carriers').where('ownerId', '==', fromCompanyId).limit(1).get();
+                        if (!carrierSnap.empty) {
+                            var existingCarrierId = carrierSnap.docs[0].id;
+                            try {
+                                await database.collection('users').doc(fromCompanyId).update({
+                                    carrierId: existingCarrierId
+                                });
+                            } catch (e) {
+                                console.error('Failed to repair owner carrierId', e);
+                            }
+                            var editUrl = '{{ route("carriers.edit", ":id") }}'.replace(':id', encodeURIComponent(existingCarrierId)) + '?fromCompany=' + encodeURIComponent(fromCompanyId) + '&back=' + encodeURIComponent(backParam);
+                            window.location.replace(editUrl);
+                            return;
+                        }
+
+                        prefill = carrierFromCompanyDriver(userData);
+                        $('#company_source_note').show();
+                        renderOwnerDetails(userData, fromCompanyId);
+                    }
                 } else {
                     /* The link was built from a company that has since gone.
                      * An empty form is still usable, so say so and carry on. */

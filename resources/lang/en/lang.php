@@ -2920,5 +2920,12 @@ return [
     'enter_delivery_charge_error' => 'Please add at least one delivery charge.',
     'invalid_delivery_charge_error' => 'Please enter valid values for Delivery Charges Per Km, Minimum Delivery Charges, and Minimum Delivery Charge Within Km in all rows.',
     'max_delivery_charges_warning' => 'You can add a maximum of 5 delivery charges only.',
+    'carrier_create_for_owner' => 'Create carrier',
+    'carrier_edit_for_owner' => 'Edit carrier',
+    'carrier_bound_to_owner' => 'Bound to owner:',
+    'carrier_not_found_for_owner' => 'This carrier no longer exists.',
+    'owner_name' => 'Owner Name',
+    'carrier_not_found' => 'No Carrier Found',
+    'carrier_not_created_yet_desc' => 'No carrier delivery profile has been created for this owner yet. You can create one now to enable deliveries.',
 ];
 ?>

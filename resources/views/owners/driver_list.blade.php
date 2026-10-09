@@ -44,6 +44,9 @@
                                     <a href="{{route('owners.walletTransaction',$id)}}"
                                         class="wallet_transaction"><i class="ri-wallet-line"></i>{{trans('lang.wallet_transaction')}}</a>
                                 </li>
+                                <li>
+                                    <a href="{{route('owners.carrier',$id)}}" class="carrier_tab"><i class="ri-truck-line"></i>{{trans('lang.carrier_plural')}}</a>
+                                </li>
                             </ul>
                         </div>  
                         <?php } ?>

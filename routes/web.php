@@ -912,6 +912,7 @@ Route::middleware(['permission:owners,owner.edit'])->group(function () {
 });
 Route::middleware(['permission:owners,owner.view'])->group(function () {
     Route::get('/owners/view/{id}', [App\Http\Controllers\OwnerController::class, 'view'])->name('owners.view');
+    Route::get('/owners/carrier/{id}', [App\Http\Controllers\OwnerController::class, 'carrier'])->name('owners.carrier');
 });
 Route::middleware(['permission:owners-document,owner.document.list'])->group(function () {
     Route::get('/owners/document/{id}', [App\Http\Controllers\OwnerController::class, 'ownerDocuments'])->name('owners.document');

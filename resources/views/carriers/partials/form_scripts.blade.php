@@ -38,6 +38,40 @@
     var carrierLogo = '';
     var carrierLogoFilename = '';
     var carrierStorageRef = firebase.storage().ref();
+    var currentCarrierOwnerId = '';
+    var carrierListEnabled = {{ \App\Http\Controllers\CarrierController::LIST_ENABLED ? 'true' : 'false' }};
+
+    function renderOwnerDetails(owner, ownerId) {
+        if (!owner) {
+            $('#owner_details_section').hide();
+            return;
+        }
+        var fullName = ((owner.firstName || '') + ' ' + (owner.lastName || '')).trim();
+        if (fullName === '') {
+            fullName = owner.name || owner.companyName || '';
+        }
+        $('#owner_name').val(fullName);
+        $('#owner_company_name').val(owner.companyName || '');
+
+        var phone = owner.phoneNumber || owner.phone || '';
+        if (phone && owner.countryCode && !phone.startsWith('+')) {
+            phone = owner.countryCode + ' ' + phone;
+        }
+        $('#owner_phone').val(phone);
+        $('#owner_email').val(owner.email || '');
+        $('#owner_commercial_register').val(owner.commercialRegister || '');
+        $('#owner_operating_licence').val(owner.operatingLicence || '');
+        $('#owner_unique_id').val(owner.uniqueIdNumber || '');
+
+        if (ownerId) {
+            var ownerViewUrl = '{{ route("owners.view", ":id") }}'.replace(':id', encodeURIComponent(ownerId));
+            $('#owner_view_link').attr('href', ownerViewUrl).show();
+        } else {
+            $('#owner_view_link').hide();
+        }
+
+        $('#owner_details_section').show();
+    }
 
     function handleCarrierLogoSelect(evt) {
         var file = evt.target.files[0];
@@ -373,6 +407,9 @@
         });
 
         if (carrier) {
+            if (carrier.ownerId) {
+                currentCarrierOwnerId = carrier.ownerId;
+            }
             $('#name').val(carrier.name || '');
             $('#code').val(carrier.code || '');
             $('#phone').val(carrier.phone || '');
@@ -544,7 +581,7 @@
              * until a carrier is linked to its drivers, its orders are offered
              * to every driver.
              *
-             * A company's own drivers already carry `companyId` pointing at the
+             * A company's own drivers already carry `ownerId` pointing at the
              * company, so once this link exists the carrier's drivers are
              * reachable in one step. */
             if (linkCompanyId) {
@@ -566,6 +603,23 @@
             }
         }
 
-        window.location.href = '{{ route("carriers") }}';
+        var returnToOwners = (linkCompanyId || currentCarrierOwnerId || !carrierListEnabled);
+        if (returnToOwners) {
+            var ownersBackUrl = '{{ route("owners") }}';
+            var backSource = (typeof backParam !== 'undefined') ? backParam : '';
+            if (backSource === 'approved') {
+                ownersBackUrl = '{{ route("owners.approved") }}';
+            } else if (backSource === 'pending') {
+                ownersBackUrl = '{{ route("owners.pending") }}';
+            } else if (backSource === 'owner_view') {
+                var oId = linkCompanyId || currentCarrierOwnerId;
+                if (oId) {
+                    ownersBackUrl = '{{ route("owners.view", ":id") }}'.replace(':id', oId) + '#carrier';
+                }
+            }
+            window.location.href = ownersBackUrl;
+        } else {
+            window.location.href = '{{ route("carriers") }}';
+        }
     }
 </script>

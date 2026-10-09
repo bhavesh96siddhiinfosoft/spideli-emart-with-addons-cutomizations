@@ -25,6 +25,10 @@ class OwnerController extends Controller
     {
         return view('owners.view')->with('id', $id);
     }
+    public function carrier($id)
+    {
+        return view('owners.view', ['id' => $id, 'tab' => 'carrier']);
+    }
     public function ownerDocuments($id)
     {
         return view('owners.documentIndex', compact('id'));

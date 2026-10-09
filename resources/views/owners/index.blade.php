@@ -132,6 +132,9 @@
         checkDeletePermission = true;
     }
 
+    var checkCarrierCreate = ($.inArray('carrier.create', user_permissions) >= 0);
+    var checkCarrierEdit = ($.inArray('carrier.edit', user_permissions) >= 0);
+
     $('.status_selector').select2({
         placeholder: '{{trans("lang.status")}}',  
         minimumResultsForSearch: Infinity,
@@ -531,6 +534,18 @@ async function buildHTML(val) {
         action += '<a href="' + document_list_view + '" data-toggle="tooltip" data-bs-original-title="{{ trans('lang.document_plural') }}"><i class="fa fa-file"></i></a>';
     }
     
+    if (val.carrierId && String(val.carrierId).trim() !== '') {
+        if (checkCarrierEdit) {
+            var carrierEditUrl = '{{ route("carriers.edit", ":id") }}'.replace(':id', encodeURIComponent(val.carrierId)) + '?fromCompany=' + encodeURIComponent(val.id) + '&back=' + encodeURIComponent(type);
+            action += '<a href="' + carrierEditUrl + '" class="text-success" data-toggle="tooltip" title="{{ trans('lang.carrier_edit_for_owner') }}" data-bs-original-title="{{ trans('lang.carrier_edit_for_owner') }}"><i class="mdi mdi-truck"></i></a>';
+        }
+    } else {
+        if (checkCarrierCreate) {
+            var carrierCreateUrl = '{{ route("carriers.create") }}?fromCompany=' + encodeURIComponent(val.id) + '&back=' + encodeURIComponent(type);
+            action += '<a href="' + carrierCreateUrl + '" data-toggle="tooltip" title="{{ trans('lang.carrier_create_for_owner') }}" data-bs-original-title="{{ trans('lang.carrier_create_for_owner') }}"><i class="mdi mdi-truck"></i></a>';
+        }
+    }
+
     action = action + '<a href="' + ownerView + '" data-toggle="tooltip" data-bs-original-title="{{ trans('lang.view') }}"><i class="mdi mdi-eye"></i></a>';
 
     var planRoute="{{route('subscription.subscriptionPlanHistory',':id')}}";

@@ -30,7 +30,15 @@
                         </div>
                         <div class="d-flex top-title-right align-self-center">
                             <div class="card-header-right"> 
-                                    <a href="javascript:void(0)" data-toggle="modal" data-target="#addWalletModal"class="btn-primary btn rounded-full add-wallate"><i class="mdi mdi-plus mr-2"></i>{{trans('lang.add_wallet_amount')}}</a>
+                                <div id="add_wallet_btn_wrap">
+                                    <a href="javascript:void(0)" data-toggle="modal" data-target="#addWalletModal" class="btn-primary btn rounded-full add-wallate"><i class="mdi mdi-plus mr-2"></i>{{trans('lang.add_wallet_amount')}}</a>
+                                </div>
+                                <div id="create_carrier_top_btn_wrap" style="display:none;">
+                                    <a href="{{route('carriers.create')}}?fromCompany={{$id}}&back=owner_view" class="btn-primary btn rounded-full"><i class="mdi mdi-plus mr-2"></i>{{trans('lang.carrier_create_for_owner')}}</a>
+                                </div>
+                                <div id="edit_carrier_top_btn_wrap" style="display:none;">
+                                    <a href="javascript:void(0)" id="top_edit_carrier_link" class="btn-primary btn rounded-full"><i class="mdi mdi-lead-pencil mr-2"></i>{{trans('lang.carrier_edit_for_owner')}}</a>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -40,8 +48,8 @@
         <div class="resttab-sec mb-4">  
             <div class="menu-tab">
                 <ul>
-                    <li class="active">
-                        <a href="{{route('owners.view',$id)}}" class="basic"><i class="ri-list-indefinite"></i>{{trans('lang.tab_basic')}}</a>
+                    <li class="active basic_tab_li">
+                        <a href="{{route('owners.view',$id)}}" id="owner_basic_tab_btn" class="basic"><i class="ri-list-indefinite"></i>{{trans('lang.tab_basic')}}</a>
                     </li>
                     <li>
                         <a href="{{route('owner.driver.list',$id)}}"><i class="ri-group-3-fill"></i>{{trans('lang.driver_plural')}}</a>
@@ -59,9 +67,12 @@
                         <a href="{{route('owners.walletTransaction',$id)}}"
                             class="wallet_transaction"><i class="ri-wallet-line"></i>{{trans('lang.wallet_transaction')}}</a>
                     </li>
+                    <li class="carrier_tab_li">
+                        <a href="{{route('owners.carrier',$id)}}" id="owner_carrier_tab_btn" class="carrier_tab"><i class="ri-truck-line"></i>{{trans('lang.carrier_plural')}}</a>
+                    </li>
                 </ul>
             </div>  
-            <div class="row">
+            <div class="row" id="owner_stats_row">
                 <div class="col-md-3">
                     <div class="card card-box-with-icon bg--1">
                         <div class="card-body d-flex justify-content-between align-items-center">
@@ -97,6 +108,7 @@
                 </div>
             </div>   
         </div>
+        <div id="owner_basic_details_sections">
         <div class="restaurant_info-section">
             <div class="card border">
             <div class="card-header d-flex justify-content-between align-items-center border-bottom pb-3">
@@ -248,7 +260,193 @@
             </div>
         </div>
         <div class="form-group col-12 text-center btm-btn">
-            <a href="{!! route('drivers') !!}" class="btn btn-default"><i class="fa fa-undo"></i>{{trans('lang.cancel')}}</a>
+            <a href="{!! route('owners') !!}" class="btn btn-default"><i class="fa fa-undo"></i>{{trans('lang.cancel')}}</a>
+        </div>
+        </div>{{-- close owner_basic_details_sections --}}
+
+        <div id="owner_carrier_tab_section" style="display:none;">
+            {{-- Loading spinner --}}
+            <div id="owner_carrier_loading" class="text-center py-5">
+                <i class="fa fa-spinner fa-spin fa-2x text-primary"></i>
+                <p class="text-muted mt-2">{{trans('lang.loading') ?? 'Loading...'}}</p>
+            </div>
+
+            {{-- Empty State: when no carrier is created for this owner --}}
+            <div id="owner_carrier_empty_state" class="card border text-center py-5" style="display:none;">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <span class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 80px; height: 80px; background-color: #f1f5f9;">
+                            <i class="mdi mdi-truck" style="font-size: 40px; color: #64748b;"></i>
+                        </span>
+                    </div>
+                    <h3 class="text-dark-2 mb-2 h4">{{trans('lang.carrier_not_found')}}</h3>
+                    <p class="text-muted mb-4 mx-auto" style="max-width: 500px;">
+                        {{trans('lang.carrier_not_created_yet_desc')}}
+                    </p>
+                    <div>
+                        <a href="{{route('carriers.create')}}?fromCompany={{$id}}&back=owner_view" class="btn-primary btn rounded-full px-4 py-2">
+                            <i class="mdi mdi-plus mr-2"></i>{{trans('lang.carrier_create_for_owner')}}
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Carrier Details: when carrier exists --}}
+            <div id="owner_carrier_details_card" style="display:none;">
+                <!-- General Carrier Info -->
+                <div class="restaurant_info-section">
+                    <div class="card border">
+                        <div class="card-header d-flex justify-content-between align-items-center border-bottom pb-3">
+                            <div class="card-header-title">
+                                <h3 class="text-dark-2 mb-0 h4"><i class="mdi mdi-truck mr-2"></i>{{trans('lang.carrier_info')}}</h3>
+                            </div>
+                            <div class="card-header-right">
+                                <span id="carrier_view_status_badge" class="badge mr-2"></span>
+                                <a href="javascript:void(0)" id="carrier_inline_edit_btn" class="btn btn-sm btn-primary">
+                                    <i class="mdi mdi-lead-pencil mr-1"></i>{{trans('lang.carrier_edit_for_owner')}}
+                                </a>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="restaurant_info_left">
+                                        <div class="d-flex mb-1">
+                                            <div class="sis-img" id="carrier_view_logo"></div>
+                                            <div class="sis-content pl-4">
+                                                <ul class="p-0 info-list mb-0">
+                                                    <li class="d-flex align-items-center mb-2">
+                                                        <label class="mb-0 font-wi font-semibold text-dark-2">{{trans('lang.carrier_name')}}</label>
+                                                        <span id="carrier_view_name"></span>
+                                                    </li>
+                                                    <li class="d-flex align-items-center mb-2">
+                                                        <label class="mb-0 font-wi font-semibold text-dark-2">{{trans('lang.carrier_code')}}</label>
+                                                        <span id="carrier_view_code"></span>
+                                                    </li>
+                                                    <li class="d-flex align-items-center mb-2">
+                                                        <label class="mb-0 font-wi font-semibold text-dark-2">{{trans('lang.carrier_phone')}}</label>
+                                                        <span id="carrier_view_phone"></span>
+                                                    </li>
+                                                    <li class="d-flex align-items-center mb-2">
+                                                        <label class="mb-0 font-wi font-semibold text-dark-2">{{trans('lang.carrier_email')}}</label>
+                                                        <span id="carrier_view_email"></span>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="restaurant_info_left">
+                                        <ul class="p-0 info-list mb-0">
+                                            <li class="d-flex align-items-center mb-2">
+                                                <label class="mb-0 font-wi font-semibold text-dark-2">{{trans('lang.carrier_regions')}}</label>
+                                                <span id="carrier_view_regions"></span>
+                                            </li>
+                                            <li class="d-flex align-items-center mb-2">
+                                                <label class="mb-0 font-wi font-semibold text-dark-2">{{trans('lang.carrier_delivery_time_conditions')}}</label>
+                                                <span id="carrier_view_delivery_time"></span>
+                                            </li>
+                                            <li class="d-flex align-items-center mb-2">
+                                                <label class="mb-0 font-wi font-semibold text-dark-2">{{trans('lang.carrier_max_weight') ?? 'Max Weight'}}</label>
+                                                <span id="carrier_view_max_weight"></span>
+                                            </li>
+                                            <li class="d-flex align-items-center mb-2">
+                                                <label class="mb-0 font-wi font-semibold text-dark-2">{{trans('lang.carrier_documents_verified')}}</label>
+                                                <span id="carrier_view_verified_badge"></span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Carrier Identification & Documents -->
+                <div class="restaurant_info-section">
+                    <div class="card border">
+                        <div class="card-header d-flex justify-content-between align-items-center border-bottom pb-3">
+                            <div class="card-header-title">
+                                <h3 class="text-dark-2 mb-0 h4"><i class="mdi mdi-file-document mr-2"></i>{{trans('lang.carrier_identification')}}</h3>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <ul class="p-0 info-list mb-0">
+                                        <li class="d-flex align-items-center mb-2">
+                                            <label class="mb-0 font-wi font-semibold text-dark-2">{{trans('lang.carrier_commercial_register')}}</label>
+                                            <span id="carrier_view_cr"></span>
+                                        </li>
+                                        <li class="d-flex align-items-center mb-2">
+                                            <label class="mb-0 font-wi font-semibold text-dark-2">{{trans('lang.carrier_operating_licence')}}</label>
+                                            <span id="carrier_view_licence"></span>
+                                        </li>
+                                        <li class="d-flex align-items-center mb-2">
+                                            <label class="mb-0 font-wi font-semibold text-dark-2">{{trans('lang.carrier_unique_id')}}</label>
+                                            <span id="carrier_view_uid"></span>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="mb-2 font-wi font-semibold text-dark-2 d-block">{{trans('lang.company_documents')}}</label>
+                                    <div id="carrier_view_documents"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Carrier Delivery Pricing / Charges -->
+                <div class="restaurant_info-section">
+                    <div class="card border">
+                        <div class="card-header d-flex justify-content-between align-items-center border-bottom pb-3">
+                            <div class="card-header-title">
+                                <h3 class="text-dark-2 mb-0 h4"><i class="mdi mdi-cash mr-2"></i>{{trans('lang.carrier_pricing')}}</h3>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped" id="carrier_pricing_table">
+                                    <thead>
+                                        <tr>
+                                            <th>{{trans('lang.region') ?? 'Region'}}</th>
+                                            <th>{{trans('lang.carrier_base_charge')}}</th>
+                                            <th>{{trans('lang.carrier_per_km_charge')}}</th>
+                                            <th>{{trans('lang.carrier_per_kg_charge')}}</th>
+                                            <th>{{trans('lang.carrier_minimum_charge')}}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="carrier_pricing_tbody">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Optional Conditions -->
+                <div class="restaurant_info-section" id="carrier_conditions_section" style="display:none;">
+                    <div class="card border">
+                        <div class="card-header border-bottom pb-3">
+                            <h3 class="text-dark-2 mb-0 h4"><i class="mdi mdi-alert-circle-outline mr-2"></i>{{trans('lang.carrier_conditions') ?? 'Conditions'}}</h3>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0 text-dark-2" id="carrier_view_conditions"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group col-12 text-center btm-btn my-4">
+                    <a href="javascript:void(0)" id="carrier_bottom_edit_btn" class="btn btn-primary mr-2">
+                        <i class="mdi mdi-lead-pencil mr-1"></i>{{trans('lang.carrier_edit_for_owner')}}
+                    </a>
+                    <a href="{!! route('owners') !!}" class="btn btn-default">
+                        <i class="fa fa-undo"></i>{{trans('lang.cancel')}}
+                    </a>
+                </div>
+            </div>
         </div>
     </div>    
 </div>
@@ -363,6 +561,8 @@
 
                     /* Report 03 point 39 - see the card in the markup. */
                     renderCompanyDetails(dirver);
+                    loadPublishedRegionsMap();
+                    fetchOwnerCarrier(dirver);
                     $(".email").text(shortEmail(dirver.email));
 
                     if(dirver.phoneNumber.includes('+')){
@@ -634,5 +834,246 @@
                 }
             });
         });
+
+        var ownerCarrierData = null;
+        var ownerCarrierId = null;
+        var publishedRegionsMap = {};
+
+        async function loadPublishedRegionsMap() {
+            try {
+                var snap = await database.collection('regions').get();
+                snap.forEach(function (doc) {
+                    var r = doc.data();
+                    publishedRegionsMap[doc.id] = r.name || r.title || doc.id;
+                });
+            } catch (e) {
+                console.error('Error fetching regions map', e);
+            }
+        }
+
+        async function fetchOwnerCarrier(owner) {
+            $('#owner_carrier_loading').show();
+            $('#owner_carrier_empty_state').hide();
+            $('#owner_carrier_details_card').hide();
+
+            try {
+                if (owner && owner.carrierId) {
+                    var cDoc = await database.collection('delivery_carriers').doc(owner.carrierId).get();
+                    if (cDoc.exists) {
+                        ownerCarrierId = cDoc.id;
+                        ownerCarrierData = cDoc.data();
+                    }
+                }
+
+                if (!ownerCarrierData) {
+                    var cQuery = await database.collection('delivery_carriers').where('ownerId', '==', id).limit(1).get();
+                    if (!cQuery.empty) {
+                        ownerCarrierId = cQuery.docs[0].id;
+                        ownerCarrierData = cQuery.docs[0].data();
+                        if (owner && !owner.carrierId) {
+                            database.collection('users').doc(id).update({ carrierId: ownerCarrierId }).catch(console.error);
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error('Error fetching carrier for owner', err);
+            }
+
+            $('#owner_carrier_loading').hide();
+            renderCarrierTabContent();
+        }
+
+        function renderCarrierTabContent() {
+            if (!ownerCarrierData) {
+                $('#owner_carrier_empty_state').show();
+                $('#owner_carrier_details_card').hide();
+                if ($('.carrier_tab_li').hasClass('active')) {
+                    $('#create_carrier_top_btn_wrap').show();
+                    $('#edit_carrier_top_btn_wrap').hide();
+                    $('#add_wallet_btn_wrap').hide();
+                }
+                return;
+            }
+
+            var editUrl = '{{ route("carriers.edit", ":cid") }}'.replace(':cid', ownerCarrierId) + '?fromCompany=' + encodeURIComponent(id) + '&back=owner_view';
+            $('#carrier_inline_edit_btn').attr('href', editUrl);
+            $('#carrier_bottom_edit_btn').attr('href', editUrl);
+            $('#top_edit_carrier_link').attr('href', editUrl);
+
+            if ($('.carrier_tab_li').hasClass('active')) {
+                $('#create_carrier_top_btn_wrap').hide();
+                $('#edit_carrier_top_btn_wrap').show();
+                $('#add_wallet_btn_wrap').hide();
+            }
+
+            // Logo
+            var logoImg = (ownerCarrierData.photo && ownerCarrierData.photo.trim() !== '') ? ownerCarrierData.photo : placeholderImage;
+            $('#carrier_view_logo').html('<img width="120px" height="auto" class="rounded" src="' + escapeHtmlAttribute(logoImg) + '" onerror="this.onerror=null;this.src=\'' + escapeHtmlAttribute(placeholderImage) + '\'">');
+
+            // General Info
+            $('#carrier_view_name').text(ownerCarrierData.name || '-');
+            $('#carrier_view_code').text(ownerCarrierData.code || '-');
+            $('#carrier_view_phone').text(ownerCarrierData.phone || '-');
+            $('#carrier_view_email').text(ownerCarrierData.email || '-');
+
+            // Status Badge
+            var isActive = ownerCarrierData.publish === true || ownerCarrierData.is_active === true;
+            if (isActive) {
+                $('#carrier_view_status_badge').attr('class', 'badge badge-success').text("{{ trans('lang.active') ?? 'Active' }}");
+            } else {
+                $('#carrier_view_status_badge').attr('class', 'badge badge-danger').text("{{ trans('lang.inactive') ?? 'Inactive' }}");
+            }
+
+            // Verified Badge
+            if (ownerCarrierData.isVerified === true) {
+                $('#carrier_view_verified_badge').html('<span class="badge badge-success"><i class="mdi mdi-check-circle mr-1"></i>' + "{{ trans('lang.carrier_documents_verified') }}" + '</span>');
+            } else {
+                $('#carrier_view_verified_badge').html('<span class="badge badge-warning">' + "{{ trans('lang.unverified') ?? 'Unverified' }}" + '</span>');
+            }
+
+            // Regions
+            var regionIds = ownerCarrierData.regionIds || [];
+            if (regionIds.length === 0) {
+                $('#carrier_view_regions').html('<span class="badge badge-primary mr-1">' + "{{ trans('lang.carrier_pricing_all_regions') ?? 'All Regions' }}" + '</span>');
+            } else {
+                var rBadges = regionIds.map(function(rid) {
+                    var rName = publishedRegionsMap[rid] || rid;
+                    return '<span class="badge badge-info mr-1 mb-1">' + escapeHtmlText(rName) + '</span>';
+                }).join('');
+                $('#carrier_view_regions').html(rBadges);
+            }
+
+            // Delivery time
+            var minT = ownerCarrierData.minDeliveryTime || '-';
+            var maxT = ownerCarrierData.maxDeliveryTime || '-';
+            var unit = ownerCarrierData.deliveryTimeUnit || '';
+            $('#carrier_view_delivery_time').text(minT + ' - ' + maxT + ' ' + unit);
+
+            // Max weight
+            $('#carrier_view_max_weight').text(ownerCarrierData.maxWeight ? (ownerCarrierData.maxWeight + ' kg') : '-');
+
+            // Identification
+            $('#carrier_view_cr').text(ownerCarrierData.commercialRegister || '-');
+            $('#carrier_view_licence').text(ownerCarrierData.operatingLicence || '-');
+            $('#carrier_view_uid').text(ownerCarrierData.uniqueIdNumber || '-');
+
+            // Documents
+            var docFiles = [
+                { url: ownerCarrierData.commercialRegisterFile, label: "{{ trans('lang.carrier_commercial_register') }}" },
+                { url: ownerCarrierData.operatingLicenceFile,   label: "{{ trans('lang.carrier_operating_licence') }}" },
+                { url: ownerCarrierData.uniqueIdNumberFile,     label: "{{ trans('lang.carrier_unique_id') }}" }
+            ].filter(function(f) {
+                return typeof f.url === 'string' && f.url.trim() !== '';
+            });
+
+            if (docFiles.length === 0) {
+                $('#carrier_view_documents').html('<span class="text-muted">' + "{{ trans('lang.company_documents_none') }}" + '</span>');
+            } else {
+                var docHtml = docFiles.map(function(f) {
+                    return '<a href="' + escapeHtmlAttribute(f.url) + '" target="_blank" rel="noopener" class="badge badge-info mr-2 mb-2 p-2">' +
+                           '<i class="mdi mdi-file-document mr-1"></i>' + escapeHtmlText(f.label) + '</a>';
+                }).join('');
+                $('#carrier_view_documents').html(docHtml);
+            }
+
+            // Pricing Table
+            var pricingTbody = $('#carrier_pricing_tbody');
+            pricingTbody.empty();
+
+            function formatPrice(val) {
+                if (val === null || val === undefined || val === '' || isNaN(val)) {
+                    return '-';
+                }
+                var num = parseFloat(val).toFixed(decimal_degits);
+                return currencyAtRight ? (num + ' ' + currentCurrency) : (currentCurrency + ' ' + num);
+            }
+
+            var regPricing = ownerCarrierData.regionPricing || {};
+            var hasRegionPricing = Object.keys(regPricing).length > 0;
+
+            if (hasRegionPricing && regionIds.length > 0) {
+                regionIds.forEach(function(rid) {
+                    var p = regPricing[rid] || {};
+                    var rName = publishedRegionsMap[rid] || rid;
+                    var rowHtml = '<tr>' +
+                        '<td><strong>' + escapeHtmlText(rName) + '</strong></td>' +
+                        '<td>' + formatPrice(p.baseCharge) + '</td>' +
+                        '<td>' + formatPrice(p.perKmCharge) + '</td>' +
+                        '<td>' + formatPrice(p.perKgCharge) + '</td>' +
+                        '<td>' + formatPrice(p.minimumCharge) + '</td>' +
+                    '</tr>';
+                    pricingTbody.append(rowHtml);
+                });
+            } else {
+                var flatBase = ownerCarrierData.baseCharge;
+                var flatKm = ownerCarrierData.perKmCharge;
+                var flatKg = ownerCarrierData.perKgCharge;
+                var flatMin = ownerCarrierData.minimumCharge;
+                var rowHtml = '<tr>' +
+                    '<td><strong>' + "{{ trans('lang.carrier_pricing_all_regions') ?? 'All Regions (Flat Rate)' }}" + '</strong></td>' +
+                    '<td>' + formatPrice(flatBase) + '</td>' +
+                    '<td>' + formatPrice(flatKm) + '</td>' +
+                    '<td>' + formatPrice(flatKg) + '</td>' +
+                    '<td>' + formatPrice(flatMin) + '</td>' +
+                '</tr>';
+                pricingTbody.append(rowHtml);
+            }
+
+            // Conditions
+            if (ownerCarrierData.conditions && ownerCarrierData.conditions.trim() !== '') {
+                $('#carrier_view_conditions').text(ownerCarrierData.conditions);
+                $('#carrier_conditions_section').show();
+            } else {
+                $('#carrier_conditions_section').hide();
+            }
+
+            $('#owner_carrier_details_card').show();
+        }
+
+        function switchTab(target) {
+            if (target === 'carrier') {
+                $('.menu-tab ul li').removeClass('active');
+                $('.carrier_tab_li').addClass('active');
+                $('#owner_basic_details_sections').hide();
+                $('#owner_stats_row').hide();
+                $('#owner_carrier_tab_section').show();
+                $('#add_wallet_btn_wrap').hide();
+                if (ownerCarrierData) {
+                    $('#create_carrier_top_btn_wrap').hide();
+                    $('#edit_carrier_top_btn_wrap').show();
+                } else {
+                    $('#create_carrier_top_btn_wrap').show();
+                    $('#edit_carrier_top_btn_wrap').hide();
+                }
+                window.location.hash = 'carrier';
+            } else {
+                $('.menu-tab ul li').removeClass('active');
+                $('.basic_tab_li').addClass('active');
+                $('#owner_carrier_tab_section').hide();
+                $('#owner_stats_row').show();
+                $('#owner_basic_details_sections').show();
+                $('#create_carrier_top_btn_wrap').hide();
+                $('#edit_carrier_top_btn_wrap').hide();
+                $('#add_wallet_btn_wrap').show();
+                if (window.location.hash === '#carrier') {
+                    history.replaceState(null, null, window.location.pathname + window.location.search);
+                }
+            }
+        }
+
+        $(document).on('click', '#owner_carrier_tab_btn', function (e) {
+            e.preventDefault();
+            switchTab('carrier');
+        });
+
+        $(document).on('click', '#owner_basic_tab_btn', function (e) {
+            e.preventDefault();
+            switchTab('basic');
+        });
+
+        var requestedTab = "<?php echo addslashes($tab ?? ''); ?>";
+        if (requestedTab === 'carrier' || window.location.hash === '#carrier' || window.location.search.indexOf('tab=carrier') !== -1) {
+            switchTab('carrier');
+        }
     </script>
 @endsection

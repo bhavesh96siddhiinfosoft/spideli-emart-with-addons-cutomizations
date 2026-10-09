@@ -2,6 +2,69 @@
 <div class="row vendor_payout_create">
     <div class="vendor_payout_create-inner">
 
+        {{-- Owner Details Section (shown when creating/editing a carrier bound to an owner) --}}
+        <fieldset id="owner_details_section" style="display:none;">
+            <legend><i class="mr-3 mdi mdi-account-box"></i>{{ trans('lang.owner_details') }}</legend>
+
+            <div class="form-group row width-50">
+                <label class="col-3 control-label">{{ trans('lang.owner_name') }}</label>
+                <div class="col-7">
+                    <input type="text" class="form-control bg-light" id="owner_name" disabled readonly>
+                </div>
+            </div>
+
+            <div class="form-group row width-50">
+                <label class="col-3 control-label">{{ trans('lang.company_name') }}</label>
+                <div class="col-7">
+                    <input type="text" class="form-control bg-light" id="owner_company_name" disabled readonly>
+                </div>
+            </div>
+
+            <div class="form-group row width-50">
+                <label class="col-3 control-label">{{ trans('lang.user_phone') }}</label>
+                <div class="col-7">
+                    <input type="text" class="form-control bg-light" id="owner_phone" disabled readonly>
+                </div>
+            </div>
+
+            <div class="form-group row width-50">
+                <label class="col-3 control-label">{{ trans('lang.email') }}</label>
+                <div class="col-7">
+                    <input type="text" class="form-control bg-light" id="owner_email" disabled readonly>
+                </div>
+            </div>
+
+            <div class="form-group row width-50">
+                <label class="col-3 control-label">{{ trans('lang.carrier_commercial_register') }}</label>
+                <div class="col-7">
+                    <input type="text" class="form-control bg-light" id="owner_commercial_register" disabled readonly>
+                </div>
+            </div>
+
+            <div class="form-group row width-50">
+                <label class="col-3 control-label">{{ trans('lang.carrier_operating_licence') }}</label>
+                <div class="col-7">
+                    <input type="text" class="form-control bg-light" id="owner_operating_licence" disabled readonly>
+                </div>
+            </div>
+
+            <div class="form-group row width-50">
+                <label class="col-3 control-label">{{ trans('lang.carrier_unique_id') }}</label>
+                <div class="col-7">
+                    <input type="text" class="form-control bg-light" id="owner_unique_id" disabled readonly>
+                </div>
+            </div>
+
+            <div class="form-group row width-50">
+                <label class="col-3 control-label"></label>
+                <div class="col-7 pt-2">
+                    <a id="owner_view_link" href="javascript:void(0)" target="_blank" class="btn btn-sm btn-outline-info" style="display:none;">
+                        <i class="mdi mdi-eye"></i> {{ trans('lang.view') }} {{ trans('lang.owner_details') }}
+                    </a>
+                </div>
+            </div>
+        </fieldset>
+
         <fieldset>
             <legend><i class="mr-3 mdi mdi-truck"></i>{{ trans('lang.carrier_info') }}</legend>
 

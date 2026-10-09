@@ -2730,5 +2730,12 @@ return [
     'enter_delivery_charge_error' => 'يرجى إضافة رسم توصيل واحد على الأقل.',
     'invalid_delivery_charge_error' => 'يرجى إدخال قيم صالحة لرسوم التوصيل لكل كم، والحد الأدنى لرسوم التوصيل، والحد الأدنى لرسوم التوصيل ضمن كم في جميع الصفوف.',
     'max_delivery_charges_warning' => 'يمكنك إضافة ما يصل إلى 5 رسوم توصيل فقط كحد أقصى.',
+    'carrier_create_for_owner' => 'إنشاء شركة شحن',
+    'carrier_edit_for_owner' => 'تعديل شركة الشحن',
+    'carrier_bound_to_owner' => 'مرتبط بالمالك:',
+    'carrier_not_found_for_owner' => 'شركة الشحن هذه لم تعد موجودة.',
+    'owner_name' => 'اسم المالك',
+    'carrier_not_found' => 'لا توجد شركة توصيل',
+    'carrier_not_created_yet_desc' => 'لم يتم إنشاء ملف شركة توصيل لهذا المالك حتى الآن. يمكنك إنشاء واحد الآن لتمكين التوصيل.',
 ];
 ?>

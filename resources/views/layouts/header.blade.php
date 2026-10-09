@@ -64,7 +64,7 @@ $service_type = @$_COOKIE['service_type'];
         in_array('app-banners-setting', $role_has_permission) ||
         in_array('global-setting', $role_has_permission) ||
         in_array('region', $role_has_permission) ||
-        in_array('carrier', $role_has_permission) ||
+        (in_array('carrier', $role_has_permission) && \App\Http\Controllers\CarrierController::LIST_ENABLED) ||
         in_array('order-history', $role_has_permission) ||
         in_array('admin-commission', $role_has_permission) ||
         in_array('currency', $role_has_permission) ||
@@ -104,7 +104,7 @@ $service_type = @$_COOKIE['service_type'];
                     @if (in_array('service-group', $role_has_permission))
                     <li><a class="nav-link"href="{!! route('service-groups') !!}"><i class="mdi mdi-view-grid"></i> {{ trans('lang.service_group_plural') }}</a></li>
                     @endif
-                    @if (in_array('carrier', $role_has_permission))
+                    @if (in_array('carrier', $role_has_permission) && \App\Http\Controllers\CarrierController::LIST_ENABLED)
                     <li><a class="nav-link"href="{!! route('carriers') !!}"><i class="mdi mdi-truck"></i> {{ trans('lang.carrier') }}</a></li>
                     @endif
                     @if (in_array('currency', $role_has_permission))
