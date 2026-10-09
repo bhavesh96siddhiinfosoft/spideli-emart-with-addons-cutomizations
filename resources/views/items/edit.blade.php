@@ -357,17 +357,25 @@
                         </fieldset>
                         <fieldset class="delivery_charges_wrapper" id="delivery_charges_wrapper" style="display:none;">
                             <legend>{{ trans('lang.delivery_charge') }}</legend>
-                            <div class="outline-wrapper">
-                                <div id="delivery_charges_list" class="mb-3"></div>
-                                <div class="alert alert-warning mb-2" id="delivery_charge_max_warning" style="display:none;">
-                                    {{ trans('lang.max_delivery_charges_warning') }}
+                            <div class="form-group row width-50">
+                                <label class="col-4 control-label">{{ trans('lang.delivery_charges_per') }} <span class="delivery_charge_dist_unit">Km</span> <span class="text-danger">*</span></label>
+                                <div class="col-7">
+                                    <input type="number" min="0" step="any" class="form-control" id="delivery_charges_per_km" placeholder="{{ trans('lang.delivery_charges_per_km') }}">
+                                    <div class="form-text text-muted">{{ trans('lang.delivery_charges_per_km') }}</div>
                                 </div>
-                                <div class="form-group row width-100">
-                                    <div class="col-7">
-                                        <button type="button" class="btn btn-primary" id="add_delivery_charge_btn">
-                                            <i class="fa fa-plus"></i> {{ trans('lang.add_delivery_charge') }}
-                                        </button>
-                                    </div>
+                            </div>
+                            <div class="form-group row width-50">
+                                <label class="col-4 control-label">{{ trans('lang.minimum_delivery_charges') }} (<span class="delivery_charge_curr_symbol">$</span>) <span class="text-danger">*</span></label>
+                                <div class="col-7">
+                                    <input type="number" min="0" step="any" class="form-control" id="minimum_delivery_charges" placeholder="{{ trans('lang.minimum_delivery_charges') }}">
+                                    <div class="form-text text-muted">{{ trans('lang.minimum_delivery_charges') }}</div>
+                                </div>
+                            </div>
+                            <div class="form-group row width-50">
+                                <label class="col-4 control-label">{{ trans('lang.minimum_delivery_charges_within') }} <span class="delivery_charge_dist_unit">Km</span> <span class="text-danger">*</span></label>
+                                <div class="col-7">
+                                    <input type="number" min="0" step="any" class="form-control" id="minimum_delivery_charges_within_km" placeholder="{{ trans('lang.minimum_delivery_charges_within_km') }}">
+                                    <div class="form-text text-muted">{{ trans('lang.minimum_delivery_charges_within_km') }}</div>
                                 </div>
                             </div>
                         </fieldset>
@@ -503,7 +511,7 @@
             var data = snapshot.data();
             if (data && data.distanceType) {
                 distanceType = data.distanceType;
-                renderDeliveryCharges();
+                updateDeliveryChargeLabels();
             }
         });
 
@@ -578,7 +586,7 @@
                 if (currencyData.decimal_degits) {
                     decimal_degits = currencyData.decimal_degits;
                 }
-                renderDeliveryCharges();
+                updateDeliveryChargeLabels();
             }
         });
 
@@ -593,7 +601,7 @@
                     if (storeCurr.decimal_degits !== undefined) {
                         decimal_degits = storeCurr.decimal_degits;
                     }
-                    renderDeliveryCharges();
+                    updateDeliveryChargeLabels();
                 }
             } catch (e) {
                 console.error("Error loading store currency:", e);
@@ -771,26 +779,23 @@
                     await updateStoreCurrency(product.vendorID);
                 }
 
-                if (product.delivery_charges && Array.isArray(product.delivery_charges)) {
-                    deliveryCharges = product.delivery_charges.map(function(tier) {
-                        return {
-                            delivery_charges_per_km: tier.delivery_charges_per_km !== undefined ? tier.delivery_charges_per_km : (tier.deliveryChargesPerKm !== undefined ? tier.deliveryChargesPerKm : ''),
-                            minimum_delivery_charges: tier.minimum_delivery_charges !== undefined ? tier.minimum_delivery_charges : (tier.minimumDeliveryCharges !== undefined ? tier.minimumDeliveryCharges : ''),
-                            minimum_delivery_charges_within_km: tier.minimum_delivery_charges_within_km !== undefined ? tier.minimum_delivery_charges_within_km : (tier.minimumDeliveryChargesWithinKm !== undefined ? tier.minimumDeliveryChargesWithinKm : '')
-                        };
-                    });
-                } else if (product.deliveryCharges && Array.isArray(product.deliveryCharges)) {
-                    deliveryCharges = product.deliveryCharges.map(function(tier) {
-                        return {
-                            delivery_charges_per_km: tier.delivery_charges_per_km !== undefined ? tier.delivery_charges_per_km : (tier.deliveryChargesPerKm !== undefined ? tier.deliveryChargesPerKm : ''),
-                            minimum_delivery_charges: tier.minimum_delivery_charges !== undefined ? tier.minimum_delivery_charges : (tier.minimumDeliveryCharges !== undefined ? tier.minimumDeliveryCharges : ''),
-                            minimum_delivery_charges_within_km: tier.minimum_delivery_charges_within_km !== undefined ? tier.minimum_delivery_charges_within_km : (tier.minimumDeliveryChargesWithinKm !== undefined ? tier.minimumDeliveryChargesWithinKm : '')
-                        };
-                    });
-                } else {
-                    deliveryCharges = [];
+                var existingTiers = [];
+                if (product.delivery_charges && Array.isArray(product.delivery_charges) && product.delivery_charges.length > 0) {
+                    existingTiers = product.delivery_charges;
+                } else if (product.deliveryCharges && Array.isArray(product.deliveryCharges) && product.deliveryCharges.length > 0) {
+                    existingTiers = product.deliveryCharges;
                 }
-                renderDeliveryCharges();
+                if (existingTiers.length > 0) {
+                    var tier0 = existingTiers[0];
+                    $('#delivery_charges_per_km').val(tier0.delivery_charges_per_km !== undefined ? tier0.delivery_charges_per_km : (tier0.deliveryChargesPerKm !== undefined ? tier0.deliveryChargesPerKm : ''));
+                    $('#minimum_delivery_charges').val(tier0.minimum_delivery_charges !== undefined ? tier0.minimum_delivery_charges : (tier0.minimumDeliveryCharges !== undefined ? tier0.minimumDeliveryCharges : ''));
+                    $('#minimum_delivery_charges_within_km').val(tier0.minimum_delivery_charges_within_km !== undefined ? tier0.minimum_delivery_charges_within_km : (tier0.minimumDeliveryChargesWithinKm !== undefined ? tier0.minimumDeliveryChargesWithinKm : ''));
+                } else {
+                    $('#delivery_charges_per_km').val('');
+                    $('#minimum_delivery_charges').val('');
+                    $('#minimum_delivery_charges_within_km').val('');
+                }
+                updateDeliveryChargeLabels();
                 checkSectionDeliveryCustomization(product.section_id);
                 
                 $('#item_vendor').val(product.vendorID).trigger('change');
@@ -947,7 +952,6 @@
             })
 
             $(".edit-form-btn").click(async function() {
-                syncDeliveryChargesValues();
                 var name = $("#item_name").val();
                 var price = $("#item_price").val();
                 var item_quantity = $("#item_quantity").val();
@@ -1066,13 +1070,21 @@
                     $(".error_top").html("");
                     $(".error_top").append("<p>{{ trans('lang.upload_digital_file_error') }}</p>");
                     window.scrollTo(0, 0);
-                } else if (isDeliveryChargeCustomizationEnabled && deliveryCharges.length === 0) {
+                } else if (isDeliveryChargeCustomizationEnabled && (
+                    $.trim($('#delivery_charges_per_km').val()) === '' ||
+                    $.trim($('#minimum_delivery_charges').val()) === '' ||
+                    $.trim($('#minimum_delivery_charges_within_km').val()) === ''
+                )) {
                     $(".error_top").show();
                     $(".error_top").html("");
                     $(".error_top").append(
                         "<p>{{ trans('lang.enter_delivery_charge_error') }}</p>");
                     window.scrollTo(0, 0);
-                } else if (isDeliveryChargeCustomizationEnabled && hasInvalidDeliveryCharges(deliveryCharges)) {
+                } else if (isDeliveryChargeCustomizationEnabled && (
+                    isNaN($('#delivery_charges_per_km').val()) || parseFloat($('#delivery_charges_per_km').val()) < 0 ||
+                    isNaN($('#minimum_delivery_charges').val()) || parseFloat($('#minimum_delivery_charges').val()) < 0 ||
+                    isNaN($('#minimum_delivery_charges_within_km').val()) || parseFloat($('#minimum_delivery_charges_within_km').val()) < 0
+                )) {
                     $(".error_top").show();
                     $(".error_top").html("");
                     $(".error_top").append(
@@ -1202,17 +1214,17 @@
                                 photo = IMG[0];
                             }
                             var formattedDeliveryCharges = [];
-                            if (isDeliveryChargeCustomizationEnabled && deliveryCharges.length > 0) {
-                                deliveryCharges.forEach(function(tier) {
+                            if (isDeliveryChargeCustomizationEnabled) {
+                                var perKmVal = parseFloat($('#delivery_charges_per_km').val());
+                                var minChargeVal = parseFloat($('#minimum_delivery_charges').val());
+                                var minWithinVal = parseFloat($('#minimum_delivery_charges_within_km').val());
+                                if (!isNaN(perKmVal) && !isNaN(minChargeVal) && !isNaN(minWithinVal)) {
                                     formattedDeliveryCharges.push({
-                                        delivery_charges_per_km: parseFloat(tier.delivery_charges_per_km),
-                                        minimum_delivery_charges: parseFloat(tier.minimum_delivery_charges),
-                                        minimum_delivery_charges_within_km: parseFloat(tier.minimum_delivery_charges_within_km),
-                                        deliveryChargesPerKm: parseFloat(tier.delivery_charges_per_km),
-                                        minimumDeliveryCharges: parseFloat(tier.minimum_delivery_charges),
-                                        minimumDeliveryChargesWithinKm: parseFloat(tier.minimum_delivery_charges_within_km)
+                                        delivery_charges_per_km: perKmVal,
+                                        minimum_delivery_charges: minChargeVal,
+                                        minimum_delivery_charges_within_km: minWithinVal
                                     });
-                                });
+                                }
                             }
                             var objects = {
                                 'name': name,
@@ -1245,7 +1257,7 @@
                                 'digitalProduct': DigitalImg ? DigitalImg : '',
                                 'taxSetting': selectedTaxes,
                                 'delivery_charges': formattedDeliveryCharges,
-                                'deliveryCharges': formattedDeliveryCharges,
+                                'deliveryCharges': firebase.firestore.FieldValue.delete(),
                             };
                             database.collection('vendor_products').doc(vendor_id).update(objects).then(function(result) {
                                 <?php if (isset($_GET['eid']) && $_GET['eid'] != '') { ?>
@@ -1861,165 +1873,11 @@
             return `${prefix}${id}${random ? `.${Math.trunc(Math.random() * 100000000)}` : ""}`;
         }
 
-        function syncDeliveryChargesValues() {
-            $('#delivery_charges_tbody tr').each(function(index) {
-                if (deliveryCharges[index]) {
-                    deliveryCharges[index].delivery_charges_per_km = $(this).find('.delivery_charges_per_km').val();
-                    deliveryCharges[index].minimum_delivery_charges = $(this).find('.minimum_delivery_charges').val();
-                    deliveryCharges[index].minimum_delivery_charges_within_km = $(this).find('.minimum_delivery_charges_within_km').val();
-                }
-            });
-        }
-
-        function renderDeliveryCharges() {
-            var container = document.getElementById('delivery_charges_list');
-            if (!container) return;
-            container.innerHTML = '';
-
-            var maxWarning = $('#delivery_charge_max_warning');
-            var addBtn = $('#add_delivery_charge_btn');
-            if (deliveryCharges.length >= 5) {
-                addBtn.prop('disabled', true);
-                maxWarning.show();
-            } else {
-                addBtn.prop('disabled', false);
-                maxWarning.hide();
-            }
-
-            if (deliveryCharges.length === 0) {
-                return;
-            }
-
-            var tableWrapper = document.createElement('div');
-            tableWrapper.className = 'table-responsive';
-
-            var table = document.createElement('table');
-            table.className = 'table table-bordered mb-0';
-
-            var thead = document.createElement('thead');
-            var headerRow = document.createElement('tr');
-
-            var distUnit = distanceType ? distanceType : 'Km';
-            var currSym = currentCurrency ? currentCurrency : '$';
-
-            var thPerKm = document.createElement('th');
-            thPerKm.innerHTML = '{{ trans('lang.delivery_charges_per') }} ' + distUnit + ' <span class="text-danger">*</span>';
-
-            var thMinCharge = document.createElement('th');
-            thMinCharge.innerHTML = '{{ trans('lang.minimum_delivery_charges') }} (' + currSym + ') <span class="text-danger">*</span>';
-
-            var thMinWithin = document.createElement('th');
-            thMinWithin.innerHTML = '{{ trans('lang.minimum_delivery_charges_within') }} ' + distUnit + ' <span class="text-danger">*</span>';
-
-            var thAction = document.createElement('th');
-            thAction.style.width = '80px';
-            thAction.className = 'text-center';
-            thAction.innerHTML = '{{ trans('lang.actions') }}';
-
-            headerRow.appendChild(thPerKm);
-            headerRow.appendChild(thMinCharge);
-            headerRow.appendChild(thMinWithin);
-            headerRow.appendChild(thAction);
-            thead.appendChild(headerRow);
-            table.appendChild(thead);
-
-            var tbody = document.createElement('tbody');
-            tbody.id = 'delivery_charges_tbody';
-
-            deliveryCharges.forEach(function(tier, index) {
-                var tr = document.createElement('tr');
-
-                var tdPerKm = document.createElement('td');
-                var perKmInput = document.createElement('input');
-                perKmInput.type = 'number';
-                perKmInput.min = '0';
-                perKmInput.step = 'any';
-                perKmInput.className = 'form-control delivery_charges_per_km';
-                perKmInput.placeholder = '{{ trans('lang.delivery_charges_per_km') }}';
-                perKmInput.value = (tier.delivery_charges_per_km !== undefined && tier.delivery_charges_per_km !== null) ? tier.delivery_charges_per_km : '';
-                perKmInput.addEventListener('input', function() {
-                    deliveryCharges[index].delivery_charges_per_km = this.value;
-                });
-                tdPerKm.appendChild(perKmInput);
-
-                var tdMinCharge = document.createElement('td');
-                var minChargeInput = document.createElement('input');
-                minChargeInput.type = 'number';
-                minChargeInput.min = '0';
-                minChargeInput.step = 'any';
-                minChargeInput.className = 'form-control minimum_delivery_charges';
-                minChargeInput.placeholder = '{{ trans('lang.minimum_delivery_charges') }}';
-                minChargeInput.value = (tier.minimum_delivery_charges !== undefined && tier.minimum_delivery_charges !== null) ? tier.minimum_delivery_charges : '';
-                minChargeInput.addEventListener('input', function() {
-                    deliveryCharges[index].minimum_delivery_charges = this.value;
-                });
-                tdMinCharge.appendChild(minChargeInput);
-
-                var tdMinWithin = document.createElement('td');
-                var minWithinInput = document.createElement('input');
-                minWithinInput.type = 'number';
-                minWithinInput.min = '0';
-                minWithinInput.step = 'any';
-                minWithinInput.className = 'form-control minimum_delivery_charges_within_km';
-                minWithinInput.placeholder = '{{ trans('lang.minimum_delivery_charges_within_km') }}';
-                minWithinInput.value = (tier.minimum_delivery_charges_within_km !== undefined && tier.minimum_delivery_charges_within_km !== null) ? tier.minimum_delivery_charges_within_km : '';
-                minWithinInput.addEventListener('input', function() {
-                    deliveryCharges[index].minimum_delivery_charges_within_km = this.value;
-                });
-                tdMinWithin.appendChild(minWithinInput);
-
-                var tdAction = document.createElement('td');
-                tdAction.className = 'text-center align-middle';
-                var deleteBtn = document.createElement('button');
-                deleteBtn.type = 'button';
-                deleteBtn.className = 'btn btn-danger btn-sm';
-                deleteBtn.innerHTML = '<i class="fa fa-trash"></i>';
-                deleteBtn.title = '{{ trans('lang.delete') }}';
-                deleteBtn.addEventListener('click', function() {
-                    syncDeliveryChargesValues();
-                    deliveryCharges.splice(index, 1);
-                    renderDeliveryCharges();
-                });
-                tdAction.appendChild(deleteBtn);
-
-                tr.appendChild(tdPerKm);
-                tr.appendChild(tdMinCharge);
-                tr.appendChild(tdMinWithin);
-                tr.appendChild(tdAction);
-                tbody.appendChild(tr);
-            });
-
-            table.appendChild(tbody);
-            tableWrapper.appendChild(table);
-            container.appendChild(tableWrapper);
-        }
-
-        $(document).on('click', '#add_delivery_charge_btn', function() {
-            if (deliveryCharges.length >= 5) {
-                return;
-            }
-            syncDeliveryChargesValues();
-            deliveryCharges.push({
-                delivery_charges_per_km: '',
-                minimum_delivery_charges: '',
-                minimum_delivery_charges_within_km: ''
-            });
-            renderDeliveryCharges();
-        });
-
-        function hasInvalidDeliveryCharges(tiers) {
-            if (!tiers || tiers.length === 0) return true;
-            for (var i = 0; i < tiers.length; i++) {
-                var perKm = tiers[i].delivery_charges_per_km;
-                var minCharge = tiers[i].minimum_delivery_charges;
-                var minWithin = tiers[i].minimum_delivery_charges_within_km;
-                if (perKm === '' || perKm === null || isNaN(perKm) || parseFloat(perKm) < 0 ||
-                    minCharge === '' || minCharge === null || isNaN(minCharge) || parseFloat(minCharge) < 0 ||
-                    minWithin === '' || minWithin === null || isNaN(minWithin) || parseFloat(minWithin) < 0) {
-                    return true;
-                }
-            }
-            return false;
+        function updateDeliveryChargeLabels() {
+            var distUnit = (typeof distanceType !== 'undefined' && distanceType) ? distanceType : 'Km';
+            var currSym = (typeof currentCurrency !== 'undefined' && currentCurrency) ? currentCurrency : '$';
+            $('.delivery_charge_dist_unit').text(distUnit);
+            $('.delivery_charge_curr_symbol').text(currSym);
         }
     </script>
 @endsection

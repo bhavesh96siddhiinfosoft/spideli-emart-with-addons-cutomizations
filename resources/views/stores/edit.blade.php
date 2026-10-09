@@ -1039,6 +1039,10 @@
                 $(".vendor_latitude").val(vendor.latitude);
                 $(".vendor_longitude").val(vendor.longitude);
                 $(".vendor_description").val(vendor.description);
+                if (typeof spideliRenderStoreLocation === 'function') {
+                    spideliRenderStoreLocation();
+                }
+                $(".vendor_address, .vendor_latitude, .vendor_longitude").trigger('change');
                 if (vendor.section_id != undefined) {
                     $("#section_id").val(vendor.section_id);
                     var selected_section = vendor.section_id;

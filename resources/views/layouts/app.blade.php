@@ -1873,9 +1873,9 @@
 
         function spideliStoreLocationInputs() {
             return {
-                address: $('.vendor_address'),
-                lat: $('.vendor_latitude'),
-                lng: $('.vendor_longitude')
+                address: $('.vendor_address, #vendor_address, [name="address"]').first(),
+                lat: $('.vendor_latitude, #vendor_latitude, [name="latitude"]').first(),
+                lng: $('.vendor_longitude, #vendor_longitude, [name="longitude"]').first()
             };
         }
 
@@ -1922,37 +1922,52 @@
 
             var position = { lat: parsed.lat, lng: parsed.lng };
 
-            if (!spideliStoreMap) {
-                spideliStoreMap = new google.maps.Map(document.getElementById('store_location_map'), {
-                    center: position,
-                    zoom: 16,
-                    mapTypeControl: false,
-                    streetViewControl: false
-                });
+            try {
+                var mapEl = document.getElementById('store_location_map');
+                if (!mapEl) {
+                    return;
+                }
 
-                spideliStoreMarker = new google.maps.Marker({
-                    map: spideliStoreMap,
-                    position: position,
-                    draggable: true
-                });
+                if (!spideliStoreMap) {
+                    spideliStoreMap = new google.maps.Map(mapEl, {
+                        center: position,
+                        zoom: 16,
+                        mapTypeControl: false,
+                        streetViewControl: false
+                    });
 
-                /* Dragging the pin is the quickest correction there is, so it
-                 * writes straight back into the boxes the form saves from. */
-                spideliStoreMarker.addListener('dragend', function (event) {
-                    inputs.lat.val(spideliRoundCoordinate(event.latLng.lat()));
-                    inputs.lng.val(spideliRoundCoordinate(event.latLng.lng()));
-                    spideliRenderStoreLocation();
-                });
-            } else {
-                spideliStoreMap.setCenter(position);
-                spideliStoreMarker.setPosition(position);
+                    spideliStoreMarker = new google.maps.Marker({
+                        map: spideliStoreMap,
+                        position: position,
+                        draggable: true
+                    });
+
+                    /* Dragging the pin is the quickest correction there is, so it
+                     * writes straight back into the boxes the form saves from. */
+                    spideliStoreMarker.addListener('dragend', function (event) {
+                        inputs.lat.val(spideliRoundCoordinate(event.latLng.lat()));
+                        inputs.lng.val(spideliRoundCoordinate(event.latLng.lng()));
+                        spideliRenderStoreLocation();
+                    });
+                } else {
+                    spideliStoreMap.setCenter(position);
+                    if (spideliStoreMarker) {
+                        spideliStoreMarker.setPosition(position);
+                    }
+                    if (typeof google !== 'undefined' && google.maps && google.maps.event) {
+                        google.maps.event.trigger(spideliStoreMap, 'resize');
+                    }
+                }
+            } catch (err) {
+                console.warn('Google Maps rendering failed:', err);
+                $('#store_location_map').hide();
             }
         }
 
         /* Picking a place fills the address AND both coordinates from the same
          * source, which is the only way they can be trusted to agree. */
         function spideliAttachStoreAutocomplete() {
-            var input = $('.vendor_address').get(0);
+            var input = $('.vendor_address, #vendor_address').get(0);
 
             if (!input || typeof google === 'undefined' || !google.maps || !google.maps.places) {
                 return;
@@ -1964,22 +1979,26 @@
 
             $(input).data('spideli-autocomplete', true);
 
-            var autocomplete = new google.maps.places.Autocomplete(input);
+            try {
+                var autocomplete = new google.maps.places.Autocomplete(input);
 
-            autocomplete.addListener('place_changed', function () {
-                var picked = spideliPlaceToLocation(autocomplete.getPlace());
+                autocomplete.addListener('place_changed', function () {
+                    var picked = spideliPlaceToLocation(autocomplete.getPlace());
 
-                if (picked.address) {
-                    $('.vendor_address').val(picked.address);
-                }
+                    if (picked.address) {
+                        $('.vendor_address').val(picked.address);
+                    }
 
-                if (picked.ok) {
-                    $('.vendor_latitude').val(spideliRoundCoordinate(picked.lat));
-                    $('.vendor_longitude').val(spideliRoundCoordinate(picked.lng));
-                }
+                    if (picked.ok) {
+                        $('.vendor_latitude').val(spideliRoundCoordinate(picked.lat));
+                        $('.vendor_longitude').val(spideliRoundCoordinate(picked.lng));
+                    }
 
-                spideliRenderStoreLocation();
-            });
+                    spideliRenderStoreLocation();
+                });
+            } catch (err) {
+                console.warn('Google Places Autocomplete failed:', err);
+            }
 
             /* The browser's own suggestions sit on top of Google's. */
             $(input).attr('autocomplete', 'off');
@@ -1996,8 +2015,12 @@
 
             /* Typed coordinates must move the pin too - plenty of stores were
              * set up from latlong.net and that has to keep working. */
-            $(document).on('change keyup', '.vendor_latitude, .vendor_longitude, .vendor_address',
-                function () { spideliRenderStoreLocation(); });
+            $(document).on('change keyup input paste', '.vendor_latitude, .vendor_longitude, .vendor_address, #vendor_latitude, #vendor_longitude, #vendor_address',
+                function () {
+                    setTimeout(function () {
+                        spideliRenderStoreLocation();
+                    }, 20);
+                });
 
             /* GOOGLE MAPS IS NOT READY YET AND USUALLY WILL NOT BE.
              *
