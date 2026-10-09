@@ -2449,6 +2449,7 @@ return [
     'location_not_found_please_try_again' => 'Location not found. Please try again.',
     'no_polygon_selected_to_delete' => 'No polygon selected to delete.',
     'verified' => 'Verified',
+    'not_verified' => 'Not Verified',
     'rejected' => 'Rejected',
     'address_line1' => 'Address line1',
     'error' => 'Error!',

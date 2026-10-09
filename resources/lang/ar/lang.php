@@ -2442,6 +2442,7 @@ return [
     'location_not_found_please_try_again' => 'الموقع غير موجود. يرجى المحاولة مرة أخرى.',
     'no_polygon_selected_to_delete' => 'لم يتم اختيار أي مضلع للحذف.',
     'verified' => 'مُوثَّق',
+    'not_verified' => 'غير مُوثَّق',
     'rejected' => 'مرفوض',
     'address_line1' => 'سطر العنوان 1',
     'error' => 'خطأ!',

@@ -1,5 +1,59 @@
 @extends('layouts.app')
 @section('content')
+<style>
+    .carrier-info-left-list label {
+        min-width: 140px !important;
+        padding-right: 20px !important;
+        position: relative !important;
+        flex-shrink: 0 !important;
+        margin-bottom: 0 !important;
+    }
+    .carrier-info-right-list label {
+        min-width: 175px !important;
+        padding-right: 20px !important;
+        position: relative !important;
+        flex-shrink: 0 !important;
+        margin-bottom: 0 !important;
+    }
+    .carrier-doc-list label {
+        min-width: 250px !important;
+        padding-right: 20px !important;
+        position: relative !important;
+        flex-shrink: 0 !important;
+        margin-bottom: 0 !important;
+    }
+    .carrier-info-left-list label:after,
+    .carrier-info-right-list label:after,
+    .carrier-doc-list label:after {
+        content: ":" !important;
+        position: absolute !important;
+        right: 6px !important;
+        top: 0 !important;
+    }
+    .carrier-info-left-list > li > span,
+    .carrier-info-right-list > li > span,
+    .carrier-doc-list > li > span {
+        margin-left: 6px !important;
+    }
+    [dir="rtl"] .carrier-info-left-list label,
+    [dir="rtl"] .carrier-info-right-list label,
+    [dir="rtl"] .carrier-doc-list label {
+        padding-right: 0 !important;
+        padding-left: 20px !important;
+    }
+    [dir="rtl"] .carrier-info-left-list label:after,
+    [dir="rtl"] .carrier-info-right-list label:after,
+    [dir="rtl"] .carrier-doc-list label:after {
+        right: auto !important;
+        left: 6px !important;
+    }
+    [dir="rtl"] .carrier-info-left-list > li > span,
+    [dir="rtl"] .carrier-info-right-list > li > span,
+    [dir="rtl"] .carrier-doc-list > li > span {
+        margin-left: 0 !important;
+        margin-right: 6px !important;
+    }
+</style>
 <div class="page-wrapper">
 
     <div class="row page-titles">
@@ -184,7 +238,7 @@
                     </div>
                     <div class="col-md-6">
                         <div class="restaurant_info_left">
-                            <ul class="p-0 info-list mb-0">
+                            <ul class="p-0 info-list carrier-doc-list mb-0">
                                 <li class="d-flex align-items-center mb-2">
                                     <label class="mb-0 font-wi font-semibold text-dark-2">{{trans('lang.carrier_registration_number')}}</label>
                                     <span id="company_commercial_register"></span>
@@ -301,10 +355,7 @@
                                 <h3 class="text-dark-2 mb-0 h4"><i class="mdi mdi-truck mr-2"></i>{{trans('lang.carrier_info')}}</h3>
                             </div>
                             <div class="card-header-right">
-                                <span id="carrier_view_status_badge" class="badge mr-2"></span>
-                                <a href="javascript:void(0)" id="carrier_inline_edit_btn" class="btn btn-sm btn-primary">
-                                    <i class="mdi mdi-lead-pencil mr-1"></i>{{trans('lang.carrier_edit_for_owner')}}
-                                </a>
+                                <span id="carrier_view_status_badge" class="badge"></span>
                             </div>
                         </div>
                         <div class="card-body">
@@ -314,7 +365,7 @@
                                         <div class="d-flex mb-1">
                                             <div class="sis-img" id="carrier_view_logo"></div>
                                             <div class="sis-content pl-4">
-                                                <ul class="p-0 info-list mb-0">
+                                                <ul class="p-0 info-list carrier-info-left-list mb-0">
                                                     <li class="d-flex align-items-center mb-2">
                                                         <label class="mb-0 font-wi font-semibold text-dark-2">{{trans('lang.carrier_name')}}</label>
                                                         <span id="carrier_view_name"></span>
@@ -338,13 +389,13 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div class="restaurant_info_left">
-                                        <ul class="p-0 info-list mb-0">
+                                        <ul class="p-0 info-list carrier-info-right-list mb-0">
                                             <li class="d-flex align-items-center mb-2">
                                                 <label class="mb-0 font-wi font-semibold text-dark-2">{{trans('lang.carrier_regions')}}</label>
                                                 <span id="carrier_view_regions"></span>
                                             </li>
                                             <li class="d-flex align-items-center mb-2">
-                                                <label class="mb-0 font-wi font-semibold text-dark-2">{{trans('lang.carrier_delivery_time_conditions')}}</label>
+                                                <label class="mb-0 font-wi font-semibold text-dark-2">{{trans('lang.carrier_delivery_time')}}</label>
                                                 <span id="carrier_view_delivery_time"></span>
                                             </li>
                                             <li class="d-flex align-items-center mb-2">
@@ -374,7 +425,7 @@
                         <div class="card-body">
                             <div class="row">
                                 <div class="col-md-6">
-                                    <ul class="p-0 info-list mb-0">
+                                    <ul class="p-0 info-list carrier-doc-list mb-0">
                                         <li class="d-flex align-items-center mb-2">
                                             <label class="mb-0 font-wi font-semibold text-dark-2">{{trans('lang.carrier_commercial_register')}}</label>
                                             <span id="carrier_view_cr"></span>
@@ -838,14 +889,23 @@
         var ownerCarrierData = null;
         var ownerCarrierId = null;
         var publishedRegionsMap = {};
+        var regionCurrencyMap = {};
 
         async function loadPublishedRegionsMap() {
             try {
                 var snap = await database.collection('regions').get();
-                snap.forEach(function (doc) {
+                for (var i = 0; i < snap.docs.length; i++) {
+                    var doc = snap.docs[i];
                     var r = doc.data();
                     publishedRegionsMap[doc.id] = r.name || r.title || doc.id;
-                });
+                    if (typeof getCurrencyForRegion === 'function') {
+                        try {
+                            regionCurrencyMap[doc.id] = await getCurrencyForRegion(doc.id);
+                        } catch (e) {
+                            console.error('Error fetching currency for region', doc.id, e);
+                        }
+                    }
+                }
             } catch (e) {
                 console.error('Error fetching regions map', e);
             }
@@ -857,6 +917,8 @@
             $('#owner_carrier_details_card').hide();
 
             try {
+                await loadPublishedRegionsMap();
+
                 if (owner && owner.carrierId) {
                     var cDoc = await database.collection('delivery_carriers').doc(owner.carrierId).get();
                     if (cDoc.exists) {
@@ -896,7 +958,6 @@
             }
 
             var editUrl = '{{ route("carriers.edit", ":cid") }}'.replace(':cid', ownerCarrierId) + '?fromCompany=' + encodeURIComponent(id) + '&back=owner_view';
-            $('#carrier_inline_edit_btn').attr('href', editUrl);
             $('#carrier_bottom_edit_btn').attr('href', editUrl);
             $('#top_edit_carrier_link').attr('href', editUrl);
 
@@ -926,9 +987,9 @@
 
             // Verified Badge
             if (ownerCarrierData.isVerified === true) {
-                $('#carrier_view_verified_badge').html('<span class="badge badge-success"><i class="mdi mdi-check-circle mr-1"></i>' + "{{ trans('lang.carrier_documents_verified') }}" + '</span>');
+                $('#carrier_view_verified_badge').html('<span class="badge badge-success"><i class="mdi mdi-check-circle mr-1"></i>' + "{{ trans('lang.verified') }}" + '</span>');
             } else {
-                $('#carrier_view_verified_badge').html('<span class="badge badge-warning">' + "{{ trans('lang.unverified') ?? 'Unverified' }}" + '</span>');
+                $('#carrier_view_verified_badge').html('<span class="badge badge-danger"><i class="mdi mdi-close-circle mr-1"></i>' + "{{ trans('lang.not_verified') }}" + '</span>');
             }
 
             // Regions
@@ -980,12 +1041,16 @@
             var pricingTbody = $('#carrier_pricing_tbody');
             pricingTbody.empty();
 
-            function formatPrice(val) {
+            function formatPrice(val, rid) {
                 if (val === null || val === undefined || val === '' || isNaN(val)) {
                     return '-';
                 }
-                var num = parseFloat(val).toFixed(decimal_degits);
-                return currencyAtRight ? (num + ' ' + currentCurrency) : (currentCurrency + ' ' + num);
+                var curr = (rid && regionCurrencyMap[rid]) ? regionCurrencyMap[rid] : null;
+                var sym = curr ? (curr.symbol || curr.code || currentCurrency) : currentCurrency;
+                var atRight = curr ? (curr.symbolAtRight === true) : currencyAtRight;
+                var dec = curr ? (curr.decimal_degits !== undefined ? parseInt(curr.decimal_degits) : decimal_degits) : decimal_degits;
+                var num = parseFloat(val).toFixed(dec);
+                return atRight ? (num + ' ' + sym) : (sym + ' ' + num);
             }
 
             var regPricing = ownerCarrierData.regionPricing || {};
@@ -997,10 +1062,10 @@
                     var rName = publishedRegionsMap[rid] || rid;
                     var rowHtml = '<tr>' +
                         '<td><strong>' + escapeHtmlText(rName) + '</strong></td>' +
-                        '<td>' + formatPrice(p.baseCharge) + '</td>' +
-                        '<td>' + formatPrice(p.perKmCharge) + '</td>' +
-                        '<td>' + formatPrice(p.perKgCharge) + '</td>' +
-                        '<td>' + formatPrice(p.minimumCharge) + '</td>' +
+                        '<td>' + formatPrice(p.baseCharge, rid) + '</td>' +
+                        '<td>' + formatPrice(p.perKmCharge, rid) + '</td>' +
+                        '<td>' + formatPrice(p.perKgCharge, rid) + '</td>' +
+                        '<td>' + formatPrice(p.minimumCharge, rid) + '</td>' +
                     '</tr>';
                     pricingTbody.append(rowHtml);
                 });
@@ -1011,10 +1076,10 @@
                 var flatMin = ownerCarrierData.minimumCharge;
                 var rowHtml = '<tr>' +
                     '<td><strong>' + "{{ trans('lang.carrier_pricing_all_regions') ?? 'All Regions (Flat Rate)' }}" + '</strong></td>' +
-                    '<td>' + formatPrice(flatBase) + '</td>' +
-                    '<td>' + formatPrice(flatKm) + '</td>' +
-                    '<td>' + formatPrice(flatKg) + '</td>' +
-                    '<td>' + formatPrice(flatMin) + '</td>' +
+                    '<td>' + formatPrice(flatBase, null) + '</td>' +
+                    '<td>' + formatPrice(flatKm, null) + '</td>' +
+                    '<td>' + formatPrice(flatKg, null) + '</td>' +
+                    '<td>' + formatPrice(flatMin, null) + '</td>' +
                 '</tr>';
                 pricingTbody.append(rowHtml);
             }
