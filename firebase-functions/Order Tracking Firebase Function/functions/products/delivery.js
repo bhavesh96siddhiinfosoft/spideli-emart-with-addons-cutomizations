@@ -4,9 +4,9 @@ const admin = require("firebase-admin");
 const {
     distanceRadius,
     getDriverNearByData,
-    getUserZoneId,
-    sendDriverNotification
+    getUserZoneId
 } = require("./helper");
+const { notifyAssignedDriver } = require("./driverNotifications");
 
 // Initialize Admin SDK once
 if (admin.apps.length === 0) {
@@ -192,30 +192,22 @@ exports.dispatch = onDocumentWritten({
         if (matchedDriver && matchedDriverId) {
             console.log(`Match Found: Driver ${matchedDriver.email || matchedDriverId} assigned to order #${orderId}`);
 
-            // 1. Notify Driver via FCM (Push notification + Data payload)
-            const timeMinutes = Math.max(1, Math.floor(orderAcceptRejectDuration / 60));
-            const notificationTitle = "New delivery order received";
-            const notificationBody = `You have a new delivery order. Please accept within ${timeMinutes} min(s).`;
-
-            await sendDriverNotification(matchedDriver.fcmToken, notificationTitle, notificationBody, {
-                orderId: orderId,
-                id: orderId,
-                type: "order",
-                status: "Driver Pending"
-            });
-
-            // 2. Update Order Status
+            // 1. Update Order Status
             await documentRef.set({
                 status: "Driver Pending",
-                driverId: matchedDriverId
+                driverId: matchedDriverId,
+                driverID: matchedDriverId
             }, { merge: true });
 
-            // 3. Assign order to driver's orderRequestData
+            // 2. Assign order to driver's orderRequestData
             let currentRequests = Array.isArray(matchedDriver.orderRequestData) ? [...matchedDriver.orderRequestData] : [];
             if (!currentRequests.includes(orderId)) {
                 currentRequests.push(orderId);
             }
             await firestore.collection("users").doc(matchedDriverId).update({ orderRequestData: currentRequests });
+
+            // 3. Notify Driver via FCM after assignment has succeeded
+            await notifyAssignedDriver(orderId, matchedDriverId, 'order');
         } else {
             const futureTime = new Date(Date.now() + (orderAutoCancelDuration || 10) * 60 * 1000);
             await firestore.collection("vendor_orders").doc(orderId).update({

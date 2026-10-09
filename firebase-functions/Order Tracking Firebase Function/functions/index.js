@@ -20,6 +20,7 @@ exports.deliveryDispatch = delivery.dispatch;
 
 // Scheduled order notification function for stores
 exports.scheduleOrderNotification = scheduledOrder.scheduleOrderNotification;
+exports.scheduledOrderNotifier = scheduledOrder.scheduledOrderNotifier;
 
 // Parcel delivery service function
 exports.parcelDispatch = parcel.dispatch;
