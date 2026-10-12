@@ -142,6 +142,23 @@
                     <div class="form-text text-muted">{{ trans('lang.carrier_regions_help') }}</div>
                 </div>
             </div>
+
+            {{-- Point 65: which deliveries this carrier handles. Saved as
+                 deliveryScopes; the app only offers a carrier for a parcel whose
+                 scope is ticked here. See docs/app-spec-parcel-pricing.md. --}}
+            <div class="form-group row width-100">
+                <label class="col-3 control-label">{{ trans('lang.carrier_delivery_scopes') }}</label>
+                <div class="col-7">
+                    @foreach (['city', 'intercity', 'intercountry'] as $scope)
+                        <div class="form-check form-check-inline">
+                            <input type="checkbox" class="carrier-scope" id="carrier_scope_{{ $scope }}" value="{{ $scope }}">
+                            <label class="control-label mb-0" for="carrier_scope_{{ $scope }}">{{ trans('lang.carrier_scope_' . $scope) }}</label>
+                        </div>
+                    @endforeach
+                    <div class="form-text text-muted">{{ trans('lang.carrier_delivery_scopes_help') }}</div>
+                    <div id="error_delivery_scopes" class="err"></div>
+                </div>
+            </div>
         </fieldset>
 
         <fieldset>
@@ -204,6 +221,7 @@
             <div class="form-text text-muted mb-3" id="carrier_pricing_hint"></div>
 
             <div id="carrier_pricing_blocks"></div>
+            <div id="error_carrier_pricing" class="err"></div>
         </fieldset>
 
         <fieldset>

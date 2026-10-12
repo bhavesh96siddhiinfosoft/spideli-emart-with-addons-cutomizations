@@ -101,6 +101,8 @@
                                 </div>
                             </div>
                         </fieldset>
+
+                        @include('region.partials.parcel_pricing')
                     </div>
                 </div>
                 <div class="form-group col-12 text-center btm-btn">
@@ -117,6 +119,7 @@
 </div>
 @endsection
 @section('scripts')
+@include('region.partials.parcel_pricing_scripts')
 <script type="text/javascript">
     var database = firebase.firestore();
     var regionId = database.collection('tmp').doc().id;
@@ -149,6 +152,11 @@
     }
 
     $(document).ready(function () {
+        /* A new region starts from the suggested values. The "not saved yet"
+           note is for existing regions only - here nothing is saved yet. */
+        fillRegionParcelPricing(null);
+        $('#region_parcel_pricing_unsaved').hide();
+
         jQuery("#data-table_processing").show();
 
         jQuery("#country").select2({
@@ -210,6 +218,13 @@
             return false;
         }
 
+        /* Point 41: the parcel pricing defaults. null means a value is wrong
+           and the error is already shown beside it. */
+        var parcelPricing = regionParcelPricingForSave();
+        if (parcelPricing === null) {
+            return false;
+        }
+
         jQuery("#overlay").show();
 
         var duplicate = await database.collection('regions').where('code', '==', code).get();
@@ -232,6 +247,7 @@
             'countryName': countryName,
             'currencyId': currencyId || '',
             'parcelSmsFee': parcelSmsFee,
+            'parcelPricing': parcelPricing,
             'zoneIds': zoneIds,
             'publish': publish,
             'createdAt': firebase.firestore.FieldValue.serverTimestamp()

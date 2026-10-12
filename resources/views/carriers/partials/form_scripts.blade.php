@@ -223,8 +223,38 @@
         { key: 'perKmCharge',   label: "{{ trans('lang.carrier_per_km_charge') }}", help: '' },
         { key: 'perKgCharge',   label: "{{ trans('lang.carrier_per_kg_charge') }}",
           help: "{{ trans('lang.carrier_per_kg_charge_help') }}" },
-        { key: 'minimumCharge', label: "{{ trans('lang.carrier_minimum_charge') }}", help: '' }
+        { key: 'minimumCharge', label: "{{ trans('lang.carrier_minimum_charge') }}", help: '' },
+
+        /* Point 41: the owner's own size rule and door / pickup-point charges
+         * for this region. Blank = "not set" = the region's default applies
+         * (regions/{id}.parcelPricing). Keys are the contract in
+         * docs/app-spec-parcel-pricing.md - do not rename. They appear only in
+         * a region's block: a carrier serving everywhere has no region to
+         * store them against, so it simply uses each region's defaults. */
+        { key: 'volumetricDivisor',     parcel: true, label: "{{ trans('lang.region_parcel_volumetric_divisor') }}",
+          help: "{{ trans('lang.region_parcel_volumetric_divisor_help') }}" },
+        { key: 'homePickupCharge',      parcel: true, label: "{{ trans('lang.region_parcel_home_pickup_charge') }}", help: '' },
+        { key: 'pointDropoffCharge',    parcel: true, label: "{{ trans('lang.region_parcel_point_dropoff_charge') }}", help: '' },
+        { key: 'homeDeliveryCharge',    parcel: true, label: "{{ trans('lang.region_parcel_home_delivery_charge') }}", help: '' },
+        { key: 'pointCollectionCharge', parcel: true, label: "{{ trans('lang.region_parcel_point_collection_charge') }}", help: '' }
     ];
+
+    /* Each region's own defaults, so an empty box can say what it falls back
+     * to. Filled in initCarrierForm() from the regions it already loads. */
+    var carrierRegionDefaults = {};
+
+    function carrierRegionDefaultHint(scope, key) {
+        var defaults = carrierRegionDefaults[scope];
+        var value = defaults ? defaults[key] : undefined;
+
+        if (value === null || value === undefined || value === '') {
+            return key === 'volumetricDivisor'
+                ? "{{ trans('lang.carrier_region_default_no_size') }}"
+                : "{{ trans('lang.carrier_region_default_none') }}";
+        }
+
+        return "{{ trans('lang.carrier_region_default') }}".replace(':value', value);
+    }
 
     function carrierPricingEscape(value) {
         return $('<div>').text(value === null || value === undefined ? '' : String(value)).html();
@@ -252,7 +282,22 @@
         html += '<div class="card-header py-2"><strong>' + carrierPricingEscape(heading) + '</strong></div>';
         html += '<div class="card-body pb-1">';
 
+        var parcelHeadingDone = false;
+        var isRegionBlock = scope !== CARRIER_PRICING_ALL;
+
         CARRIER_CHARGE_FIELDS.forEach(function (field) {
+            if (field.parcel && !isRegionBlock) {
+                return;
+            }
+
+            if (field.parcel && !parcelHeadingDone) {
+                parcelHeadingDone = true;
+                html += '<div class="col-12 pt-2 mt-1 mb-2 border-top">' +
+                        '<strong>' + carrierPricingEscape("{{ trans('lang.carrier_parcel_section') }}") + '</strong>' +
+                        '<div class="form-text text-muted">' +
+                        carrierPricingEscape("{{ trans('lang.carrier_parcel_section_help') }}") + '</div></div>';
+            }
+
             var value = saved[field.key];
             value = (value === null || value === undefined) ? '' : value;
 
@@ -262,6 +307,9 @@
             html += '<input type="number" step="any" class="form-control carrier-charge"' +
                     ' data-scope="' + carrierPricingEscape(scope) + '"' +
                     ' data-field="' + carrierPricingEscape(field.key) + '"' +
+                    (field.parcel
+                        ? ' min="0" placeholder="' + carrierPricingEscape(carrierRegionDefaultHint(scope, field.key)) + '"'
+                        : '') +
                     ' value="' + carrierPricingEscape(value) + '">';
 
             if (field.help) {
@@ -364,6 +412,57 @@
         return out;
     }
 
+    /* Point 41: the new values must be blank or a number of 0 or more. The
+     * offending boxes are marked and the first is scrolled to - this section
+     * sits well below the fold. Returns true when everything is fine. */
+    function carrierParcelValuesValid() {
+        captureCarrierPricing();
+        $('#error_carrier_pricing').html('');
+
+        var parcelKeys = {};
+        CARRIER_CHARGE_FIELDS.forEach(function (f) {
+            if (f.parcel) {
+                parcelKeys[f.key] = true;
+            }
+        });
+
+        var first = null;
+        $('#carrier_pricing_blocks .carrier-charge').each(function () {
+            $(this).removeClass('is-invalid');
+
+            if (!parcelKeys[$(this).attr('data-field')]) {
+                return;
+            }
+
+            var current = $(this).val();
+            var raw = (current === null || current === undefined) ? '' : String(current).trim();
+            if (raw === '') {
+                return;
+            }
+
+            var number = Number(raw);
+            if (!isFinite(number) || number < 0) {
+                $(this).addClass('is-invalid');
+                first = first || this;
+            }
+        });
+
+        if (first) {
+            $('#error_carrier_pricing').html("{{ trans('lang.region_parcel_value_error') }}");
+            first.scrollIntoView({behavior: 'smooth', block: 'center'});
+            return false;
+        }
+
+        return true;
+    }
+
+    /* Point 65: the ticked scopes. Nothing ticked is refused at save - an
+     * empty list means "all" to the app, which is the opposite of what
+     * unticking everything looks like it means. */
+    function carrierDeliveryScopes() {
+        return $('.carrier-scope:checked').map(function () { return $(this).val(); }).get();
+    }
+
     /* Puts a saved carrier back on screen. Older carriers have no
      * regionPricing at all - their flat fields become the price for every
      * region they serve, so nothing reads as blank after an upgrade. */
@@ -402,8 +501,19 @@
         var regions = await getPublishedRegions();
         var $regions = $('#region_ids');
         $regions.empty();
+        carrierRegionDefaults = {};
         regions.forEach(function (region) {
             $regions.append($('<option></option>').attr('value', region.id).text(region.name));
+            carrierRegionDefaults[region.id] = region.parcelPricing || null;
+        });
+
+        /* Point 65. A carrier saved before this has no deliveryScopes, which
+           the app reads as all three - so that is what is ticked. */
+        var scopes = (carrier && Array.isArray(carrier.deliveryScopes) && carrier.deliveryScopes.length)
+            ? carrier.deliveryScopes
+            : ['city', 'intercity', 'intercountry'];
+        $('.carrier-scope').each(function () {
+            $(this).prop('checked', scopes.indexOf($(this).val()) !== -1);
         });
 
         if (carrier) {
@@ -505,6 +615,19 @@
             return;
         }
 
+        /* Point 65 */
+        var deliveryScopes = carrierDeliveryScopes();
+        if (deliveryScopes.length === 0) {
+            $('#error_delivery_scopes').html("{{ trans('lang.carrier_delivery_scopes_error') }}");
+            document.getElementById('error_delivery_scopes').scrollIntoView({behavior: 'smooth', block: 'center'});
+            return;
+        }
+
+        /* Point 41 */
+        if (!carrierParcelValuesValid()) {
+            return;
+        }
+
         jQuery("#overlay").show();
 
         /* The code identifies the carrier to the apps, so it has to stay
@@ -553,6 +676,8 @@
              * are kept so anything already reading them still gets a number.
              * See carrierPricingForSave(). */
             'regionPricing': carrierPricing.regionPricing,
+            /* Point 65 - see docs/app-spec-parcel-pricing.md */
+            'deliveryScopes': deliveryScopes,
             'baseCharge': carrierPricing.flat.baseCharge,
             'perKmCharge': carrierPricing.flat.perKmCharge,
             'perKgCharge': carrierPricing.flat.perKgCharge,

@@ -42,6 +42,30 @@
                                             </strong><span id="parcel_type"></span></label>
                                     </div>
 
+                                    {{-- Point 41: how this parcel's price was reached. Filled from the
+                                         order's own priceBreakdown and fields; hidden for orders placed
+                                         before the app recorded them. See docs/app-spec-parcel-pricing.md. --}}
+                                    <div id="div_parcel_pricing" style="display:none;">
+                                        <div class="form-group row widt-100 gendetail-col" data-pricing-row="scope">
+                                            <label class="col-12 control-label"><strong>{{ trans('lang.parcel_scope') }}: </strong><span id="parcel_scope"></span></label>
+                                        </div>
+                                        <div class="form-group row widt-100 gendetail-col" data-pricing-row="source">
+                                            <label class="col-12 control-label"><strong>{{ trans('lang.parcel_price_source') }}: </strong><span id="parcel_price_source"></span></label>
+                                        </div>
+                                        <div class="form-group row widt-100 gendetail-col" data-pricing-row="weight">
+                                            <label class="col-12 control-label"><strong>{{ trans('lang.parcel_weight_detail') }}: </strong><span id="parcel_weight_detail"></span></label>
+                                        </div>
+                                        <div class="form-group row widt-100 gendetail-col" data-pricing-row="dimensions">
+                                            <label class="col-12 control-label"><strong>{{ trans('lang.parcel_dimensions') }}: </strong><span id="parcel_dimensions"></span></label>
+                                        </div>
+                                        <div class="form-group row widt-100 gendetail-col" data-pricing-row="collection">
+                                            <label class="col-12 control-label"><strong>{{ trans('lang.parcel_collection') }}: </strong><span id="parcel_collection"></span></label>
+                                        </div>
+                                        <div class="form-group row widt-100 gendetail-col" data-pricing-row="delivery">
+                                            <label class="col-12 control-label"><strong>{{ trans('lang.parcel_delivery') }}: </strong><span id="parcel_delivery"></span></label>
+                                        </div>
+                                    </div>
+
                                     <div class="form-group row widt-100 gendetail-col">
                                         <label class="col-12 control-label"><strong>{{trans('lang.date_created')}}
                                                 : </strong><span id="createdAt"></span></label>
@@ -558,6 +582,7 @@
             }
             var productsListHTML = buildHTMLParcelList(order);
             var productstotalHTML = buildParcelTotal(order);
+            renderParcelPricingDetails(order);
 
             if (productsListHTML != '') {
                 append_procucts_list.innerHTML = productsListHTML;
@@ -712,6 +737,152 @@
         return html;
     }
 
+    /* ---- Point 41: reading the parcel pricing off an order -----------------
+     * Every value is optional: orders placed before the app recorded them
+     * simply show nothing extra. Numbers may arrive as strings. */
+    function parcelNumber(value) {
+        var number = parseFloat(value);
+        return isNaN(number) ? 0 : number;
+    }
+
+    function parcelPriceExtras(order) {
+        var breakdown = (order && order.priceBreakdown) || {};
+        return {
+            options: parcelNumber(breakdown.options),
+            pickupCharge: breakdown.pickupCharge,
+            deliveryCharge: breakdown.deliveryCharge,
+            fixedTax: parcelNumber(breakdown.fixedTax),
+            extraKgCharge: parcelNumber(breakdown.extraKgCharge),
+            scope: order ? order.scope : '',
+            pickupMethod: order ? order.pickupMethod : '',
+            deliveryMethod: order ? order.deliveryMethod : ''
+        };
+    }
+
+    function parcelExtrasRows(extras) {
+        var html = '';
+
+        if (extras.extraKgCharge > 0) {
+            html += '<tr><td class="label">{{ trans('lang.parcel_extra_kg_charge') }}</td><td id="greenColor">+' +
+                formatCurrency(extras.extraKgCharge, currencyData) + '</td></tr>';
+        }
+
+        if (extras.options > 0) {
+            html += '<tr><td class="seprater" colspan="2"><hr><span>{{ trans('lang.parcel_options_charge') }}</span></td></tr>';
+
+            /* The two parts, when the app recorded them separately. */
+            var pickupLabel = extras.pickupMethod === 'pickup_point'
+                ? "{{ trans('lang.region_parcel_point_dropoff_charge') }}"
+                : "{{ trans('lang.region_parcel_home_pickup_charge') }}";
+            var deliveryLabel = extras.deliveryMethod === 'pickup_point'
+                ? "{{ trans('lang.region_parcel_point_collection_charge') }}"
+                : "{{ trans('lang.region_parcel_home_delivery_charge') }}";
+
+            if (extras.pickupCharge !== undefined || extras.deliveryCharge !== undefined) {
+                html += '<tr><td class="label">' + pickupLabel + '</td><td id="greenColor">+' +
+                    formatCurrency(parcelNumber(extras.pickupCharge), currencyData) + '</td></tr>';
+                html += '<tr><td class="label">' + deliveryLabel + '</td><td id="greenColor">+' +
+                    formatCurrency(parcelNumber(extras.deliveryCharge), currencyData) + '</td></tr>';
+            } else {
+                html += '<tr><td class="label">{{ trans('lang.parcel_options_charge') }}</td><td id="greenColor">+' +
+                    formatCurrency(extras.options, currencyData) + '</td></tr>';
+            }
+        }
+
+        if (extras.fixedTax > 0) {
+            /* 'international' accepted too, in case any order says so. */
+            var fixedLabel = (extras.scope === 'intercountry' || extras.scope === 'international')
+                ? "{{ trans('lang.region_parcel_intercountry_fixed_tax') }}"
+                : "{{ trans('lang.region_parcel_intercity_fixed_tax') }}";
+            html += '<tr><td class="seprater" colspan="2"><hr><span>' + fixedLabel + '</span></td></tr>';
+            html += '<tr><td class="label">' + fixedLabel + '</td><td id="greenColor">+' +
+                formatCurrency(extras.fixedTax, currencyData) + '</td></tr>';
+        }
+
+        return html;
+    }
+
+    function parcelPricingText(map, value) {
+        return (value && map[value]) ? map[value] : (value || '');
+    }
+
+    async function parcelPickupPointName(pointId) {
+        if (!pointId) {
+            return '';
+        }
+        try {
+            var doc = await database.collection('pickup_points').doc(pointId).get();
+            if (!doc.exists) {
+                return '';
+            }
+            var point = doc.data() || {};
+            return [point.name, point.quarter, point.town].filter(Boolean).join(', ');
+        } catch (err) {
+            console.error('pickup point could not be read', pointId, err);
+            return '';
+        }
+    }
+
+    /* Fills the "how this price was reached" block. Each line shows only
+     * when the order carries what it needs; the block hides entirely for
+     * orders with none of it. */
+    async function renderParcelPricingDetails(order) {
+        var breakdown = order.priceBreakdown || {};
+        var shown = 0;
+
+        function line(row, text) {
+            var $row = $('#div_parcel_pricing [data-pricing-row="' + row + '"]');
+            if (text === '' || text === null || text === undefined) {
+                $row.hide();
+                return;
+            }
+            $row.show().find('span').last().text(text);
+            shown++;
+        }
+
+        line('scope', parcelPricingText({
+            city: "{{ trans('lang.carrier_scope_city') }}",
+            intercity: "{{ trans('lang.carrier_scope_intercity') }}",
+            intercountry: "{{ trans('lang.carrier_scope_intercountry') }}",
+            international: "{{ trans('lang.carrier_scope_intercountry') }}"
+        }, order.scope));
+
+        line('source', parcelPricingText({
+            'default': "{{ trans('lang.parcel_source_default') }}",
+            rate_card: "{{ trans('lang.parcel_source_carrier') }}" + (order.carrierName ? ' - ' + order.carrierName : ''),
+            carrier: "{{ trans('lang.parcel_source_carrier') }}" + (order.carrierName ? ' - ' + order.carrierName : ''),
+            route_table: "{{ trans('lang.parcel_source_rate_table') }}"
+        }, breakdown.source));
+
+        var weight = '';
+        if (breakdown.chargeableKg !== undefined) {
+            weight = "{{ trans('lang.parcel_weight_breakdown') }}"
+                .replace(':actual', parcelNumber(breakdown.actualKg))
+                .replace(':size', parcelNumber(breakdown.volumetricKg))
+                .replace(':charged', parcelNumber(breakdown.chargeableKg));
+            if (breakdown.volumetricDivisor) {
+                weight += ' - ' + "{{ trans('lang.parcel_size_divisor_note') }}".replace(':divisor', breakdown.volumetricDivisor);
+            }
+        }
+        line('weight', weight);
+
+        var dims = order.dimensions || {};
+        line('dimensions', (dims.l && dims.w && dims.h) ? (dims.l + ' x ' + dims.w + ' x ' + dims.h + ' cm') : '');
+
+        var dropoffName = await parcelPickupPointName(order.dropoffPointId);
+        var collectName = await parcelPickupPointName(order.pickupPointId);
+
+        line('collection', order.pickupMethod === 'pickup_point'
+            ? "{{ trans('lang.parcel_method_point_dropoff') }}" + (dropoffName ? ' - ' + dropoffName : '')
+            : (order.pickupMethod === 'home' ? "{{ trans('lang.parcel_method_home_pickup') }}" : ''));
+
+        line('delivery', order.deliveryMethod === 'pickup_point'
+            ? "{{ trans('lang.parcel_method_point_collection') }}" + (collectName ? ' - ' + collectName : '')
+            : (order.deliveryMethod === 'home' ? "{{ trans('lang.parcel_method_home_delivery') }}" : ''));
+
+        $('#div_parcel_pricing').toggle(shown > 0);
+    }
+
     function buildParcelTotal(orderData) {
 
         var html = '';
@@ -769,8 +940,16 @@
             if (isNaN(smsCharge)) smsCharge = 50;
         }
 
+        /* Point 41: the charges the app keeps OUTSIDE subTotal - the
+         * door / pickup-point options, the inter-city or international fixed
+         * charge, and any extra-weight charge. Orders placed before these
+         * existed have none, so their total is unchanged. Untaxed: the order
+         * tax above is on subTotal, as it always was. */
+        var parcelExtras = parcelPriceExtras(orderData);
+
         // Final price
-        let order_total = (order_subtotal - total_discount) + platformFee + total_tax_amount + smsCharge;
+        let order_total = (order_subtotal - total_discount) + platformFee + total_tax_amount + smsCharge
+            + parcelExtras.options + parcelExtras.fixedTax + parcelExtras.extraKgCharge;
         
         html = html + '<tr><td class="seprater" colspan="2"><hr><span>{{ trans('lang.sub_total') }}</span></td></tr>';
         html = html +
@@ -791,6 +970,8 @@
         html = html + '<tr><td class="seprater" colspan="2"><hr><span>{{ trans('lang.platform_charge') }}</span></td></tr>';
         html = html +'<tr><td class="label">{{ trans('lang.platform_charge') }}</td><td class="platform_charge " id="greenColor">+' +
                 formatCurrency(platformFee, currencyData) + '</td></tr>';
+
+        html = html + parcelExtrasRows(parcelExtras);
 
         if (orderData.sendReceiverSms && smsCharge > 0) {
             html = html + '<tr><td class="seprater" colspan="2"><hr><span>{{ trans('lang.receiver_sms_notification') }}</span></td></tr>';
