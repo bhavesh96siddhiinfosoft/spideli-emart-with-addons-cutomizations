@@ -145,6 +145,27 @@
 <script>
 
     var serviceType = getCookie('service_type') || null;
+    /* Point 70: the Tax Scope list differed on desktop and on mobile.
+     * Scopes that do not apply to this service used to be HIDDEN with .hide().
+     * A desktop browser honours a hidden <option>; a phone's native picker
+     * ignores it and lists every scope. They are now REMOVED, so both show the
+     * same list. `keep` is a scope that must stay even so - on the edit form,
+     * the one the tax is already saved with. */
+    function pruneTaxScopes(keep) {
+        var notHere = [];
+        if (serviceType != "delivery-service" && serviceType != "ecommerce-service") {
+            notHere.push('delivery', 'packaging', 'product');
+        }
+        if (serviceType != "delivery-service" && serviceType != "ecommerce-service" && serviceType != "ondemand-service") {
+            notHere.push('vendor_subscription');
+        }
+        notHere.forEach(function (scope) {
+            if (scope !== keep) {
+                $('.tax_scope option[value="' + scope + '"]').remove();
+            }
+        });
+    }
+
     var id = "<?php echo $id;?>";
     var database = firebase.firestore();
     var ref = database.collection('tax').where("id", "==", id);
@@ -184,12 +205,7 @@
     }
     $(document).ready(function () {
 
-        if(serviceType != "delivery-service" && serviceType != "ecommerce-service"){
-            $("#delivery_tax, #packaging_tax, #product_tax").hide();
-        }
-        if(serviceType != "delivery-service" && serviceType != "ecommerce-service" && serviceType != "ondemand-service" ){
-            $("#vendor_subscription_tax").hide();
-        }
+        /* Scopes are pruned once the saved tax is read - see pruneTaxScopes(). */
 
         jQuery("#country").select2({
             templateResult: formatState,
@@ -199,6 +215,7 @@
         });
         ref.get().then(async function (snapshots) {
             var data = snapshots.docs[0].data();
+            pruneTaxScopes(data.scope);
             $(".tax_title").val(data.title);
             $(".tax_scope").val(data.scope);
             $(".tax_type").val(data.type);

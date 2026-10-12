@@ -147,6 +147,27 @@
 
     var sectionId = getCookie('section_id') || null;
     var serviceType = getCookie('service_type') || null;
+    /* Point 70: the Tax Scope list differed on desktop and on mobile.
+     * Scopes that do not apply to this service used to be HIDDEN with .hide().
+     * A desktop browser honours a hidden <option>; a phone's native picker
+     * ignores it and lists every scope. They are now REMOVED, so both show the
+     * same list. `keep` is a scope that must stay even so - on the edit form,
+     * the one the tax is already saved with. */
+    function pruneTaxScopes(keep) {
+        var notHere = [];
+        if (serviceType != "delivery-service" && serviceType != "ecommerce-service") {
+            notHere.push('delivery', 'packaging', 'product');
+        }
+        if (serviceType != "delivery-service" && serviceType != "ecommerce-service" && serviceType != "ondemand-service") {
+            notHere.push('vendor_subscription');
+        }
+        notHere.forEach(function (scope) {
+            if (scope !== keep) {
+                $('.tax_scope option[value="' + scope + '"]').remove();
+            }
+        });
+    }
+
     var database = firebase.firestore();
     var globalSettingsRef = database.collection('settings').doc("globalSettings");
     var newcountriesjs = '<?php echo json_encode($newcountriesjs); ?>';
@@ -180,12 +201,7 @@
 
     $(document).ready(function () {
     // Initialize Select2 for country dropdown
-        if(serviceType != "delivery-service" && serviceType != "ecommerce-service"){
-            $("#delivery_tax, #packaging_tax, #product_tax").hide();
-        }
-        if(serviceType != "delivery-service" && serviceType != "ecommerce-service" && serviceType != "ondemand-service" ){
-            $("#vendor_subscription_tax").hide();
-        }
+        pruneTaxScopes(null);
         
         jQuery("#country").select2({
             templateResult: formatState,
