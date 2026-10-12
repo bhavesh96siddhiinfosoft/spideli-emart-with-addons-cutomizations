@@ -209,7 +209,9 @@
         var snapshots = await database.collection('currencies').get();
         snapshots.docs.forEach(function (doc) {
             var currency = doc.data();
-            $('#currency_id').append($('<option></option>').attr('value', currency.id).text(currency.name + ' (' + currency.symbol + ')'));
+            $('#currency_id').append($('<option></option>').attr('value', currency.id)
+                .attr('data-symbol', currency.symbol || '')
+                .text(currency.name + ' (' + currency.symbol + ')'));
         });
     }
 

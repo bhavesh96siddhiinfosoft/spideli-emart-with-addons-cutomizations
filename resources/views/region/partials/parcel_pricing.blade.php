@@ -9,6 +9,7 @@
      Shared by region/create and region/edit so the two cannot drift. --}}
 @php
     $regionParcelFields = [
+        /* The divisor is a number of cm3 per kg, not money - no currency. */
         ['parcel_volumetric_divisor',      'region_parcel_volumetric_divisor',      '1'],
         ['parcel_home_pickup_charge',      'region_parcel_home_pickup_charge',      'any'],
         ['parcel_point_dropoff_charge',    'region_parcel_point_dropoff_charge',    'any'],
@@ -34,7 +35,12 @@
 
     @foreach ($regionParcelFields as [$fieldId, $langKey, $step])
         <div class="form-group row width-50">
-            <label class="col-3 control-label" for="{{ $fieldId }}">{{ trans('lang.' . $langKey) }}</label>
+            <label class="col-3 control-label" for="{{ $fieldId }}">{{ trans('lang.' . $langKey) }}
+                @if ($fieldId !== 'parcel_volumetric_divisor')
+                    {{-- The region's own currency, filled from the Currency box above. --}}
+                    <span class="region-parcel-currency text-muted"></span>
+                @endif
+            </label>
             <div class="col-7">
                 <input type="number" step="{{ $step }}" min="0" class="form-control" id="{{ $fieldId }}">
                 <div class="form-text text-muted">{{ trans('lang.' . $langKey . '_help') }}</div>

@@ -20,6 +20,16 @@
         {id: 'parcel_intercountry_fixed_tax',  key: 'intercountryFixedTax', suggested: 5000}
     ];
 
+    /* Every charge here is in THIS REGION'S currency - the one chosen in the
+     * Currency box. Shown beside each money field so "500" is never read as
+     * the wrong currency. No conversion happens anywhere. */
+    function updateRegionParcelCurrency() {
+        var symbol = $('#currency_id option:selected').attr('data-symbol') || '';
+        $('.region-parcel-currency').text(symbol ? '(' + symbol + ')' : '');
+    }
+
+    $(document).on('change', '#currency_id', updateRegionParcelCurrency);
+
     /* `pricing` is the region's saved parcelPricing map, or nothing.
      *
      * Nothing saved -> show the suggested values AND say they are not live yet.
@@ -41,6 +51,7 @@
         });
 
         $('#region_parcel_pricing_unsaved').toggle(!saved);
+        updateRegionParcelCurrency();
     }
 
     /* The map to save, or null when a value is wrong - in which case each

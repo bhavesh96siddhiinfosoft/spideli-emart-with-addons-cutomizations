@@ -2779,6 +2779,7 @@ return [
     'carrier_region_default' => 'القيمة الافتراضية للمنطقة: :value',
     'carrier_region_default_none' => 'القيمة الافتراضية للمنطقة: غير محددة (0)',
     'carrier_region_default_no_size' => 'القيمة الافتراضية للمنطقة: الحجم غير مستخدم',
+    'carrier_prices_in' => 'الأسعار بعملة :currency',
     'receiver_sms_notification' => 'إشعار المستلم عبر الرسائل القصيرة',
     'notify_receiver_sms' => 'إشعار المستلم عبر الرسائل القصيرة',
     'notify_receiver_sms_help' => 'إرسال رسالة نصية قصيرة إلى المستلم تتضمن اسم المرسل ورقمه بمجرد تقديم طلب الطرد.',

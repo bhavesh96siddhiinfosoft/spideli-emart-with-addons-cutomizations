@@ -243,6 +243,16 @@
      * to. Filled in initCarrierForm() from the regions it already loads. */
     var carrierRegionDefaults = {};
 
+    /* Each region's currency. A region block's prices are in THAT region's
+     * currency - FCFA for the Cameroon regions, rupees for India - and are
+     * never converted. Shown in the block heading and in the hints. */
+    var carrierRegionCurrency = {};
+
+    function carrierMoney(scope, value) {
+        var currency = carrierRegionCurrency[scope];
+        return currency ? formatInCurrency(value, currency) : String(value);
+    }
+
     function carrierRegionDefaultHint(scope, key) {
         var defaults = carrierRegionDefaults[scope];
         var value = defaults ? defaults[key] : undefined;
@@ -253,7 +263,8 @@
                 : "{{ trans('lang.carrier_region_default_none') }}";
         }
 
-        return "{{ trans('lang.carrier_region_default') }}".replace(':value', value);
+        return "{{ trans('lang.carrier_region_default') }}".replace(':value',
+            key === 'volumetricDivisor' ? value : carrierMoney(scope, value));
     }
 
     function carrierPricingEscape(value) {
@@ -279,7 +290,11 @@
         var saved = carrierPricingDraft[scope] || {};
         var html = '<div class="card border mb-3" data-pricing-scope="' + carrierPricingEscape(scope) + '">';
 
-        html += '<div class="card-header py-2"><strong>' + carrierPricingEscape(heading) + '</strong></div>';
+        var blockCurrency = carrierRegionCurrency[scope];
+        var headingText = heading + (blockCurrency && blockCurrency.symbol
+            ? ' - ' + "{{ trans('lang.carrier_prices_in') }}".replace(':currency', blockCurrency.symbol)
+            : '');
+        html += '<div class="card-header py-2"><strong>' + carrierPricingEscape(headingText) + '</strong></div>';
         html += '<div class="card-body pb-1">';
 
         var parcelHeadingDone = false;
@@ -506,6 +521,16 @@
             $regions.append($('<option></option>').attr('value', region.id).text(region.name));
             carrierRegionDefaults[region.id] = region.parcelPricing || null;
         });
+
+        /* Cached per region by the layout, so this is one read per region. */
+        carrierRegionCurrency = {};
+        await Promise.all(regions.map(async function (region) {
+            try {
+                carrierRegionCurrency[region.id] = await getCurrencyForRegion(region.id);
+            } catch (err) {
+                console.error('currency for region could not be read', region.id, err);
+            }
+        }));
 
         /* Point 65. A carrier saved before this has no deliveryScopes, which
            the app reads as all three - so that is what is ticked. */

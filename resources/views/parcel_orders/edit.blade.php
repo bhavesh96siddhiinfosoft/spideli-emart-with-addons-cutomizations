@@ -405,6 +405,20 @@
 
         ref.get().then(async function(snapshots) {
             var order = snapshots.docs[0].data();
+
+            /* Every amount on this screen is in THE ORDER'S region currency.
+             * It used to take the currency of whichever region the admin was
+             * browsing, so an India parcel read in FCFA while working in
+             * Cameroun. Set before anything below formats a price. */
+            var orderCurrency = await currencyOfOrder(order);
+            if (orderCurrency) {
+                currencyData = orderCurrency;
+                currentCurrency = orderCurrency.symbol;
+                currencyAtRight = orderCurrency.symbolAtRight;
+                decimal_degits = (orderCurrency.decimal_degits !== undefined && orderCurrency.decimal_degits !== null)
+                    ? orderCurrency.decimal_degits : decimal_degits;
+            }
+
             getUserReview(order);
             append_procucts_list = document.getElementById('order_products');
             append_procucts_list.innerHTML = '';

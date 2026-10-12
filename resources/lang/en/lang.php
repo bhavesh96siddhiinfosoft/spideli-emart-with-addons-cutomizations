@@ -2969,6 +2969,7 @@ return [
     'carrier_region_default' => 'Region default: :value',
     'carrier_region_default_none' => 'Region default: not set (0)',
     'carrier_region_default_no_size' => 'Region default: size not used',
+    'carrier_prices_in' => 'prices in :currency',
     'receiver_sms_notification' => 'Receiver SMS Notification',
     'notify_receiver_sms' => 'Notify receiver via SMS',
     'notify_receiver_sms_help' => 'Send an SMS notification to the receiver with the sender name and phone number once the parcel order is placed.',
