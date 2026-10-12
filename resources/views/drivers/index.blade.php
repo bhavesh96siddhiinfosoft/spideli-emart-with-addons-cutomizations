@@ -156,27 +156,24 @@
 
             $('.filteredRecords').change(async function() {
 
-                var status = $('.status_selector').val();
+                /* Kept for the row loop - see driverPassesListFilters(). */
                 var daterangepicker = $('#daterange').data('daterangepicker');
-                ref = regionScoped(database.collection('users').where("role", "==", "driver").where('isOwner','==',false).where('sectionId', '==', section_id));
-                if (status) {
-                    ref = (status == "active") ? ref.where('active', '==', true) : ref.where('active', '==', false);
-                }
+                driverListStatus = $('.status_selector').val() || '';
+                driverListFrom = null;
+                driverListTo = null;
                 if ($('#daterange span').html() != '{{ trans('lang.select_range') }}' && daterangepicker) {
-                    var from = moment(daterangepicker.startDate).toDate();
-                    var to = moment(daterangepicker.endDate).toDate();
-                    if (from && to) {
-                        var fromDate = firebase.firestore.Timestamp.fromDate(new Date(from));
-                        ref = ref.where('createdAt', '>=', fromDate);
-                        var toDate = firebase.firestore.Timestamp.fromDate(new Date(to));
-                        ref = ref.where('createdAt', '<=', toDate);
-                    }
+                    driverListFrom = moment(daterangepicker.startDate).toDate();
+                    driverListTo = moment(daterangepicker.endDate).toDate();
                 }
                 $('#driverTable').DataTable().ajax.reload();
             });
 
-            var ref = regionScoped(database.collection('users').where("role", "==", "driver").where('isOwner','==',false));
-            ref = ref.where('sectionIds', 'array-contains', section_id).orderBy('createdAt', 'desc');
+            /* Every driver of the region; the section, owner and filter rules
+             * are applied per row - see driverInSection() in layouts/app. */
+            var ref = regionScoped(database.collection('users').where("role", "==", "driver"));
+            var driverListStatus = '';
+            var driverListFrom = null;
+            var driverListTo = null;
 
             var alldriver = regionScoped(database.collection('users').where("role", "==", "driver").where('isOwner','==',false).where('sectionId', '==', section_id)).orderBy('createdAt', 'desc');
             
@@ -279,8 +276,14 @@
                                 childData.name = childData.firstName + ' ' + childData.lastName;
                                 childData.serviceName = serviceNames[childData.serviceType] || '-';
 
-                                const isFleetDriver = childData.ownerId && childData.isOwner === false;
+                                /* A company's driver is on Fleet Drivers. isOwner is
+                                   missing on most drivers - only true means owner. */
+                                const isFleetDriver = childData.ownerId && childData.isOwner !== true;
                                 if (isFleetDriver) {
+                                    return;
+                                }
+                                if (!driverInSection(childData, section_id, sectionType) ||
+                                    !driverPassesListFilters(childData, driverListStatus, driverListFrom, driverListTo)) {
                                     return;
                                 }
                                 const isDocVerified = childData.isDocumentVerify === true;

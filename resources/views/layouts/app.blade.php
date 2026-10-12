@@ -248,6 +248,65 @@
         /* Apply the active region filter to a Firestore collection/query.
          * Returns the query untouched when no region is selected, so existing
          * behaviour is preserved for an "All Regions" admin. */
+        /* ---- Which drivers a driver list shows (12 Oct 2026) -------------
+         * The Drivers list showed 10 of 244 drivers. It asked Firestore for
+         * isOwner == false AND sectionIds containing this section - and an
+         * equality filter DROPS every document that lacks the field: 175
+         * drivers have no isOwner and 148 have no section field at all (only
+         * serviceType). Its filters then switched to a third field, sectionId.
+         *
+         * So the lists now read every driver of the region and decide here.
+         * A driver is in a section when sectionIds contains it, OR sectionId is
+         * it, OR - having neither - their serviceType / serviceTypes is the
+         * section's service type. A driver with a section field elsewhere is
+         * NOT pulled in by service type. A missing isOwner means "not an
+         * owner"; only isOwner === true is an owner. */
+        function driverInSection(driver, sectionId, sectionType) {
+            if (!driver || driver.isOwner === true) {
+                return false;
+            }
+            if (!sectionId) {
+                return true;
+            }
+            var ids = Array.isArray(driver.sectionIds) ? driver.sectionIds : [];
+            if (ids.indexOf(sectionId) !== -1 || driver.sectionId === sectionId) {
+                return true;
+            }
+            if (ids.length || driver.sectionId) {
+                return false;
+            }
+            var types = Array.isArray(driver.serviceTypes) ? driver.serviceTypes.slice() : [];
+            if (driver.serviceType) {
+                types.push(driver.serviceType);
+            }
+            return !!sectionType && types.indexOf(sectionType) !== -1;
+        }
+
+        /* The list's status and date filters, applied to the record rather
+         * than to the query - a query filter on `active` or `createdAt` would
+         * drop drivers missing those fields, and needs composite indexes. */
+        function driverPassesListFilters(driver, status, from, to) {
+            if (status === 'active' && driver.active !== true) {
+                return false;
+            }
+            if (status && status !== 'active' && driver.active === true) {
+                return false;
+            }
+            if (from || to) {
+                var created = (driver.createdAt && typeof driver.createdAt.toDate === 'function') ? driver.createdAt.toDate() : null;
+                if (!created) {
+                    return false;
+                }
+                if (from && created < from) {
+                    return false;
+                }
+                if (to && created > to) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
         function regionScoped(query, field) {
             var regionId = getActiveRegionId();
             if (!regionId) {

@@ -151,34 +151,29 @@
             }
             setDate();
             $('.filteredRecords').change(async function() {
-                var status = $('.status_selector').val();
+                /* Any filter used to swap this list's query for CUSTOMERS
+                 * (role in ["customer"]) - the fleet list then showed
+                 * customers. The query stays the same; the filters are applied
+                 * per row, see driverPassesListFilters() in layouts/app. */
                 var daterangepicker = $('#daterange').data('daterangepicker');
-                ref = regionScoped(database.collection('users').where("role", "in", ["customer"]));
+                driverListStatus = $('.status_selector').val() || '';
+                driverListFrom = null;
+                driverListTo = null;
                 if ($('#daterange span').html() != '{{ trans('lang.select_range') }}' && daterangepicker) {
-                    var from = moment(daterangepicker.startDate).toDate();
-                    var to = moment(daterangepicker.endDate).toDate();
-                    if (from && to) {
-                        var fromDate = firebase.firestore.Timestamp.fromDate(new Date(from));
-                        ref = ref.where('createdAt', '>=', fromDate);
-                        var toDate = firebase.firestore.Timestamp.fromDate(new Date(to));
-                        ref = ref.where('createdAt', '<=', toDate);
-                    }
-                }
-                if (status) {
-                    ref = (status == "active") ? ref.where('active', '==', true) : ref.where('active', '==', false);
+                    driverListFrom = moment(daterangepicker.startDate).toDate();
+                    driverListTo = moment(daterangepicker.endDate).toDate();
                 }
                 $('#driverTable').DataTable().ajax.reload();
             });
 
             var database = firebase.firestore();
 
-            var ref = regionScoped(database.collection('users')
-                .where('isOwner', '==', false)
-                .where('ownerId', '!=', null)
-                .where('role', '==', 'driver')
-                .where('sectionIds', 'array-contains', section_id))
-                .orderBy('ownerId')
-                .orderBy('createdAt', 'desc');
+            /* Every driver of the region; company, section and filter rules
+             * per row - see driverInSection() in layouts/app. */
+            var ref = regionScoped(database.collection('users').where('role', '==', 'driver'));
+            var driverListStatus = '';
+            var driverListFrom = null;
+            var driverListTo = null;
 
             var alldriver = regionScoped(database.collection('users').where("role", "==", "driver")).orderBy('createdAt', 'desc');
             var placeholderImage = '';
@@ -270,7 +265,13 @@
                             querySnapshot.docs.map(async doc => {
 
                                 let childData = doc.data();
-                                if (!childData.hasOwnProperty('vendorID') || (childData.hasOwnProperty('vendorID') && (childData.vendorID == '' || childData.vendorID == null))) {
+                                /* Fleet = belongs to a company and is not the owner. */
+                                if (!childData.ownerId || childData.isOwner === true ||
+                                    !driverInSection(childData, section_id, sectionType) ||
+                                    !driverPassesListFilters(childData, driverListStatus, driverListFrom, driverListTo)) {
+                                    return;
+                                }
+                                if (!childData.hasOwnProperty('vendorID') ||(childData.hasOwnProperty('vendorID') && (childData.vendorID == '' || childData.vendorID == null))) {
 
                                     childData.id = doc.id; // Ensure the document ID is included in the data
                                     childData.name = childData.firstName + ' ' + childData.lastName;
