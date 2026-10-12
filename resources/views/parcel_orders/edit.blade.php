@@ -165,6 +165,19 @@
                     </div>
 
                     <div class="order_edit-genrl col-md-5">
+                        {{-- The parcel's tracking QR - the same code as on the
+                             customer's receipt, opening the public tracking page. --}}
+                        <div class="card">
+                            <div class="card-header">
+                                <h4 class="card-header-title">{{ trans('lang.parcel_tracking_qr') }}</h4>
+                            </div>
+                            <div class="card-body text-center">
+                                <div id="parcel_track_qr" class="d-inline-block p-2 bg-white"></div>
+                                <div class="mt-2 non-printable">
+                                    <a id="parcel_track_link" href="#" target="_blank" rel="noopener" class="small text-break"></a>
+                                </div>
+                            </div>
+                        </div>
                         <div class="card">
                             <div class="card-header">
                                 <h4 class="card-header-title">{{ trans('lang.sender_details')}}</h4>
@@ -315,12 +328,30 @@
 @section('scripts')
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/printThis/1.15.0/printThis.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <script type="text/javascript">
     var id_rendom = "<?php echo uniqid(); ?>";
     var adminCommission = 0;
     var id = "<?php echo $id; ?>";
     var fcmToken = '';
+
+    /* The parcel's tracking QR (Document 1). The tracking page is on the
+     * customer WEBSITE, at /track-parcel/{id}. Live, this admin is at
+     * spideli.com/admin, so the website is this page's own origin; set
+     * WEBSITE_URL in .env when the admin is served from a different host. */
+    var parcelTrackBase = "{{ rtrim((string) env('WEBSITE_URL', ''), '/') }}" || window.location.origin;
+    var parcelTrackUrl = parcelTrackBase + '/track-parcel/' + id;
+    $(function () {
+        $('#parcel_track_link').attr('href', parcelTrackUrl).text(parcelTrackUrl);
+        try {
+            new QRCode(document.getElementById('parcel_track_qr'), {
+                text: parcelTrackUrl, width: 160, height: 160, correctLevel: QRCode.CorrectLevel.M
+            });
+        } catch (err) {
+            console.error('tracking QR could not be drawn', err);
+        }
+    });
     var old_order_status = '';
     var payment_shared = false;
     var vendorname = '';

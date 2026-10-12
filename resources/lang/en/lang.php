@@ -2991,5 +2991,6 @@ return [
     'carrier_not_found' => 'No Carrier Found',
     'fleet_documents_waiting' => 'Documents waiting for review',
     'carrier_not_created_yet_desc' =>'No carrier delivery profile has been created for this owner yet. You can create one now to enable deliveries.',
+    'parcel_tracking_qr' => 'Tracking QR code',
 ];
 ?>

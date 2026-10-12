@@ -2801,5 +2801,6 @@ return [
     'carrier_not_found' => 'لا توجد شركة توصيل',
     'fleet_documents_waiting' => 'مستندات بانتظار المراجعة',
     'carrier_not_created_yet_desc' =>'لم يتم إنشاء ملف شركة توصيل لهذا المالك حتى الآن. يمكنك إنشاء واحد الآن لتمكين التوصيل.',
+    'parcel_tracking_qr' => 'رمز QR للتتبع',
 ];
 ?>
