@@ -8,7 +8,7 @@
         <div class="col-md-7 align-self-center">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">{{trans('lang.dashboard')}}</a></li>
-                <li class="breadcrumb-item"><a href="{!! route('drivers') !!}">{{trans('lang.driver_plural')}}</a>
+                <li class="breadcrumb-item"><a class="driver-list-crumb" href="{!! route('drivers') !!}">{{trans('lang.driver_plural')}}</a>
                 </li>
                 <li class="breadcrumb-item active">{{trans('lang.upload_document')}}</li>
             </ol>
@@ -48,6 +48,18 @@
         var backFileOld = '';
         var frontFileOld = '';
     var placeholderImage = '';
+
+    /* Point 61: a fleet driver's documents are reviewed on this same screen.
+     * When the driver belongs to a company, the breadcrumb leads back to Fleet
+     * Drivers - where the admin came from - rather than to the Drivers list. */
+    function pointCrumbAtFleet(driver) {
+        if (driver && driver.isOwner !== true && driver.ownerId) {
+            $('.driver-list-crumb').attr('href', "{!! route('fleet.drivers') !!}").text("{{ trans('lang.fleet_drivers') }}");
+        }
+    }
+    driverRef.get().then(function (snap) {
+        if (!snap.empty) pointCrumbAtFleet(snap.docs[0].data());
+    });
         var placeholder = database.collection('settings').doc('placeHolderImage');
         placeholder.get().then(async function (snapshotsimage) {
             var placeholderImageData = snapshotsimage.data();

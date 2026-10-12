@@ -2285,7 +2285,7 @@ return [
     'document_for' => 'Document For',
     'document_edit' => 'Edit a Document',
     'document_vendor' => 'Vendor',
-    'document_driver' => 'Individual Driver',
+    'document_driver' => 'Driver (individual and fleet)',
     'document_owner' => 'Owner',
     'frontside' => 'Front Side',
     'backside' => 'Back Side',
@@ -2989,6 +2989,7 @@ return [
     'carrier_not_found_for_owner' => 'This carrier no longer exists.',
     'owner_name' => 'Owner Name',
     'carrier_not_found' => 'No Carrier Found',
-    'carrier_not_created_yet_desc' => 'No carrier delivery profile has been created for this owner yet. You can create one now to enable deliveries.',
+    'fleet_documents_waiting' => 'Documents waiting for review',
+    'carrier_not_created_yet_desc' =>'No carrier delivery profile has been created for this owner yet. You can create one now to enable deliveries.',
 ];
 ?>

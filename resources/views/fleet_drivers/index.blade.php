@@ -113,6 +113,13 @@
                 checkDeletePermission = true;
             }
 
+            /* Bug report point 61: "document verification for fleet drivers is
+             * not available". It was - a fleet driver uploads the same `driver`
+             * documents as anyone else, into documents_verify - but THIS list
+             * had no link to them. Shown only to a role that may open that
+             * screen, so the link never ends on a refusal. */
+            var checkDocumentPermission = $.inArray('driver.document.list', user_permissions) >= 0;
+
             $('.status_selector').select2({
                 placeholder: '{{ trans('lang.status') }}',
                 minimumResultsForSearch: Infinity,
@@ -440,6 +447,31 @@
 
             });
 
+            /* Where a driver's documents stand, as an icon beside the name:
+             * all approved, any refused, or uploaded and waiting for review.
+             * Nothing uploaded shows nothing. Same reading as the Drivers list. */
+            async function fleetDocumentStatusIcon(driverId) {
+                try {
+                    var docSnap = await database.collection('documents_verify').doc(driverId).get();
+                    if (!docSnap.exists) return '';
+                    var docs = docSnap.data().documents || [];
+                    var approved = docs.filter(function (d) { return d.status === 'approved'; }).length;
+                    var rejected = docs.filter(function (d) { return d.status === 'rejected'; }).length;
+                    if (docs.length > 0 && approved === docs.length) {
+                        return ' <i class="mdi mdi-verified verified-icon" data-toggle="tooltip" data-bs-original-title="{{ trans('lang.verified') }}"></i>';
+                    }
+                    if (rejected > 0) {
+                        return ' <i class="mdi mdi-close-circle unverified-icon" data-toggle="tooltip" data-bs-original-title="{{ trans('lang.rejected') }}" style="color:red;"></i>';
+                    }
+                    if (docs.length > 0) {
+                        return ' <i class="mdi mdi-clock-outline" data-toggle="tooltip" data-bs-original-title="{{ trans('lang.fleet_documents_waiting') }}" style="color:#f0ad4e;"></i>';
+                    }
+                } catch (err) {
+                    console.error('document status could not be read', err);
+                }
+                return '';
+            }
+
             async function buildHTML(val) {
                 var html = [];
                 var id = val.id;
@@ -456,7 +488,12 @@
                         'for="is_open_' + id + '" ></label></td>');
                 }
                 var actionHtml = '';
-                actionHtml += '<span class="action-btn"><a href="' + driverView + '" data-toggle="tooltip" data-bs-original-title="{{ trans('lang.view') }}"><i class="mdi mdi-eye"></i></a><a href="' + route1 + '" data-toggle="tooltip" data-bs-original-title="{{ trans('lang.edit') }}"><i class="mdi mdi-lead-pencil"></i></a>';
+                actionHtml += '<span class="action-btn">';
+                if (checkDocumentPermission) {
+                    var documentListView = "{{ route('drivers.document', ':id') }}".replace(':id', val.id);
+                    actionHtml += '<a href="' + documentListView + '" data-toggle="tooltip" data-bs-original-title="{{ trans('lang.document') }}"><i class="fa fa-file"></i></a>';
+                }
+                actionHtml += '<a href="' + driverView + '" data-toggle="tooltip" data-bs-original-title="{{ trans('lang.view') }}"><i class="mdi mdi-eye"></i></a><a href="' + route1 + '" data-toggle="tooltip" data-bs-original-title="{{ trans('lang.edit') }}"><i class="mdi mdi-lead-pencil"></i></a>';
                     if (checkDeletePermission) {
                     actionHtml += '<a id="' + val.id + '" name="driver-delete" class="delete-btn" href="javascript:void(0)" data-toggle="tooltip" data-bs-original-title="{{ trans('lang.delete') }}"><i class="mdi mdi-delete"></i></a>';
                 }
@@ -465,15 +502,20 @@
                
                 html.push(actionHtml);
 
+                var verified = await fleetDocumentStatusIcon(val.id);
+                if (val.isAutoVerify === true) {
+                    verified += ' <i class="mdi mdi-check-circle verified-icon" data-toggle="tooltip" data-bs-original-title="{{ trans('lang.auto_approved') }}"></i>';
+                }
+
                 if (val.profilePictureURL == '') {
-                    html.push('<td><img class="rounded" style="width:50px" src="' + placeholderImage + '" alt="image"></td> ' + ' <a data-url="' + driverView + '" href="' + driverView + '" class="redirecttopage left_space">' + val.firstName + ' ' + val.lastName + '</a>');
+                    html.push('<td><img class="rounded" style="width:50px" src="' + placeholderImage + '" alt="image"></td> ' + ' <a data-url="' + driverView + '" href="' + driverView + '" class="redirecttopage left_space">' + val.firstName + ' ' + val.lastName + '</a>' + verified);
                 } else {
                     if (val.profilePictureURL) {
                         photo = val.profilePictureURL;
                     } else {
                         photo = placeholderImage;
                     }
-                    html.push('<td><img class="rounded" style="width:50px" src="' + photo + '" alt="image" onerror="this.onerror=null;this.src=\'' + placeholderImage + '\'"></td>' + '<a data-url="' + driverView + '" href="' + driverView + '" class="redirecttopage left_space">' + val.firstName + ' ' + val.lastName + '</a>');
+                    html.push('<td><img class="rounded" style="width:50px" src="' + photo + '" alt="image" onerror="this.onerror=null;this.src=\'' + placeholderImage + '\'"></td>' + '<a data-url="' + driverView + '" href="' + driverView + '" class="redirecttopage left_space">' + val.firstName + ' ' + val.lastName + '</a>' + verified);
                 }
 
                 if (val.active == true) {

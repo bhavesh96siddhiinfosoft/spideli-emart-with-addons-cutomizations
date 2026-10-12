@@ -2278,7 +2278,7 @@ return [
     'document_for' => 'المستند لـ',
     'document_edit' => 'تعديل مستند',
     'document_vendor' => 'البائع',
-    'document_driver' => 'السائق الفردي',
+    'document_driver' => 'السائق (فردي وتابع لأسطول)',
     'document_owner' => 'المالك',
     'frontside' => 'الجانب الأمامي',
     'backside' => 'الجانب الخلفي',
@@ -2799,6 +2799,7 @@ return [
     'carrier_not_found_for_owner' => 'شركة الشحن هذه لم تعد موجودة.',
     'owner_name' => 'اسم المالك',
     'carrier_not_found' => 'لا توجد شركة توصيل',
-    'carrier_not_created_yet_desc' => 'لم يتم إنشاء ملف شركة توصيل لهذا المالك حتى الآن. يمكنك إنشاء واحد الآن لتمكين التوصيل.',
+    'fleet_documents_waiting' => 'مستندات بانتظار المراجعة',
+    'carrier_not_created_yet_desc' =>'لم يتم إنشاء ملف شركة توصيل لهذا المالك حتى الآن. يمكنك إنشاء واحد الآن لتمكين التوصيل.',
 ];
 ?>

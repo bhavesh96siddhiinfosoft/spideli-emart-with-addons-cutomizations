@@ -8,7 +8,7 @@
             <div class="col-md-7 align-self-center">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">{{trans('lang.dashboard')}}</a></li>
-                    <li class="breadcrumb-item"><a href="{!! route('drivers') !!}">{{trans('lang.driver_plural')}}</a></li>
+                    <li class="breadcrumb-item"><a class="driver-list-crumb" href="{!! route('drivers') !!}">{{trans('lang.driver_plural')}}</a></li>
                     <li class="breadcrumb-item active">{{trans('lang.driver_document_details')}}</li>
                 </ol>
             </div>
@@ -79,7 +79,16 @@
     var backFileOld = '';
     var frontFileOld = '';
     var fcmToken = "";
-    $(document).ready(async function () {
+
+    /* Point 61: a fleet driver's documents are reviewed on this same screen.
+     * When the driver belongs to a company, the breadcrumb leads back to Fleet
+     * Drivers - where the admin came from - rather than to the Drivers list. */
+    function pointCrumbAtFleet(driver) {
+        if (driver && driver.isOwner !== true && driver.ownerId) {
+            $('.driver-list-crumb').attr('href', "{!! route('fleet.drivers') !!}").text("{{ trans('lang.fleet_drivers') }}");
+        }
+    }
+$(document).ready(async function () {
         jQuery("#data-table_processing").show();
         $('#exampleModal').on('show.bs.modal', function (event) {
             var button = $(event.relatedTarget);
@@ -89,6 +98,7 @@
         });
         ref.get().then(async function (snapshots) {
             var vendor = snapshots.docs[0].data();
+            pointCrumbAtFleet(vendor);
             if (vendor.hasOwnProperty('fcmToken') && vendor.fcmToken != "" && vendor.fcmToken != null) {
                 fcmToken = vendor.fcmToken;
             }
