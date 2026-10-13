@@ -337,21 +337,36 @@
     var fcmToken = '';
 
     /* The parcel's tracking QR (Document 1). The tracking page is on the
-     * customer WEBSITE, at /track-parcel/{id}. Live, this admin is at
-     * spideli.com/admin, so the website is this page's own origin; set
-     * WEBSITE_URL in .env when the admin is served from a different host. */
+     * customer WEBSITE, at /track-parcel/{id}.
+     *
+     * The link is the ORDER'S OWN qrValue - the exact link the app (since
+     * 5 Oct) and the website (since 12 Oct) put in the customer's QR - so the
+     * admin's code is the customer's code. Guessing the website from this
+     * page's address was wrong wherever the admin and the website are on
+     * different hosts or ports (13 Oct: a 404 on the local copy). Only an
+     * older parcel without a link falls back to WEBSITE_URL, then this page's
+     * own origin (live, the admin is spideli.com/admin). */
     var parcelTrackBase = "{{ rtrim((string) env('WEBSITE_URL', ''), '/') }}" || window.location.origin;
-    var parcelTrackUrl = parcelTrackBase + '/track-parcel/' + id;
-    $(function () {
-        $('#parcel_track_link').attr('href', parcelTrackUrl).text(parcelTrackUrl);
+
+    function parcelTrackUrlFor(order) {
+        var qr = order && typeof order.qrValue === 'string' ? order.qrValue.trim() : '';
+        if (/^https?:\/\//i.test(qr)) {
+            return qr;
+        }
+        return parcelTrackBase + '/track-parcel/' + id;
+    }
+
+    function drawParcelTrackQr(url) {
+        $('#parcel_track_link').attr('href', url).text(url);
+        $('#parcel_track_qr').empty();
         try {
             new QRCode(document.getElementById('parcel_track_qr'), {
-                text: parcelTrackUrl, width: 160, height: 160, correctLevel: QRCode.CorrectLevel.M
+                text: url, width: 160, height: 160, correctLevel: QRCode.CorrectLevel.M
             });
         } catch (err) {
             console.error('tracking QR could not be drawn', err);
         }
-    });
+    }
     var old_order_status = '';
     var payment_shared = false;
     var vendorname = '';
@@ -436,6 +451,7 @@
 
         ref.get().then(async function(snapshots) {
             var order = snapshots.docs[0].data();
+            drawParcelTrackQr(parcelTrackUrlFor(order));
 
             /* Every amount on this screen is in THE ORDER'S region currency.
              * It used to take the currency of whichever region the admin was
