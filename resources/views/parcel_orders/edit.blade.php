@@ -83,31 +83,12 @@
                                         <label class="col-3 control-label"><strong></strong>{{trans('lang.status')}}
                                             :</strong></label>
                                         <div class="col-7">
-                                            <select id="order_status" class="form-control">
-                                                <option value="Order Placed" id="order_placed">{{ trans('lang.order_placed')}}
-                                                </option>
-                                                <option value="Order Accepted" id="order_accepted">{{ trans('lang.order_accepted')}}
-                                                </option>
-                                                <option value="Order Rejected" id="order_rejected">{{ trans('lang.order_rejected')}}
-                                                </option>
-                                                <option value="Driver Pending" id="driver_pending">{{ trans('lang.driver_pending')}}
-                                                </option>
-                                                <option value="Driver Rejected" id="driver_rejected">{{ trans('lang.driver_rejected')}}
-                                                </option>
-                                                <option value="Order Shipped" id="order_shipped">{{ trans('lang.order_shipped')}}
-                                                </option>
-                                                <option value="In Transit" id="in_transit">{{ trans('lang.in_transit')}}
-                                                </option>
-                                                <option value="Order Completed" id="order_completed">{{ trans('lang.order_completed')}}
-                                                </option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="form-group row width-100 non-printable">
-                                        <label class="col-3 control-label"></label>
-                                        <div class="col-7 text-right">
-                                            <button type="button" class="btn btn-primary edit-form-btn"><i class="fa fa-save"></i> {{trans('lang.update')}}
-                                            </button>
+                                            {{-- 13 Oct (app developer's PARCEL-MANAGEMENT-FLOW.md 2.3): the status is
+     moved by the apps - dispatch, the company owner, the driver. The old
+     free list (copied from food orders) let the admin set statuses the apps
+     never use, and skip the driver's completion and wallet credit. The
+     admin now only CANCELS, under Actions on the right. --}}
+                                            <span id="order_status_text" class="font-weight-bold"></span>
                                         </div>
                                     </div>
                                 </div>
@@ -217,6 +198,18 @@
                                             <button type="button" class="btn btn-primary btn-sm text-nowrap" id="parcel_mark_collected">{{ trans('lang.parcel_mark_collected') }}</button>
                                         </div>
                                         <div class="form-text text-muted small">{{ trans('lang.parcel_mark_collected_help') }}</div>
+                                    </div>
+
+                                    <div id="parcel_action_cancel" class="mb-2 border-top pt-2" style="display:none;">
+                                        <label class="small font-weight-bold mb-1" for="parcel_cancel_reason">{{ trans('lang.parcel_cancel_reason') }}</label>
+                                        <textarea class="form-control form-control-sm mb-2" id="parcel_cancel_reason" rows="2"></textarea>
+                                        <div id="parcel_cancel_refund_wrap" style="display:none;">
+                                            <label class="small font-weight-bold mb-1" for="parcel_cancel_refund">{{ trans('lang.parcel_cancel_refund') }} <span class="parcel-cancel-currency text-muted"></span></label>
+                                            <input type="number" min="0" step="any" class="form-control form-control-sm mb-1" id="parcel_cancel_refund">
+                                            <div class="form-text text-muted small mb-2" id="parcel_cancel_refund_source"></div>
+                                        </div>
+                                        <button type="button" class="btn btn-danger btn-sm" id="parcel_cancel_btn"><i class="fa fa-ban mr-1"></i>{{ trans('lang.parcel_cancel') }}</button>
+                                        <div class="form-text text-muted small">{{ trans('lang.parcel_cancel_help') }}</div>
                                     </div>
 
                                     <div id="parcel_action_quote" class="mb-2" style="display:none;">
@@ -555,7 +548,64 @@
         return o.status === 'Quote Requested';
     }
 
+    /* Cancel - the states the app developer's flow lets the customer or the
+     * admin cancel from (2.3): before a driver has accepted. */
+    var PARCEL_CANCELLABLE = ['Quote Requested', 'Order Placed', 'Driver Pending', 'Driver Rejected'];
+
+    function parcelCanCancel(o) {
+        return PARCEL_CANCELLABLE.indexOf(o.status) !== -1;
+    }
+
+    /* Paid = the customer's money was taken at booking: not cash, not "receiver
+       pays", and not a quote that was never paid. */
+    function parcelWasPaid(o) {
+        return o.status !== 'Quote Requested' && o.payment_method !== 'cod' && o.paymentCollectByReceiver !== true;
+    }
+
+    var parcelRefundSuggested = null;
+
+    /* What to refund: what was actually taken from the customer's wallet for
+       this order (the app's "Parcel Amount debited" rows), else the total the
+       order recorded. The admin sees it and can correct it. */
+    async function parcelSuggestRefund(o) {
+        try {
+            var rows = await database.collection('wallet').where('order_id', '==', id).get();
+            var debited = 0, refunded = 0;
+            rows.docs.forEach(function (d) {
+                var w = d.data(), amt = parseFloat(w.amount) || 0;
+                if (w.isTopUp === true) { refunded += amt; } else { debited += amt; }
+            });
+            if (refunded > 0) {
+                return { amount: 0, source: "{{ trans('lang.parcel_cancel_already_refunded') }}" };
+            }
+            if (debited > 0) {
+                return { amount: debited, source: "{{ trans('lang.parcel_cancel_from_wallet') }}" };
+            }
+        } catch (err) {
+            console.error('wallet rows could not be read', err);
+        }
+        var total = o.priceBreakdown && parseFloat(o.priceBreakdown.total);
+        if (total > 0) {
+            return { amount: total, source: "{{ trans('lang.parcel_cancel_from_total') }}" };
+        }
+        return { amount: '', source: "{{ trans('lang.parcel_cancel_enter_amount') }}" };
+    }
+
     function renderParcelActions(order) {
+        var cancel = parcelCanCancel(order);
+        $('#parcel_action_cancel').toggle(cancel);
+        if (cancel) {
+            var paid = parcelWasPaid(order);
+            $('#parcel_cancel_refund_wrap').toggle(paid);
+            $('.parcel-cancel-currency').text(currentCurrency ? '(' + currentCurrency + ')' : '');
+            if (paid) {
+                parcelSuggestRefund(order).then(function (r) {
+                    parcelRefundSuggested = r;
+                    $('#parcel_cancel_refund').val(r.amount);
+                    $('#parcel_cancel_refund_source').text(r.source);
+                });
+            }
+        }
         var origin = parcelCanMarkOrigin(order), collect = parcelCanMarkCollected(order), quote = parcelCanQuote(order);
         $('#parcel_action_origin').toggle(origin);
         $('#parcel_action_collect').toggle(collect);
@@ -565,7 +615,7 @@
             $('#parcel_quote_currency').text(currentCurrency ? '(' + currentCurrency + ')' : '');
         }
         $('.parcel-action-error').hide();
-        $('#parcel_actions').toggle(origin || collect || quote);
+        $('#parcel_actions').toggle(origin || collect || quote || cancel);
     }
 
     /* Re-reads the parcel in a transaction, so a step a driver recorded a
@@ -634,6 +684,117 @@
             parcelActionFailed(err);
             $b.prop('disabled', false);
         }
+    });
+
+    /* The refund as the customer reads it: in the order's currency. */
+    function parcelMoney(amount) {
+        var n = (parseFloat(amount) || 0).toFixed(decimal_degits || 0);
+        return currencyAtRight ? n + currentCurrency : currentCurrency + n;
+    }
+
+    function parcelPush(token, title, message) {
+        if (!token) {
+            return;
+        }
+        $.ajax({
+            type: 'POST', url: "{{ route('advertisement.sendnotification') }}",
+            data: { _token: "{{ csrf_token() }}", fcm: token, title: title, message: message }
+        });
+    }
+
+    async function parcelTokenOf(uid) {
+        if (!uid) {
+            return '';
+        }
+        try {
+            var snap = await database.collection('users').doc(uid).get();
+            return snap.exists ? (snap.data().fcmToken || '') : '';
+        } catch (err) {
+            return '';
+        }
+    }
+
+    $(document).on('click', '#parcel_cancel_btn', async function () {
+        var reason = $.trim($('#parcel_cancel_reason').val());
+        if (!reason) {
+            parcelActionFailed({ message: "{{ trans('lang.parcel_cancel_reason_required') }}" });
+            return;
+        }
+        var refundShown = $('#parcel_cancel_refund_wrap').is(':visible');
+        var refund = refundShown ? parseFloat($('#parcel_cancel_refund').val()) : 0;
+        if (refundShown && (isNaN(refund) || refund < 0)) {
+            parcelActionFailed({ message: "{{ trans('lang.parcel_cancel_refund_invalid') }}" });
+            return;
+        }
+        if (!confirm("{{ trans('lang.parcel_cancel_confirm') }}" + (refund > 0 ? ' ' + "{{ trans('lang.parcel_cancel_refund') }}" + ': ' + refund : ''))) {
+            return;
+        }
+        var $b = $(this).prop('disabled', true);
+        var docRef = database.collection('parcel_orders').doc(id);
+        var done = null;
+        try {
+            await database.runTransaction(async function (tx) {
+                var snap = await tx.get(docRef);
+                var o = snap.exists ? snap.data() : null;
+                if (!o || !parcelCanCancel(o)) {
+                    throw new Error("{{ trans('lang.parcel_action_changed') }}");
+                }
+                var update = {
+                    status: 'Order Cancelled',
+                    parcelStatus: 'Cancelled',
+                    cancelReason: reason,
+                    cancelReasonCode: 'admin',
+                    cancelledBy: 'admin',
+                    cancelledByName: "{{ trans('lang.parcel_cancel_by_admin') }}",
+                    cancelledAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    cancelAction: 'cancelled',
+                    driverId: null,
+                    driverID: null,
+                    trackingEvents: firebase.firestore.FieldValue.arrayUnion({
+                        status: 'Cancelled', at: firebase.firestore.Timestamp.now(), by: 'admin', role: 'admin', note: reason
+                    })
+                };
+                /* An offered driver must lose the offer, as on a customer cancel. */
+                if (o.status === 'Driver Pending' && o.driverId) {
+                    tx.update(database.collection('users').doc(o.driverId), {
+                        orderRequestData: firebase.firestore.FieldValue.arrayRemove(id)
+                    });
+                }
+                /* The refund, in the same shape as the app's own refund, and in
+                   the same transaction: never cancelled without it. */
+                if (refund > 0 && parcelWasPaid(o) && o.authorID) {
+                    var walletId = database.collection('wallet').doc().id;
+                    tx.set(database.collection('wallet').doc(walletId), {
+                        id: walletId, user_id: o.authorID, order_id: id, amount: refund, isTopUp: true,
+                        payment_method: 'wallet', payment_status: 'success', transactionUser: 'customer',
+                        note: 'Refund for cancelled parcel order', regionId: o.regionId || '',
+                        date: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    tx.update(database.collection('users').doc(o.authorID), {
+                        wallet_amount: firebase.firestore.FieldValue.increment(refund)
+                    });
+                    update.refundAmount = refund;
+                }
+                tx.update(docRef, update);
+                done = o;
+            });
+        } catch (err) {
+            parcelActionFailed(err);
+            $b.prop('disabled', false);
+            return;
+        }
+
+        /* Tell the people who were waiting on it. Best effort - the cancel and
+           the refund are already saved. */
+        var label = done.trackingNumber || id;
+        var msg = "{{ trans('lang.parcel_cancel_push_message') }}".replace(':parcel', label).replace(':reason', reason);
+        parcelPush(await parcelTokenOf(done.authorID), "{{ trans('lang.parcel_cancel_push_title') }}",
+            msg + (refund > 0 ? ' ' + "{{ trans('lang.parcel_cancel_push_refund') }}".replace(':amount', parcelMoney(refund)) : ''));
+        parcelPush(await parcelTokenOf(done.carrierOwnerId || done.companyOwnerId), "{{ trans('lang.parcel_cancel_push_title') }}", msg);
+        if (done.status === 'Driver Pending') {
+            parcelPush(await parcelTokenOf(done.driverId), "{{ trans('lang.parcel_cancel_push_title') }}", msg);
+        }
+        setTimeout(function () { window.location.reload(); }, 800);
     });
 
     $(document).on('click', '#parcel_save_quote', async function () {
@@ -957,10 +1118,7 @@
                 orderPaymentMethod = order.payment_method;
             }
 
-            $("#order_status option[value='" + order.status + "']").attr("selected", "selected");
-            if (order.status == "Order Rejected" || order.status == "Driver Rejected") {
-                $("#order_status").prop("disabled", true);
-            }
+            $("#order_status_text").text(order.status || '');
 
             jQuery("#data-table_processing").hide();
         })

@@ -303,7 +303,11 @@ $(document).ready(async function () {
                 if(docrefSnapshot.data() && docrefSnapshot.data().documents.length > 0){
                     var vendorDocId = await docrefSnapshot.data().documents.filter((doc) => doc.status == 'approved').map((docData) => docData.documentId);
                     if(vendorDocId.length >= enableDocIds.length){
-                        await database.collection('users').doc(vendor.id).update({'isDocumentVerify': true, isActive: true });
+                        /* 13 Oct, client: approving documents only marks the driver
+                         * verified. isActive is the driver's ONLINE switch - the
+                         * driver goes online themselves. (A refusal below still
+                         * takes them offline.) */
+                        await database.collection('users').doc(vendor.id).update({'isDocumentVerify': true });
                     }else{
                         await enableDocIds.forEach(async(docId) => {
                             if(!vendorDocId.includes(docId)){
