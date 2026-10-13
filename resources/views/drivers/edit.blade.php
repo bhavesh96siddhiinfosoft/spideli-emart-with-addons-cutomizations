@@ -147,6 +147,22 @@
                             </div>
                         </fieldset>
 
+                        {{-- PARCEL-MANAGEMENT-FLOW 3.2 / M1: a driver who signed up on
+                             their own can only join a delivery company if the admin
+                             sets its owner. Hidden on an owner's own account. --}}
+                        <fieldset id="driver_company_fieldset" style="display:none;">
+                            <legend>{{ trans('lang.driver_company') }}</legend>
+                            <div class="form-group row width-50">
+                                <label class="col-3 control-label">{{ trans('lang.driver_company_owner') }}</label>
+                                <div class="col-7">
+                                    <select class="form-control" id="driver_owner">
+                                        <option value="">{{ trans('lang.driver_company_none') }}</option>
+                                    </select>
+                                    <div class="form-text text-muted">{{ trans('lang.driver_company_help') }}</div>
+                                </div>
+                            </div>
+                        </fieldset>
+
                         <fieldset>
                             <legend>{{trans('lang.section_service_details')}}</legend>
                             <div class="form-group row width-100">
@@ -270,6 +286,46 @@
             }
         });
 
+    /* ---- The driver's company (owner) ------------------------------------ */
+    var driverOwnerLoaded = '';
+
+    async function initDriverCompany(user) {
+        if (!user || user.isOwner === true) {
+            return;
+        }
+        driverOwnerLoaded = user.ownerId || '';
+        try {
+            var owners = await database.collection('users').where('isOwner', '==', true).get();
+            var $sel = $('#driver_owner');
+            owners.docs.map(function (d) {
+                var o = d.data();
+                var name = o.companyName || ((o.firstName || '') + ' ' + (o.lastName || '')).trim() || d.id;
+                return { id: d.id, label: name + (o.email ? ' - ' + o.email : '') };
+            }).sort(function (a, b) { return a.label.localeCompare(b.label); })
+              .forEach(function (o) { $sel.append($('<option>').val(o.id).text(o.label)); });
+            $sel.val(driverOwnerLoaded);
+            $('#driver_company_fieldset').show();
+        } catch (err) {
+            console.error('owners could not be read', err);
+        }
+    }
+
+    /* Only what changed: joining a company sets ownerId (and isOwner false,
+       as the owner's app does); leaving one removes ownerId. Its earnings then
+       go to the company's wallet - the apps' rule for company drivers. */
+    function driverCompanyChange() {
+        if (!$('#driver_company_fieldset').is(':visible')) {
+            return {};
+        }
+        var chosen = $('#driver_owner').val() || '';
+        if (chosen === driverOwnerLoaded) {
+            return {};
+        }
+        return chosen
+            ? { ownerId: chosen, isOwner: false }
+            : { ownerId: firebase.firestore.FieldValue.delete() };
+    }
+
         $(document).ready(async function () {
             
             jQuery("#data-table_processing").show();
@@ -335,6 +391,7 @@
 
             let userRef = await database.collection('users').doc(id).get();
             let user = userRef.data();
+            initDriverCompany(user);
 
             /* A driver outside the region the admin is working in must not be
              * reachable by editing the url. */
@@ -832,7 +889,7 @@
                     'otherDetails': otherDetails,
                 };
                 storeImageData().then(IMG => {
-                    database.collection('users').doc(id).update({
+                    database.collection('users').doc(id).update(Object.assign(driverCompanyChange(), {
                         'firstName': userFirstName,
                         'lastName': userLastName,
                         'active': active,
@@ -844,7 +901,7 @@
                         'serviceTypes': selectedSections.serviceTypes,
                         'sectionNames': selectedSections.sectionNames,
                         'vehicleDetails': selectedSections.vehicleDetails
-                    }).then(function (result) {
+                    })).then(function (result) {
                         window.location.href = '{{ route("drivers")}}';
                     });
                 }).catch(function (error) {

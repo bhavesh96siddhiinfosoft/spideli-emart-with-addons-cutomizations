@@ -61,6 +61,16 @@
             reaches nobody: the owner's app finds its parcels through this
             link. Filled by the script below; hidden when every carrier has an
             owner, or for a role that may not edit carriers. --}}
+       {{-- Carriers waiting for the admin (app developer's PARCEL-MANAGEMENT-FLOW
+            3.1): a company owner can now create its carrier in the driver app
+            ("Set up your carrier"). It is saved NOT verified and NOT published,
+            and customers are offered it only once the admin verifies and
+            publishes it - the app does not tell the admin (M14). --}}
+       <div class="alert alert-info" id="waiting_carriers_alert" style="display:none;">
+           <strong>{{ trans('lang.waiting_carriers_title') }}</strong>
+           <div class="small mb-2">{{ trans('lang.waiting_carriers_text') }}</div>
+           <ul class="mb-0 pl-3" id="waiting_carriers_list"></ul>
+       </div>
        <div class="alert alert-warning" id="unlinked_carriers_alert" style="display:none;">
            <strong>{{ trans('lang.unlinked_carriers_title') }}</strong>
            <div class="small mb-2">{{ trans('lang.unlinked_carriers_text') }}</div>
@@ -774,6 +784,42 @@ $(document).on("click", "input[name='isActive']", function (e) {
                 ));
             });
             $('#unlinked_carriers_alert').toggle(unlinked.length > 0);
+
+            /* Linked to an owner, but not yet verified or not yet published.
+               Created in the app first, then the oldest first. */
+            var waiting = carrierSnap.docs.filter(function (d) {
+                var c = d.data();
+                /* As the apps: only an explicit false is unverified (missing = verified). */
+                return c.ownerId && owners[c.ownerId] && (c.isVerified === false || c.publish === false);
+            });
+            var when = function (d) {
+                var t = d.data().createdAt;
+                return t && typeof t.toDate === 'function' ? t.toDate().getTime() : 0;
+            };
+            waiting.sort(function (a, b) {
+                var fa = a.data().createdFrom === 'driver_app' ? 0 : 1, fb = b.data().createdFrom === 'driver_app' ? 0 : 1;
+                return fa - fb || when(a) - when(b);
+            });
+
+            var $w = $('#waiting_carriers_list').empty();
+            waiting.forEach(function (d) {
+                var c = d.data();
+                var missing = [];
+                if (c.isVerified === false) { missing.push("{{ trans('lang.waiting_carriers_not_verified') }}"); }
+                if (c.publish === false) { missing.push("{{ trans('lang.waiting_carriers_not_published') }}"); }
+                var created = when(d) ? new Date(when(d)).toLocaleDateString() : '';
+                var reviewUrl = "{{ route('carriers.edit', ':id') }}".replace(':id', encodeURIComponent(d.id)) +
+                    '?fromCompany=' + encodeURIComponent(c.ownerId) + '&back=all';
+                $w.append($('<li class="mb-1">').append(
+                    $('<strong>').text(c.name || d.id),
+                    $('<span>').text(' - ' + ownerLabel(c.ownerId, owners[c.ownerId]) + ' - ' + missing.join(', ') +
+                        (c.createdFrom === 'driver_app' ? ' - ' + "{{ trans('lang.waiting_carriers_from_app') }}" : '') +
+                        (created ? ' (' + created + ')' : '') + ' '),
+                    $('<a class="font-weight-bold ml-1">').attr('href', reviewUrl)
+                        .html('<i class="fa fa-search mr-1"></i>{{ trans('lang.waiting_carriers_review') }}')
+                ));
+            });
+            $('#waiting_carriers_alert').toggle(waiting.length > 0);
         }
 
         $(document).on('click', '.link-carrier-btn', function () {

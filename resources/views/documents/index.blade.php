@@ -241,7 +241,8 @@
             'driver': "{{trans('lang.document_driver')}}",
             'owner': "{{trans('lang.document_owner')}}",
             'provider': "{{trans('lang.document_provider')}}",
-            'worker': "{{trans('lang.document_worker')}}"
+            'worker': "{{trans('lang.document_worker')}}",
+            'vehicle': "{{trans('lang.document_vehicle')}}"
         };
 
         html.push(documentForLabels[val.type] || val.type || '-');
@@ -422,7 +423,8 @@
                     var driverDocId = await docrefSnapshot.data().documents.filter((doc) => doc.status == 'approved').map((docData) => docData.documentId);
                     if (driverDocId.length >= enableDocIds.length) {
                         if (documentFor == 'driver') {
-                            await database.collection('users').doc(driver.id).update({ 'isDocumentVerify': true, isActive: true });
+                            /* 13 Oct, client: verified only - never switched online. */
+                            await database.collection('users').doc(driver.id).update({ 'isDocumentVerify': true });
                         } else {
                             await database.collection('users').doc(driver.id).update({ 'isDocumentVerify': true });
                         }

@@ -28,7 +28,13 @@
                             <div class="select-box pl-3">
                                 <select class="form-control status_selector filteredRecords">
                                     <option value="" selected>{{trans("lang.status")}}</option>
+                                    {{-- The statuses the apps use (PARCEL-MANAGEMENT-FLOW 2.3);
+                                         the older ones stay below for old parcels. --}}
+                                    <option value="Quote Requested">{{trans("lang.quote_requested")}}</option>
                                     <option value="Order Placed">{{trans("lang.order_placed")}}</option>
+                                    <option value="Driver Accepted">{{trans("lang.driver_accepted")}}</option>
+                                    <option value="In Transit">{{trans("lang.in_transit")}}</option>
+                                    <option value="Order Cancelled">{{trans("lang.order_cancelled")}}</option>
                                     <option value="Order Accepted">{{trans("lang.order_accepted")}}</option>
                                     <option value="Order Rejected">{{trans("lang.order_rejected")}}</option>
                                     <option value="Driver Pending">{{trans("lang.driver_pending")}}</option>
@@ -100,6 +106,14 @@
                 </div>
             </div>
         </div>
+       </div>
+       {{-- Quote requests still waiting for a price (PARCEL-MANAGEMENT-FLOW
+            1.3 / M14): the customer asked for a quote because no delivery
+            option served the route, and the app does not tell the admin. --}}
+       <div class="alert alert-warning" id="quotes_waiting_alert" style="display:none;">
+           <i class="fa fa-calculator mr-1"></i>
+           <span id="quotes_waiting_text"></span>
+           <a href="javascript:void(0)" id="quotes_waiting_show" class="font-weight-bold ml-2">{{ trans('lang.quotes_waiting_show') }}</a>
        </div>
        <div class="table-list">
        <div class="row">
@@ -253,6 +267,22 @@
     });
 
     var initialRef=ref;
+
+    /* Quote requests with no price yet - counted on every visit. */
+    database.collection('parcel_orders').where('status', '==', 'Quote Requested').get().then(function (snap) {
+        var waiting = snap.docs.filter(function (d) {
+            var price = d.data().manualPrice;
+            return price === undefined || price === null || price === '' || !(parseFloat(price) > 0);
+        }).length;
+        if (waiting > 0) {
+            $('#quotes_waiting_text').text("{{ trans('lang.quotes_waiting_text') }}".replace(':count', waiting));
+            $('#quotes_waiting_alert').show();
+        }
+    }).catch(function (err) { console.error('quote requests could not be counted', err); });
+
+    $(document).on('click', '#quotes_waiting_show', function () {
+        $('.status_selector').val('Quote Requested').trigger('change');
+    });
     $('.filteredRecords').change(async function() {
         var status = $('.status_selector').val();
         var daterangepicker = $('#daterange').data('daterangepicker');
@@ -569,7 +599,10 @@
         } else {
             html.push('<td></td>');
         }
-        if (val.status == 'Order Placed') {
+        if (val.status == 'Quote Requested') {
+            html.push('<td class="quote_requested"><span class="badge badge-warning">' + val.status +
+                (val.manualPrice ? '' : ' - {{ trans('lang.quote_needs_price') }}') + '</span></td>');
+        } else if (val.status == 'Order Placed') {
             html.push('<td class="order_placed"><span class="badge badge-warning">' + val.status + '</span></td>');
         } else if (val.status == 'Order Accepted') {
             html.push('<td class="order_accepted"><span class="badge badge-info">' + val.status + '</span></td>');

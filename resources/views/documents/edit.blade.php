@@ -36,6 +36,9 @@
                                 <option value="owner">{{trans('lang.document_owner')}}</option>
                                 <option value="provider">{{trans('lang.document_provider')}}</option>
                                 <option value="worker">{{trans('lang.document_worker')}}</option>
+                                {{-- PARCEL-MANAGEMENT-FLOW 3.3: the driver app asks cab and
+                                     rental drivers for "vehicle" documents too. --}}
+                                <option value="vehicle">{{trans('lang.document_vehicle')}}</option>
                             </select>
                             <div class="form-text text-muted">{{ trans("lang.select_document_for") }}
                             </div>
@@ -155,7 +158,7 @@
                      * disabling a document changes who is fully verified. */
                     var target = documentTargetFor(document_for);
                     var enableDocIds = await getDocId(document_for);
-                    var holders = await target.query.get();
+                    var holders = target.query ? await target.query.get() : { docs: [] };
                     if (holders.docs.length > 0) {
                         await userDocVerification(enableDocIds, holders);
                     }
@@ -202,6 +205,12 @@
         if (type == 'provider') {
             return {collection: 'users', query: database.collection('users').where('role', '==', 'provider'), activates: false};
         }
+        /* Vehicle documents belong to cab / rental drivers, on top of their
+         * driver documents. Their status is worked out per driver (the driver
+         * document screen, and the apps), so no bulk re-check runs for them. */
+        if (type == 'vehicle') {
+            return {collection: 'users', query: null, activates: false};
+        }
         if (type == 'worker') {
             return {collection: 'providers_workers', query: database.collection('providers_workers'), activates: false};
         }
@@ -227,8 +236,11 @@
          * other types keep their active state under the admin's control. */
         async function markVerified(holderId, verified) {
             var payload = {'isDocumentVerify': verified};
-            if (target.activates) {
-                payload.isActive = verified;
+            /* 13 Oct, client: documents never switch a driver ONLINE -
+               isActive is the driver's own switch. Losing verification still
+               takes them offline. */
+            if (target.activates && !verified) {
+                payload.isActive = false;
             }
             await database.collection(target.collection).doc(holderId).update(payload);
         }

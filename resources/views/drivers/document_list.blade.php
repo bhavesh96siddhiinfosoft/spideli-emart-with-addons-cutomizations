@@ -71,6 +71,22 @@
     var allDriver = database.collection('users').where('role','==','driver');
     var ref = database.collection('users').where("id", "==", id);
     var docsRef = database.collection('documents').where('enable', '==', true).where('type','==','driver');
+
+    /* The document types this driver must supply, as the driver app works
+     * them out (PARCEL-MANAGEMENT-FLOW 3.3): "driver", plus "vehicle" for a
+     * cab or rental driver. Read from the driver before the list is built. */
+    var requiredDocTypes = ['driver'];
+
+    function driverDocTypesFor(driver) {
+        var types = Array.isArray(driver.serviceTypes) ? driver.serviceTypes.slice() : [];
+        if (driver.serviceType) {
+            types.push(driver.serviceType);
+        }
+        var needsVehicle = types.some(function (t) {
+            return /cab|rental/i.test(String(t || ''));
+        });
+        return needsVehicle ? ['driver', 'vehicle'] : ['driver'];
+    }
     var docref = database.collection('documents_verify').doc(id);
     var back_photo = '';
     var front_photo = '';
@@ -90,6 +106,15 @@
     }
 $(document).ready(async function () {
         jQuery("#data-table_processing").show();
+        try {
+            var driverFirst = await ref.get();
+            if (!driverFirst.empty) {
+                requiredDocTypes = driverDocTypesFor(driverFirst.docs[0].data());
+            }
+        } catch (err) {
+            console.error('driver could not be read', err);
+        }
+        docsRef = database.collection('documents').where('enable', '==', true).where('type', 'in', requiredDocTypes);
         $('#exampleModal').on('show.bs.modal', function (event) {
             var button = $(event.relatedTarget);
             var img = button.data('image');
@@ -289,7 +314,7 @@ $(document).ready(async function () {
     });
     async function getDocId(){
         var enableDocIds = [];
-        await database.collection('documents').where('enable', "==", true).where('type', '==', 'driver').get().then(async function (snapshots) {
+        await database.collection('documents').where('enable', "==", true).where('type', 'in', requiredDocTypes).get().then(async function (snapshots) {
             await snapshots.forEach((doc) => {
                 enableDocIds.push(doc.data().id);
             });
