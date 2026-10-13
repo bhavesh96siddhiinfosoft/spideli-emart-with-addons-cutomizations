@@ -43,6 +43,15 @@
                                     <h3 class="text-dark-2 mb-2 h4">{{ trans('lang.notificaions_table') }}</h3>
                                     <p class="mb-0 text-dark-2">{{ trans('lang.notifications_table_text') }}</p>
                                 </div>
+                                {{-- A new TYPE is only useful once an app sends it - the app
+                                     developer names the type, the admin writes its text. --}}
+                                <?php if (in_array('dynamic-notification.save', json_decode(@session('user_permissions'), true) ?: [])) { ?>
+                                <div class="card-header-right d-flex align-items-center">
+                                    <div class="card-header-btn mr-3">
+                                        <a class="btn-primary btn rounded-full" href="{!! route('dynamic-notification.save') !!}"><i class="mdi mdi-plus mr-2"></i>{{ trans('lang.create_notification_template') }}</a>
+                                    </div>
+                                </div>
+                                <?php } ?>
 
                             </div>
                             <div class="card-body">

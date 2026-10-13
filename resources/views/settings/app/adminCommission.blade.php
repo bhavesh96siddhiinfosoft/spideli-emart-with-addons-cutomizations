@@ -73,6 +73,19 @@
 
               </fieldset>
 
+              {{-- Parcel and mail (app developer's PARCEL-MANAGEMENT-FLOW.md 1.2):
+                   the apps add the section commission ON TOP of a delivery
+                   company's price only when this is on. Stored in
+                   settings/ParcelPricing, which the apps read. --}}
+              <fieldset>
+                <legend>{{ trans('lang.parcel_commission_legend') }}</legend>
+                    <div class="form-check width-100">
+                      <input type="checkbox" class="form-check-inline" id="parcel_commission_as_extra">
+                        <label class="col-8 control-label" for="parcel_commission_as_extra">{{ trans('lang.parcel_commission_as_extra') }}</label>
+                      <div class="form-text text-muted pl-4">{{ trans('lang.parcel_commission_as_extra_help') }}</div>
+                    </div>
+              </fieldset>
+
             </div>
           </div>
 
@@ -92,6 +105,7 @@
     var database = firebase.firestore();
     var ref = database.collection('settings').doc("AdminCommission");
     var ref_deliverycharge = database.collection('settings').doc("DeliveryCharge");
+    var ref_parcel_pricing = database.collection('settings').doc("ParcelPricing");
 
     var photo = "";
     $(document).ready(function(){
@@ -115,6 +129,10 @@
             $("#delivery_commission_value").val(adminCommissionSettings.deliveryCommissionValue);
             $("#delivery_commission_type").val(adminCommissionSettings.deliveryCommissionType || 'Percent');
         })
+        /* Missing document = off, which is what the apps assume. */
+        ref_parcel_pricing.get().then(function (snap) {
+            $("#parcel_commission_as_extra").prop('checked', !!(snap.exists && snap.data().commissionAsExtra === true));
+        });
         jQuery("#data-table_processing").hide();
 
         $(".save_admin_commission").click(function(){
@@ -133,6 +151,12 @@
                 'deliveryCommissionEnabled': deliveryEnabled,
                 'deliveryCommissionType': $("#delivery_commission_type").val(),
                 'deliveryCommissionValue': deliveryValue
+            }).then(function () {
+                /* merge: the document may not exist yet, and other parcel
+                   settings may be added to it later. */
+                return ref_parcel_pricing.set({
+                    'commissionAsExtra': $("#parcel_commission_as_extra").is(":checked")
+                }, { merge: true });
             }).then(function(result) {
                       window.location.href = '{{ url("settings/app/adminCommission")}}';
               });

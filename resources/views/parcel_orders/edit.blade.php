@@ -178,6 +178,58 @@
                                 </div>
                             </div>
                         </div>
+                        {{-- What the apps record on a parcel as it moves (app developer's
+                             PARCEL-MANAGEMENT-FLOW.md, 13 Oct): codes, the delivery company
+                             and its owner, who was offered it and who refused it, the proof
+                             of delivery, a cancellation, and the dated history. Read-only. --}}
+                        <div class="card" id="parcel_flow_card">
+                            <div class="card-header">
+                                <h4 class="card-header-title">{{ trans('lang.parcel_flow_title') }}</h4>
+                            </div>
+                            <div class="card-body">
+                                <div id="parcel_flow_owner_warning" class="alert alert-warning py-2 small" style="display:none;">{{ trans('lang.parcel_flow_no_owner') }}</div>
+                                <table class="table table-sm mb-2 small parcel-flow-table"><tbody id="parcel_flow_rows"></tbody></table>
+                                <div id="parcel_flow_rejections_wrap" style="display:none;">
+                                    <h6 class="font-weight-bold mt-3">{{ trans('lang.parcel_flow_rejections') }}</h6>
+                                    <ul class="list-unstyled small mb-0" id="parcel_flow_rejections"></ul>
+                                </div>
+                                <div id="parcel_flow_history_wrap" style="display:none;">
+                                    <h6 class="font-weight-bold mt-3">{{ trans('lang.parcel_flow_history') }}</h6>
+                                    <ul class="list-unstyled small mb-0" id="parcel_flow_history"></ul>
+                                </div>
+                                {{-- Steps only the admin / pickup point can record, and the
+                                     price of a quote. Each shows only when it applies. --}}
+                                <div id="parcel_actions" class="non-printable" style="display:none;">
+                                    <h6 class="font-weight-bold mt-3">{{ trans('lang.parcel_actions') }}</h6>
+                                    <div class="parcel-action-error alert alert-danger py-2 small" style="display:none;"></div>
+
+                                    <div id="parcel_action_origin" class="mb-2" style="display:none;">
+                                        <button type="button" class="btn btn-outline-primary btn-sm" id="parcel_mark_origin">
+                                            <i class="fa fa-map-marker mr-1"></i>{{ trans('lang.parcel_mark_origin') }}
+                                        </button>
+                                        <div class="form-text text-muted small">{{ trans('lang.parcel_mark_origin_help') }}</div>
+                                    </div>
+
+                                    <div id="parcel_action_collect" class="mb-2" style="display:none;">
+                                        <label class="small font-weight-bold mb-1" for="parcel_collect_code">{{ trans('lang.parcel_collect_code') }}</label>
+                                        <div class="d-flex">
+                                            <input type="text" class="form-control form-control-sm mr-2" id="parcel_collect_code" maxlength="10" autocomplete="off">
+                                            <button type="button" class="btn btn-primary btn-sm text-nowrap" id="parcel_mark_collected">{{ trans('lang.parcel_mark_collected') }}</button>
+                                        </div>
+                                        <div class="form-text text-muted small">{{ trans('lang.parcel_mark_collected_help') }}</div>
+                                    </div>
+
+                                    <div id="parcel_action_quote" class="mb-2" style="display:none;">
+                                        <label class="small font-weight-bold mb-1" for="parcel_quote_price">{{ trans('lang.parcel_quote_price') }} <span id="parcel_quote_currency" class="text-muted"></span></label>
+                                        <div class="d-flex">
+                                            <input type="number" min="0" step="any" class="form-control form-control-sm mr-2" id="parcel_quote_price">
+                                            <button type="button" class="btn btn-primary btn-sm text-nowrap" id="parcel_save_quote">{{ trans('lang.parcel_save_quote') }}</button>
+                                        </div>
+                                        <div class="form-text text-muted small">{{ trans('lang.parcel_quote_help') }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <div class="card">
                             <div class="card-header">
                                 <h4 class="card-header-title">{{ trans('lang.sender_details')}}</h4>
@@ -356,6 +408,253 @@
         return parcelTrackBase + '/track-parcel/' + id;
     }
 
+    /* ---- The parcel's flow (codes, company, offers, proof, history) ------ */
+    var parcelFlowNames = {};
+
+    async function parcelFlowName(uid) {
+        if (!uid) {
+            return '';
+        }
+        if (parcelFlowNames[uid] === undefined) {
+            parcelFlowNames[uid] = '';
+            try {
+                var snap = await database.collection('users').doc(uid).get();
+                if (snap.exists) {
+                    var u = snap.data();
+                    parcelFlowNames[uid] = ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || u.companyName || u.email || '';
+                }
+            } catch (err) {
+                console.error('user could not be read', err);
+            }
+        }
+        return parcelFlowNames[uid] || uid;
+    }
+
+    function parcelFlowDate(value) {
+        if (!value) {
+            return '';
+        }
+        var d = (typeof value.toDate === 'function') ? value.toDate() : new Date(value);
+        return isNaN(d.getTime()) ? '' : d.toLocaleString();
+    }
+
+    function parcelFlowRow(label, value, isHtml) {
+        if (value === undefined || value === null || value === '') {
+            return;
+        }
+        var $td = $('<td>');
+        if (isHtml) {
+            $td.html(value);
+        } else {
+            $td.text(value);
+        }
+        $('#parcel_flow_rows').append($('<tr>').append($('<th class="text-nowrap pr-3">').text(label), $td));
+    }
+
+    async function renderParcelFlow(order) {
+        $('#parcel_flow_rows, #parcel_flow_rejections, #parcel_flow_history').empty();
+
+        parcelFlowRow("{{ trans('lang.parcel_flow_tracking_number') }}", order.trackingNumber);
+        parcelFlowRow("{{ trans('lang.parcel_flow_receiver_code') }}", order.pickupCode);
+        parcelFlowRow("{{ trans('lang.parcel_flow_step') }}", order.parcelStatus);
+
+        if (order.carrierId || order.carrierName) {
+            parcelFlowRow("{{ trans('lang.parcel_flow_carrier') }}", order.carrierName || order.carrierId);
+            var ownerId = order.carrierOwnerId || order.companyOwnerId || '';
+            if (ownerId) {
+                var ownerName = await parcelFlowName(ownerId);
+                var ownerUrl = "{{ route('owners.view', ':id') }}".replace(':id', ownerId);
+                parcelFlowRow("{{ trans('lang.parcel_flow_owner') }}", $('<a target="_blank">').attr('href', ownerUrl).text(ownerName).prop('outerHTML'), true);
+            }
+            /* A company parcel with no owner reaches nobody: the owner's app
+               finds its parcels by this id. */
+            $('#parcel_flow_owner_warning').toggle(!ownerId);
+        } else {
+            parcelFlowRow("{{ trans('lang.parcel_flow_carrier') }}", "{{ trans('lang.parcel_flow_spideli') }}");
+        }
+
+        if (order.assignedBy) {
+            parcelFlowRow("{{ trans('lang.parcel_flow_assigned_by') }}",
+                (await parcelFlowName(order.assignedBy)) + (order.assignedAt ? ' - ' + parcelFlowDate(order.assignedAt) : ''));
+        }
+        parcelFlowRow("{{ trans('lang.parcel_flow_offered_at') }}", parcelFlowDate(order.dispatchedAt));
+
+        if (order.deliveryProof) {
+            var proof = order.deliveryProof;
+            var proofText = (proof.type === 'otp' ? "{{ trans('lang.parcel_flow_proof_code') }}" : "{{ trans('lang.parcel_flow_proof_photo') }}") +
+                (proof.at ? ' - ' + parcelFlowDate(proof.at) : '');
+            var proofHtml = $('<span>').text(proofText).prop('outerHTML');
+            if (proof.photoUrl) {
+                proofHtml += ' <a target="_blank" rel="noopener" href="' + encodeURI(proof.photoUrl) + '">{{ trans('lang.view') }}</a>';
+            }
+            parcelFlowRow("{{ trans('lang.parcel_flow_proof') }}", proofHtml, true);
+        }
+
+        if (order.cancelledAt || order.cancelReason) {
+            var who = order.cancelledByName || (order.cancelledBy ? await parcelFlowName(order.cancelledBy) : '');
+            parcelFlowRow("{{ trans('lang.parcel_flow_cancelled') }}",
+                [who, order.cancelReason, parcelFlowDate(order.cancelledAt)].filter(Boolean).join(' - '));
+        }
+
+        var rejections = Array.isArray(order.driverRejections) ? order.driverRejections : [];
+        for (var i = 0; i < rejections.length; i++) {
+            var r = rejections[i] || {};
+            var name = await parcelFlowName(r.driverId);
+            $('#parcel_flow_rejections').append($('<li class="mb-1">').text(
+                [name, r.reason || r.code, parcelFlowDate(r.at)].filter(Boolean).join(' - ')));
+        }
+        $('#parcel_flow_rejections_wrap').toggle(rejections.length > 0);
+
+        var events = (Array.isArray(order.trackingEvents) ? order.trackingEvents.slice() : []).filter(function (e) { return e && e.status; });
+        var time = function (e) {
+            var v = e.at;
+            var d = v && typeof v.toDate === 'function' ? v.toDate() : (v ? new Date(v) : null);
+            return d && !isNaN(d.getTime()) ? d.getTime() : 0;
+        };
+        events.sort(function (a, b) { return time(b) - time(a); });
+        events.forEach(function (e) {
+            $('#parcel_flow_history').append($('<li class="mb-1">').append(
+                $('<strong>').text(e.status),
+                $('<span class="text-muted">').text(' - ' + parcelFlowDate(e.at) + (e.role ? ' (' + e.role + ')' : '') + (e.note ? ' - ' + e.note : ''))
+            ));
+        });
+        $('#parcel_flow_history_wrap').toggle(events.length > 0);
+
+        renderParcelActions(order);
+    }
+
+    /* ---- Admin / pickup-point steps and the quote price --------------------
+     * From the app developer's PARCEL-MANAGEMENT-FLOW.md 2.3 and 9.3 (M10):
+     * "At origin pickup point" (the sender dropped the parcel at the point) and
+     * "Delivered" at the destination point (the receiver collected it, with the
+     * receiver code) are recorded only by the admin / pickup point; a "Quote
+     * Requested" parcel waits for the admin's price (manualPrice), which the
+     * customer then pays in the app. Steps are ranked as in the apps and never
+     * written backwards. */
+    var PARCEL_STEP_RANK = {
+        'Created': 0, 'Paid': 1, 'Waiting drop-off': 1, 'Collected': 2, 'At origin pickup point': 2,
+        'In transit': 3, 'Arrived destination': 4, 'Out for delivery': 5, 'At destination pickup point': 5,
+        'Delivered': 6, 'Returned': 7, 'Cancelled': 7
+    };
+    var PARCEL_CLOSED = ['Order Cancelled', 'Order Rejected', 'Quote Requested'];
+
+    function parcelStepRank(step) {
+        return PARCEL_STEP_RANK.hasOwnProperty(step) ? PARCEL_STEP_RANK[step] : 0;
+    }
+
+    function parcelCanMarkOrigin(o) {
+        return o.pickupMethod === 'pickup_point' && PARCEL_CLOSED.indexOf(o.status) === -1 &&
+            o.status !== 'Order Completed' && parcelStepRank(o.parcelStatus) < 2;
+    }
+
+    function parcelCanMarkCollected(o) {
+        return o.deliveryMethod === 'pickup_point' && o.parcelStatus === 'At destination pickup point';
+    }
+
+    function parcelCanQuote(o) {
+        return o.status === 'Quote Requested';
+    }
+
+    function renderParcelActions(order) {
+        var origin = parcelCanMarkOrigin(order), collect = parcelCanMarkCollected(order), quote = parcelCanQuote(order);
+        $('#parcel_action_origin').toggle(origin);
+        $('#parcel_action_collect').toggle(collect);
+        $('#parcel_action_quote').toggle(quote);
+        if (quote) {
+            $('#parcel_quote_price').val(order.manualPrice !== undefined && order.manualPrice !== null ? order.manualPrice : '');
+            $('#parcel_quote_currency').text(currentCurrency ? '(' + currentCurrency + ')' : '');
+        }
+        $('.parcel-action-error').hide();
+        $('#parcel_actions').toggle(origin || collect || quote);
+    }
+
+    /* Re-reads the parcel in a transaction, so a step a driver recorded a
+       moment ago is never overwritten. `check` returns '' or the refusal. */
+    async function parcelAdminStep(check, fields, event) {
+        var docRef = database.collection('parcel_orders').doc(id);
+        await database.runTransaction(async function (tx) {
+            var snap = await tx.get(docRef);
+            if (!snap.exists) {
+                throw new Error("{{ trans('lang.parcel_action_changed') }}");
+            }
+            var problem = check(snap.data());
+            if (problem) {
+                throw new Error(problem);
+            }
+            var update = Object.assign({}, fields);
+            if (event) {
+                update.parcelStatus = event.status;
+                update.trackingEvents = firebase.firestore.FieldValue.arrayUnion(Object.assign({
+                    at: firebase.firestore.Timestamp.now(), by: 'admin', role: 'admin'
+                }, event));
+            }
+            tx.update(docRef, update);
+        });
+    }
+
+    function parcelActionFailed(err) {
+        $('.parcel-action-error').text(err && err.message ? err.message : String(err)).show();
+    }
+
+    $(document).on('click', '#parcel_mark_origin', async function () {
+        if (!confirm("{{ trans('lang.parcel_mark_origin') }}?")) {
+            return;
+        }
+        var $b = $(this).prop('disabled', true);
+        try {
+            await parcelAdminStep(function (o) {
+                return parcelCanMarkOrigin(o) ? '' : "{{ trans('lang.parcel_action_changed') }}";
+            }, { atOriginPointAt: firebase.firestore.FieldValue.serverTimestamp() },
+               { status: 'At origin pickup point', note: "{{ trans('lang.parcel_mark_origin') }}" });
+            window.location.reload();
+        } catch (err) {
+            parcelActionFailed(err);
+            $b.prop('disabled', false);
+        }
+    });
+
+    $(document).on('click', '#parcel_mark_collected', async function () {
+        var code = $.trim($('#parcel_collect_code').val());
+        var $b = $(this).prop('disabled', true);
+        try {
+            await parcelAdminStep(function (o) {
+                if (!parcelCanMarkCollected(o)) {
+                    return "{{ trans('lang.parcel_action_changed') }}";
+                }
+                /* The receiver code is the proof, as at a home delivery. A
+                   parcel without one (booked before codes existed) needs none. */
+                if (o.pickupCode && String(o.pickupCode) !== code) {
+                    return "{{ trans('lang.parcel_collect_wrong_code') }}";
+                }
+                return '';
+            }, { collectedAtPointAt: firebase.firestore.FieldValue.serverTimestamp() },
+               { status: 'Delivered', note: "{{ trans('lang.parcel_mark_collected') }}" });
+            window.location.reload();
+        } catch (err) {
+            parcelActionFailed(err);
+            $b.prop('disabled', false);
+        }
+    });
+
+    $(document).on('click', '#parcel_save_quote', async function () {
+        var raw = $('#parcel_quote_price').val();
+        var price = parseFloat(raw);
+        if (raw === '' || isNaN(price) || price <= 0) {
+            parcelActionFailed({ message: "{{ trans('lang.parcel_quote_invalid') }}" });
+            return;
+        }
+        var $b = $(this).prop('disabled', true);
+        try {
+            await parcelAdminStep(function (o) {
+                return parcelCanQuote(o) ? '' : "{{ trans('lang.parcel_action_changed') }}";
+            }, { manualPrice: price, quotedAt: firebase.firestore.FieldValue.serverTimestamp() }, null);
+            window.location.reload();
+        } catch (err) {
+            parcelActionFailed(err);
+            $b.prop('disabled', false);
+        }
+    });
+
     function drawParcelTrackQr(url) {
         $('#parcel_track_link').attr('href', url).text(url);
         $('#parcel_track_qr').empty();
@@ -466,6 +765,8 @@
                     ? orderCurrency.decimal_degits : decimal_degits;
             }
 
+            /* After the order's own currency is set - the quote price shows it. */
+            renderParcelFlow(order).catch(function (err) { console.error('parcel flow could not be shown', err); });
             getUserReview(order);
             append_procucts_list = document.getElementById('order_products');
             append_procucts_list.innerHTML = '';

@@ -57,6 +57,23 @@
 
                                     <input type="text" class="form-control" id="type" disabled>
 
+                                    <div class="form-text text-muted new-template-only" style="display:none;">{{ trans('lang.notification_type_help') }}</div>
+
+                                </div>
+
+                            </div>
+
+                            {{-- Only when creating: which service the template belongs to.
+                                 The list is sorted by it, and a template without one would
+                                 not be listed at all. --}}
+                            <div class="form-group row width-100 new-template-only" style="display:none;">
+
+                                <label class="col-3 control-label">{{ trans('lang.service_type') }}</label>
+
+                                <div class="col-7">
+
+                                    <select class="form-control" id="new_service_type"></select>
+
                                 </div>
 
                             </div>
@@ -123,6 +140,24 @@
             var start = '';
 
             $(document).ready(function() {
+
+                /* Creating: the type is typed in, and the service chosen from
+                   the ones the existing templates already use. */
+                if (requestId == '') {
+                    $('#type').prop('disabled', false).attr('placeholder', 'e.g. parcel_out_for_delivery');
+                    $('.new-template-only').show();
+                    database.collection('dynamic_notification').get().then(function (snap) {
+                        var seen = {};
+                        snap.docs.forEach(function (d) {
+                            var st = d.data().service_type;
+                            if (st) { seen[st] = true; }
+                        });
+                        var $sel = $('#new_service_type').empty();
+                        Object.keys(seen).sort().forEach(function (st) {
+                            $sel.append($('<option>').val(st).text(st));
+                        });
+                    });
+                }
 
                 if (requestId != '') {
 
@@ -419,6 +454,31 @@
 
                 var type = $('#type').val();
 
+                /* A new template: the type must be the exact name the app sends
+                   (lower case, digits, underscores) and must not exist yet - the
+                   apps take the FIRST template of a type, so a second one would
+                   never be used. */
+                if (requestId == '') {
+                    type = $.trim(type);
+                    var newServiceType = $('#new_service_type').val() || '';
+                    var typeProblem = '';
+                    if (!/^[a-z][a-z0-9_]*$/.test(type)) {
+                        typeProblem = "{{ trans('lang.notification_type_invalid') }}";
+                    } else if (!newServiceType) {
+                        typeProblem = "{{ trans('lang.notification_service_required') }}";
+                    } else {
+                        var dup = await database.collection('dynamic_notification').where('type', '==', type).limit(1).get();
+                        if (!dup.empty) {
+                            typeProblem = "{{ trans('lang.notification_type_exists') }}";
+                        }
+                    }
+                    if (typeProblem) {
+                        $(".error_top").show().html('').append($('<p>').text(typeProblem));
+                        window.scrollTo(0, 0);
+                        return false;
+                    }
+                }
+
 
 
                 if (subject == "") {
@@ -458,6 +518,8 @@
                             'message': message,
 
                             'type': type,
+
+                            'service_type': $('#new_service_type').val() || '',
 
                             'createdAt': createdAt
 

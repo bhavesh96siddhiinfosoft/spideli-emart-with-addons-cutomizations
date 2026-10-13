@@ -56,6 +56,16 @@
         </div> 
     
        </div>
+       {{-- Delivery companies with no owner linked (app developer's
+            PARCEL-MANAGEMENT-FLOW.md, M6). A parcel booked with such a carrier
+            reaches nobody: the owner's app finds its parcels through this
+            link. Filled by the script below; hidden when every carrier has an
+            owner, or for a role that may not edit carriers. --}}
+       <div class="alert alert-warning" id="unlinked_carriers_alert" style="display:none;">
+           <strong>{{ trans('lang.unlinked_carriers_title') }}</strong>
+           <div class="small mb-2">{{ trans('lang.unlinked_carriers_text') }}</div>
+           <ul class="mb-0 pl-3" id="unlinked_carriers_list"></ul>
+       </div>
        <div class="table-list">
        <div class="row">
            <div class="col-12">
@@ -111,6 +121,27 @@
     </div>
 </div>
 
+
+<div class="modal fade" id="linkCarrierModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ trans('lang.link_carrier_title') }} <span id="link_carrier_name" class="text-muted"></span></h5>
+                <button type="button" class="close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="error_link_carrier alert alert-danger py-2 small" style="display:none;"></div>
+                <label for="link_carrier_owner" class="font-weight-bold">{{ trans('lang.link_carrier_owner') }}</label>
+                <select id="link_carrier_owner" class="form-control"></select>
+                <div class="form-text text-muted small mt-1">{{ trans('lang.link_carrier_help') }}</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal" data-bs-dismiss="modal">{{ trans('lang.cancel') }}</button>
+                <button type="button" class="btn btn-primary" id="link_carrier_save"><i class="fa fa-link mr-1"></i>{{ trans('lang.link_carrier_save') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @section('scripts')
@@ -700,4 +731,94 @@ $(document).on("click", "input[name='isActive']", function (e) {
 
 </script>
 
+
+<script type="text/javascript">
+    /* ---- Carriers with no owner, and linking one (12-13 Oct) --------------
+     * Writes the same two fields as the point 35 binding: the carrier's
+     * ownerId, and the owner's carrierId back. Only for a role that may edit
+     * carriers. An owner that already has a carrier cannot be chosen - one
+     * owner, one carrier. */
+    (function () {
+        var canEditCarriers = $.inArray('carrier.edit', Object.values(JSON.parse('<?php echo @session('user_permissions'); ?>' || '[]'))) >= 0;
+        if (!canEditCarriers) {
+            return;
+        }
+        var db = firebase.firestore();
+        var linkCarrierId = '';
+        var owners = {};
+
+        function ownerLabel(id, o) {
+            var name = o.companyName || ((o.firstName || '') + ' ' + (o.lastName || '')).trim() || id;
+            return name + (o.email ? ' - ' + o.email : '');
+        }
+
+        async function loadUnlinked() {
+            var ownerSnap = await db.collection('users').where('isOwner', '==', true).get();
+            owners = {};
+            ownerSnap.docs.forEach(function (d) { owners[d.id] = d.data(); });
+
+            var carrierSnap = await db.collection('delivery_carriers').get();
+            var unlinked = carrierSnap.docs.filter(function (d) {
+                var ownerId = d.data().ownerId || '';
+                return !ownerId || !owners[ownerId];
+            });
+
+            var $list = $('#unlinked_carriers_list').empty();
+            unlinked.forEach(function (d) {
+                var c = d.data();
+                $list.append($('<li class="mb-1">').append(
+                    $('<span>').text((c.name || d.id) + (c.publish === false ? ' ({{ trans('lang.unpublished') }})' : '') + ' '),
+                    $('<a href="javascript:void(0)" class="link-carrier-btn font-weight-bold ml-1">')
+                        .attr('data-id', d.id).attr('data-name', c.name || d.id)
+                        .html('<i class="fa fa-link mr-1"></i>{{ trans('lang.link_carrier_title') }}')
+                ));
+            });
+            $('#unlinked_carriers_alert').toggle(unlinked.length > 0);
+        }
+
+        $(document).on('click', '.link-carrier-btn', function () {
+            linkCarrierId = $(this).attr('data-id');
+            $('#link_carrier_name').text($(this).attr('data-name'));
+            $('.error_link_carrier').hide().text('');
+            var $sel = $('#link_carrier_owner').empty()
+                .append($('<option value="">').text("{{ trans('lang.link_carrier_choose') }}"));
+            Object.keys(owners)
+                .sort(function (a, b) { return ownerLabel(a, owners[a]).localeCompare(ownerLabel(b, owners[b])); })
+                .forEach(function (id) {
+                    var o = owners[id];
+                    var taken = !!o.carrierId;
+                    $sel.append($('<option>').val(id).prop('disabled', taken)
+                        .text(ownerLabel(id, o) + (taken ? ' ({{ trans('lang.link_carrier_has_one') }})' : '')));
+                });
+            $('#linkCarrierModal').modal('show');
+        });
+
+        $(document).on('click', '#link_carrier_save', async function () {
+            var ownerId = $('#link_carrier_owner').val();
+            if (!linkCarrierId || !ownerId) {
+                $('.error_link_carrier').text("{{ trans('lang.link_carrier_choose') }}").show();
+                return;
+            }
+            var $btn = $(this).prop('disabled', true);
+            try {
+                /* Read again: another admin may have linked either side since. */
+                var ownerDoc = await db.collection('users').doc(ownerId).get();
+                if (!ownerDoc.exists || ownerDoc.data().carrierId) {
+                    throw new Error("{{ trans('lang.link_carrier_has_one') }}");
+                }
+                var batch = db.batch();
+                batch.update(db.collection('delivery_carriers').doc(linkCarrierId), { ownerId: ownerId });
+                batch.update(db.collection('users').doc(ownerId), { carrierId: linkCarrierId });
+                await batch.commit();
+                $('#linkCarrierModal').modal('hide');
+                await loadUnlinked();
+            } catch (err) {
+                $('.error_link_carrier').text(err.message || String(err)).show();
+            }
+            $btn.prop('disabled', false);
+        });
+
+        loadUnlinked().catch(function (err) { console.error('carriers could not be checked', err); });
+    })();
+</script>
 @endsection
