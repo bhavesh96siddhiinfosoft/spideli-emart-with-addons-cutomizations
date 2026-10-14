@@ -111,7 +111,9 @@
     $(document).ready(function(){
         jQuery("#data-table_processing").show();
         ref.get().then( async function(snapshots){
-          var adminCommissionSettings = snapshots.data();
+          /* 14 Oct: settings/AdminCommission does not exist until it is first
+             saved - read it as empty instead of failing on undefined. */
+          var adminCommissionSettings = (snapshots.exists && snapshots.data()) || {};
           jQuery("#data-table_processing").hide();
             if(adminCommissionSettings.isEnabled){
                 $("#enable_commission").prop('checked',true);
@@ -139,19 +141,23 @@
           var checkboxValue = $("#enable_commission").is(":checked");
 
           var commission_type = $("#commission_type").val();
-          var howmuch = parseInt($(".commission_fix").val());
+          /* parseFloat: 2.5 (%) stayed 2 with parseInt; an empty box saved NaN. */
+          var howmuch = parseFloat($(".commission_fix").val());
+          if (isNaN(howmuch)) { howmuch = 0; }
             var deliveryEnabled = $("#enable_delivery_commission").is(":checked");
             var deliveryValueRaw = $("#delivery_commission_value").val();
             var deliveryValue = (deliveryValueRaw === '') ? null : parseFloat(deliveryValueRaw);
 
-            database.collection('settings').doc("AdminCommission").update({
+            /* set + merge, not update: update() fails with "No document to
+               update" while the document does not exist yet (live, 14 Oct). */
+            database.collection('settings').doc("AdminCommission").set({
                 'isEnabled':checkboxValue,
                 'fix_commission':howmuch,
                 'commissionType':commission_type,
                 'deliveryCommissionEnabled': deliveryEnabled,
                 'deliveryCommissionType': $("#delivery_commission_type").val(),
                 'deliveryCommissionValue': deliveryValue
-            }).then(function () {
+            }, { merge: true }).then(function () {
                 /* merge: the document may not exist yet, and other parcel
                    settings may be added to it later. */
                 return ref_parcel_pricing.set({
