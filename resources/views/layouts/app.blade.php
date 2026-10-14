@@ -261,6 +261,22 @@
          * section's service type. A driver with a section field elsewhere is
          * NOT pulled in by service type. A missing isOwner means "not an
          * owner"; only isOwner === true is an owner. */
+        /* ---- The global Admin Commission switch (client, 14 Oct, option A) -----
+         * Settings > Admin Commission > "Enable Admin Commission" is the MASTER of
+         * ALL admin commission - a section's, and a store's or provider's own rate.
+         * Off (or not saved yet): no commission is charged anywhere. On: as before.
+         * Spec for the apps: admin docs/APP-SPEC-GLOBAL-COMMISSION-SWITCH.md. */
+        var globalAdminCommissionPromise = null;
+
+        function globalAdminCommissionOn() {
+            if (!globalAdminCommissionPromise) {
+                globalAdminCommissionPromise = firebase.firestore().collection('settings').doc('AdminCommission').get()
+                    .then(function (snap) { return !!(snap.exists && snap.data().isEnabled === true); })
+                    .catch(function (err) { console.error('global commission switch could not be read', err); return false; });
+            }
+            return globalAdminCommissionPromise;
+        }
+
         function driverInSection(driver, sectionId, sectionType) {
             if (!driver || driver.isOwner === true) {
                 return false;

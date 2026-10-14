@@ -433,6 +433,11 @@
                 if(platformFee.enable){
                     platformCharge = platformFee.fee;
                 }
+                /* The global switch is the master of every commission. */
+                if (!(await globalAdminCommissionOn())) {
+                    config.isCommissionEnabled = false;
+                    config.commissionValue = 0;
+                }
             } catch (e) {
                 console.warn('Failed to parse commission settings:', e);
             }
@@ -631,6 +636,11 @@
                     config.commissionType = vendorAdminComm.type || 'percentage';
                     const value = parseFloat(vendorAdminComm.commission);
                     config.commissionValue = isNaN(value) ? 0 : value;
+                }
+                /* A store's own rate too: the global switch is the master. */
+                if (!(await globalAdminCommissionOn())) {
+                    config.isCommissionEnabled = false;
+                    config.commissionValue = 0;
                 }
                 let vendorCountry = getCookie('vendorCountryName_'+state.selectedVendorId);
                 if (!vendorCountry) {
