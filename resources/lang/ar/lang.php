@@ -2879,5 +2879,9 @@ return [
     'driver_company_owner' => 'الشركة (المالك)',
     'driver_company_none' => 'مستقل - بدون شركة',
     'driver_company_help' => 'يستلم سائق الشركة الطرود التي تسندها إليه الشركة، وتذهب أرباحه إلى الشركة. اتركه مستقلاً لسائق Spideli.',
+    'driver_no_documents_required' => 'لا توجد مستندات مطلوبة لخدمة هذا السائق.',
+    'driver_no_documents_help' => 'تعتمد التطبيقات حينها على توثيق هذا الحساب فقط. وثّق السائق بعد التحقق منه - يمكن لشركته بعد ذلك إسناد الطرود إليه.',
+    'driver_mark_verified' => 'توثيق السائق',
+    'driver_remove_verification' => 'إلغاء التوثيق',
 ];
 ?>

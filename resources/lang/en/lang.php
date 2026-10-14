@@ -3069,5 +3069,9 @@ return [
     'driver_company_owner' => 'Company (owner)',
     'driver_company_none' => 'Independent - no company',
     'driver_company_help' => 'A company driver receives the parcels its company assigns, and its earnings go to the company. Leave Independent for a Spideli driver.',
+    'driver_no_documents_required' => 'No document is required for this driver’s service.',
+    'driver_no_documents_help' => 'The apps then rely on this account’s verification alone. Mark the driver verified once you have checked them - their company can then assign them parcels.',
+    'driver_mark_verified' => 'Mark as verified',
+    'driver_remove_verification' => 'Remove verification',
 ];
 ?>

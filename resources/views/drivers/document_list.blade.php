@@ -76,6 +76,50 @@
      * them out (PARCEL-MANAGEMENT-FLOW 3.3): "driver", plus "vehicle" for a
      * cab or rental driver. Read from the driver before the list is built. */
     var requiredDocTypes = ['driver'];
+    var driverForDocs = null;
+
+    /* R3, 14 Oct (app developer's PARCEL-MANAGEMENT-FLOW P22): when no document
+     * is required for this driver's service, the apps fall back to the
+     * isDocumentVerify flag - which only the admin can set. Shown only then, and
+     * only to a role that may edit driver documents. Never touches isActive
+     * (the driver's online switch - client, 13 Oct). */
+    var canEditDriverDocs = $.inArray('driver.document.edit', Object.values(JSON.parse('<?php echo @session('user_permissions'); ?>' || '[]'))) >= 0;
+
+    function renderManualVerification() {
+        if (!canEditDriverDocs || !driverForDocs) {
+            return;
+        }
+        var verified = driverForDocs.isDocumentVerify === true;
+        var $box = $('<div class="alert alert-info mt-3" id="manual_verification_box">').append(
+            $('<div class="font-weight-bold mb-1">').text("{{ trans('lang.driver_no_documents_required') }}"),
+            $('<div class="small mb-2">').text("{{ trans('lang.driver_no_documents_help') }}"),
+            $('<div class="mb-2">').append(
+                $('<span>').text("{{ trans('lang.status') }}: "),
+                $('<strong>').text(verified ? "{{ trans('lang.verified') }}" : "{{ trans('lang.not_verified') }}")),
+            $('<button type="button" class="btn btn-sm" id="manual_verification_btn">')
+                .addClass(verified ? 'btn-outline-danger' : 'btn-primary')
+                .attr('data-verify', verified ? '0' : '1')
+                .text(verified ? "{{ trans('lang.driver_remove_verification') }}" : "{{ trans('lang.driver_mark_verified') }}")
+        );
+        $('#manual_verification_box').remove();
+        $('.doc-body').append($box);
+    }
+
+    $(document).on('click', '#manual_verification_btn', async function () {
+        var verify = $(this).attr('data-verify') === '1';
+        if (!confirm(verify ? "{{ trans('lang.driver_mark_verified') }}?" : "{{ trans('lang.driver_remove_verification') }}?")) {
+            return;
+        }
+        $(this).prop('disabled', true);
+        try {
+            await database.collection('users').doc(id).update({ isDocumentVerify: verify });
+            driverForDocs.isDocumentVerify = verify;
+            renderManualVerification();
+        } catch (err) {
+            $(this).prop('disabled', false);
+            alert(err && err.message ? err.message : String(err));
+        }
+    });
 
     function driverDocTypesFor(driver) {
         var types = Array.isArray(driver.serviceTypes) ? driver.serviceTypes.slice() : [];
@@ -109,7 +153,8 @@ $(document).ready(async function () {
         try {
             var driverFirst = await ref.get();
             if (!driverFirst.empty) {
-                requiredDocTypes = driverDocTypesFor(driverFirst.docs[0].data());
+                driverForDocs = driverFirst.docs[0].data();
+                requiredDocTypes = driverDocTypesFor(driverForDocs);
             }
         } catch (err) {
             console.error('driver could not be read', err);
@@ -208,6 +253,9 @@ $(document).ready(async function () {
                 });
             }
             $(".doc-body").append(html);
+            if (!docSnapshot.docs.length) {
+                renderManualVerification();
+            }
             jQuery("#data-table_processing").hide();
         });
     });

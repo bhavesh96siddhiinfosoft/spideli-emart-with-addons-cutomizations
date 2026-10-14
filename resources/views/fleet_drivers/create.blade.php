@@ -170,7 +170,19 @@ foreach ($countries as $keycountry => $valuecountry) {
     var refRentalVehicle = database.collection('rental_vehicle_type');
     var refSection = database.collection('sections').where('isActive', '==', true).orderBy('order');;
     
+    /* R2, 14 Oct (app developer's PARCEL-MANAGEMENT-FLOW 3.2): a company driver
+     * is auto-verified ONLY when the admin has switched driver verification off -
+     * as the owner's app and Create Driver do. It used to be true for every fleet
+     * driver made here, so they were never asked for documents. */
+    var fleetAutoVerify = false;
+
     $(document).ready(async function () {
+        try {
+            var verificationDoc = await database.collection('settings').doc('document_verification_settings').get();
+            fleetAutoVerify = !!(verificationDoc.exists && verificationDoc.data().isDriverVerification === false);
+        } catch (err) {
+            console.error('verification setting could not be read', err);
+        }
 
         jQuery("#data-table_processing").show();
 
@@ -624,7 +636,7 @@ foreach ($countries as $keycountry => $valuecountry) {
                             'userBankDetails': null,
                             'coordinates': coordinates,
                             'createdAt': createdAt,
-                            'isAutoVerify':true,
+                            'isAutoVerify': fleetAutoVerify,
                             'isDocumentVerify':false,
                             'isOwner': false,
                             'isActive': false,
