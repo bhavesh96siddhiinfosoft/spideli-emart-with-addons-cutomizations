@@ -1273,6 +1273,7 @@
             deliveryCharge: breakdown.deliveryCharge,
             fixedTax: parcelNumber(breakdown.fixedTax),
             extraKgCharge: parcelNumber(breakdown.extraKgCharge),
+            commission: parcelNumber(breakdown.commission),
             scope: order ? order.scope : '',
             pickupMethod: order ? order.pickupMethod : '',
             deliveryMethod: order ? order.deliveryMethod : ''
@@ -1317,6 +1318,12 @@
             html += '<tr><td class="seprater" colspan="2"><hr><span>' + fixedLabel + '</span></td></tr>';
             html += '<tr><td class="label">' + fixedLabel + '</td><td id="greenColor">+' +
                 formatCurrency(extras.fixedTax, currencyData) + '</td></tr>';
+        }
+
+        /* W8: commission on a delivery company's price, untaxed. */
+        if (extras.commission > 0) {
+            html += '<tr><td class="label">{{ trans('lang.parcel_commission_line') }}</td><td id="greenColor">+' +
+                formatCurrency(extras.commission, currencyData) + '</td></tr>';
         }
 
         return html;
@@ -1469,7 +1476,7 @@
 
         // Final price
         let order_total = (order_subtotal - total_discount) + platformFee + total_tax_amount + smsCharge
-            + parcelExtras.options + parcelExtras.fixedTax + parcelExtras.extraKgCharge;
+            + parcelExtras.options + parcelExtras.fixedTax + parcelExtras.extraKgCharge + parcelExtras.commission;
         
         html = html + '<tr><td class="seprater" colspan="2"><hr><span>{{ trans('lang.sub_total') }}</span></td></tr>';
         html = html +

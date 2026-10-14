@@ -3073,5 +3073,6 @@ return [
     'driver_no_documents_help' => 'The apps then rely on this account’s verification alone. Mark the driver verified once you have checked them - their company can then assign them parcels.',
     'driver_mark_verified' => 'Mark as verified',
     'driver_remove_verification' => 'Remove verification',
+    'parcel_commission_line' => 'Platform commission',
 ];
 ?>

@@ -2883,5 +2883,6 @@ return [
     'driver_no_documents_help' => 'تعتمد التطبيقات حينها على توثيق هذا الحساب فقط. وثّق السائق بعد التحقق منه - يمكن لشركته بعد ذلك إسناد الطرود إليه.',
     'driver_mark_verified' => 'توثيق السائق',
     'driver_remove_verification' => 'إلغاء التوثيق',
+    'parcel_commission_line' => 'عمولة المنصة',
 ];
 ?>
