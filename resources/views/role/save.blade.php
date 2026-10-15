@@ -817,6 +817,43 @@
                                                     </td>
                                                 </tr>
 
+                                                <tr>
+                                                    <td>
+                                                        <strong>{{ __('Finance: customers') }}</strong>
+                                                    </td>
+                                                    <td>
+                                                        <input type="checkbox" id="finance-customers" value="finance.customers" name="finance-customers[]" class="permission">
+                                                        <label class=" control-label2" for="finance-customers">{{ __('View') }}</label>
+                                                        <input type="checkbox" id="finance-customers-restrict" value="finance.customers.restrict" name="finance-customers[]" class="permission">
+                                                        <label class=" control-label2" for="finance-customers-restrict">{{ __('Restrict / lift') }}</label>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td>
+                                                        <strong>{{ __('Finance: KYC') }}</strong>
+                                                    </td>
+                                                    <td>
+                                                        <input type="checkbox" id="finance-kyc" value="finance.kyc" name="finance-kyc[]" class="permission">
+                                                        <label class=" control-label2" for="finance-kyc">{{ __('View') }}</label>
+                                                        <input type="checkbox" id="finance-kyc-decide" value="finance.kyc.decide" name="finance-kyc[]" class="permission">
+                                                        <label class=" control-label2" for="finance-kyc-decide">{{ __('Review and decide') }}</label>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td>
+                                                        <strong>{{ __('Finance: payments') }}</strong>
+                                                    </td>
+                                                    <td>
+                                                        <input type="checkbox" id="finance-payments" value="finance.payments" name="finance-payments[]" class="permission">
+                                                        <label class=" control-label2" for="finance-payments">{{ __('View') }}</label>
+                                                        <input type="checkbox" id="finance-payments-process" value="finance.payments.process" name="finance-payments[]" class="permission">
+                                                        <label class=" control-label2" for="finance-payments-process">{{ __('Process payouts and receipts') }}</label>
+                                                    </td>
+                                                </tr>
+
+
 
                                                 <tr>
                                                     <td>

@@ -99,7 +99,9 @@ class Audit
     {
         $out = [];
         foreach ($data as $k => $v) {
-            if ($v instanceof Value && $v->isTransform()) {
+            if ($v instanceof Value && $v->isDelete()) {
+                $out[$k] = '(deleted)';
+            } elseif ($v instanceof Value && $v->isTransform()) {
                 $out[$k] = Value::plain($v);
             } elseif (is_array($v)) {
                 $out[$k] = self::stripServerValues($v);

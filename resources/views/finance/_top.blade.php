@@ -21,6 +21,15 @@
         @if (in_array('finance.settings', $financePerms))
             <li class="nav-item"><a class="nav-link {{ $tab == 'settings' ? 'active' : '' }}" href="{{ route('finance.settings') }}">{{ __('Settings') }}</a></li>
         @endif
+        @if (in_array('finance.customers', $financePerms))
+            <li class="nav-item"><a class="nav-link {{ $tab == 'customers' ? 'active' : '' }}" href="{{ route('finance.customers') }}">{{ __('Customers') }}</a></li>
+        @endif
+        @if (in_array('finance.kyc', $financePerms))
+            <li class="nav-item"><a class="nav-link {{ $tab == 'kyc' ? 'active' : '' }}" href="{{ route('finance.kyc') }}">{{ __('KYC') }}</a></li>
+        @endif
+        @if (in_array('finance.payments', $financePerms))
+            <li class="nav-item"><a class="nav-link {{ $tab == 'payments' ? 'active' : '' }}" href="{{ route('finance.payments') }}">{{ __('Payouts') }}</a></li>
+        @endif
         @if (in_array('finance.ledger', $financePerms))
             <li class="nav-item"><a class="nav-link {{ $tab == 'ledger' ? 'active' : '' }}" href="{{ route('finance.ledger') }}">{{ __('Ledger') }}</a></li>
             <li class="nav-item"><a class="nav-link {{ $tab == 'approvals' ? 'active' : '' }}" href="{{ route('finance.approvals') }}">{{ __('Approvals') }}

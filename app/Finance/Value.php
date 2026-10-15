@@ -29,6 +29,17 @@ class Value
         return new self('increment', $n);
     }
 
+    /** delete(): removes the field (update writes only). */
+    public static function delete()
+    {
+        return new self('delete');
+    }
+
+    public function isDelete()
+    {
+        return $this->kind === 'delete';
+    }
+
     /** An explicit map, needed only to write an empty one. */
     public static function map(array $fields)
     {

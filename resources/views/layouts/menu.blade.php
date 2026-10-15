@@ -829,12 +829,34 @@ $service_type = @$_COOKIE['service_type'];
         @endif
 
         {{-- Spideli Finance (admin Phase A). Shown in every section: finance is not tied to one service. --}}
-        @if (in_array('finance-settings', $role_has_permission) || in_array('finance-ledger', $role_has_permission) || in_array('finance-audit', $role_has_permission))
+        @if (in_array('finance-settings', $role_has_permission) || in_array('finance-ledger', $role_has_permission) || in_array('finance-audit', $role_has_permission)
+            || in_array('finance-customers', $role_has_permission) || in_array('finance-kyc', $role_has_permission) || in_array('finance-payments', $role_has_permission))
             <li class="nav-subtitle"><span class="nav-subtitle-span">{{ __('Spideli Finance') }}</span></li>
             @if (in_array('finance-settings', $role_has_permission))
             <li><a class="waves-effect waves-dark" href="{!! route('finance.settings') !!}" aria-expanded="false">
                     <i class="ri-settings-4-fill"></i>
                     <span class="hide-menu">{{ __('Finance settings') }}</span>
+                </a>
+            </li>
+            @endif
+            @if (in_array('finance-customers', $role_has_permission))
+            <li><a class="waves-effect waves-dark" href="{!! route('finance.customers') !!}" aria-expanded="false">
+                    <i class="ri-user-star-fill"></i>
+                    <span class="hide-menu">{{ __('Finance customers') }}</span>
+                </a>
+            </li>
+            @endif
+            @if (in_array('finance-kyc', $role_has_permission))
+            <li><a class="waves-effect waves-dark" href="{!! route('finance.kyc') !!}" aria-expanded="false">
+                    <i class="ri-id-card-fill"></i>
+                    <span class="hide-menu">{{ __('KYC review') }}</span>
+                </a>
+            </li>
+            @endif
+            @if (in_array('finance-payments', $role_has_permission))
+            <li><a class="waves-effect waves-dark" href="{!! route('finance.payments') !!}" aria-expanded="false">
+                    <i class="ri-exchange-dollar-fill"></i>
+                    <span class="hide-menu">{{ __('Payouts and receipts') }}</span>
                 </a>
             </li>
             @endif

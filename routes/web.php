@@ -1029,3 +1029,29 @@ Route::middleware(['permission:finance-ledger,finance.ledger.approve'])->group(f
 Route::middleware(['permission:finance-audit,finance.audit'])->group(function () {
     Route::get('finance/audit', [App\Http\Controllers\FinanceController::class, 'audit'])->name('finance.audit');
 });
+
+/* Spideli Finance - admin Phase B: customers and restrictions, KYC review,
+ * gateway receipts and the payout queues (docs/FINANCE-ADMIN-PHASE-B.md). */
+Route::middleware(['permission:finance-customers,finance.customers'])->group(function () {
+    Route::get('finance/customers', [App\Http\Controllers\FinanceDeskController::class, 'customers'])->name('finance.customers');
+    Route::get('finance/customers/{uid}', [App\Http\Controllers\FinanceDeskController::class, 'customer'])->name('finance.customers.show');
+});
+Route::middleware(['permission:finance-customers,finance.customers.restrict'])->group(function () {
+    Route::post('finance/customers/{uid}/restrict', [App\Http\Controllers\FinanceDeskController::class, 'restrict'])->name('finance.customers.restrict');
+    Route::post('finance/customers/{uid}/lift', [App\Http\Controllers\FinanceDeskController::class, 'lift'])->name('finance.customers.lift');
+});
+Route::middleware(['permission:finance-kyc,finance.kyc'])->group(function () {
+    Route::get('finance/kyc', [App\Http\Controllers\FinanceDeskController::class, 'kycQueue'])->name('finance.kyc');
+    Route::get('finance/kyc/{id}', [App\Http\Controllers\FinanceDeskController::class, 'kycShow'])->name('finance.kyc.show');
+});
+Route::middleware(['permission:finance-kyc,finance.kyc.decide'])->group(function () {
+    Route::post('finance/kyc/{id}/documents/{docId}', [App\Http\Controllers\FinanceDeskController::class, 'kycDocument'])->name('finance.kyc.document');
+    Route::post('finance/kyc/{id}/{action}', [App\Http\Controllers\FinanceDeskController::class, 'kycAction'])->name('finance.kyc.action')->where('action', 'start|info|approve|reject');
+});
+Route::middleware(['permission:finance-payments,finance.payments'])->group(function () {
+    Route::get('finance/payments', [App\Http\Controllers\FinanceDeskController::class, 'payments'])->name('finance.payments');
+    Route::get('finance/payments/{kind}/{id}', [App\Http\Controllers\FinanceDeskController::class, 'paymentShow'])->name('finance.payments.show')->where('kind', 'withdrawals|transfers|bills|receipts');
+});
+Route::middleware(['permission:finance-payments,finance.payments.process'])->group(function () {
+    Route::post('finance/payments/{kind}/{id}/{action}', [App\Http\Controllers\FinanceDeskController::class, 'paymentAction'])->name('finance.payments.action')->where('kind', 'withdrawals|transfers|bills|receipts');
+});

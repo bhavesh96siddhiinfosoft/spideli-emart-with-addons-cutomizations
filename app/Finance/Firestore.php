@@ -272,7 +272,16 @@ class Firestore
                     $transforms[] = $value->transform(self::fieldPath($segments));
                     continue;
                 }
+                if (is_array($value) && Value::isMap($value) && self::hasTransform($value)) {
+                    // A map holding a server value: written leaf by leaf (as the
+                    // Firestore client libraries do), the server values as transforms.
+                    self::leaves($value, $segments, $fields, $mask, $transforms);
+                    continue;
+                }
                 $mask[] = self::fieldPath($segments);
+                if ($value instanceof Value && $value->isDelete()) {
+                    continue;   // in the mask but not in the fields = deleted
+                }
                 self::setNested($fields, $segments, $value);
             }
             $write = ['update' => ['name' => $this->name($path), 'fields' => Value::encodeFields($fields)]];
@@ -311,6 +320,31 @@ class Firestore
             }
         }
         return $out;
+    }
+
+    private static function hasTransform(array $value)
+    {
+        foreach ($value as $v) {
+            if (($v instanceof Value && $v->isTransform()) || (is_array($v) && Value::isMap($v) && self::hasTransform($v))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static function leaves(array $map, array $prefix, array &$fields, array &$mask, array &$transforms)
+    {
+        foreach ($map as $k => $v) {
+            $segments = array_merge($prefix, [(string)$k]);
+            if ($v instanceof Value && $v->isTransform()) {
+                $transforms[] = $v->transform(self::fieldPath($segments));
+            } elseif (is_array($v) && Value::isMap($v) && self::hasTransform($v)) {
+                self::leaves($v, $segments, $fields, $mask, $transforms);
+            } else {
+                $mask[] = self::fieldPath($segments);
+                self::setNested($fields, $segments, $v);
+            }
+        }
     }
 
     private static function setNested(array &$fields, array $segments, $value)
