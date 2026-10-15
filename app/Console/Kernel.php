@@ -20,6 +20,9 @@ class Kernel extends ConsoleKernel
         $schedule->command('app:rental-order-auto-cancel')->everyFiveMinutes();
         $schedule->command('app:ondemand-order-auto-cancel')->daily();
         $schedule->command('app:cab-schedule-ride')->everyMinute();
+        // Spideli Finance (Phase C): loans, tontines, savings - demo records are skipped.
+        $schedule->command('finance:daily')->dailyAt('06:00')->withoutOverlapping();
+        $schedule->command('finance:close-votes')->hourly()->withoutOverlapping();
     }
     /**
      * Register the commands for the application.

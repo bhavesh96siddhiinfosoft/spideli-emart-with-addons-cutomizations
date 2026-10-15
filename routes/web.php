@@ -1055,3 +1055,22 @@ Route::middleware(['permission:finance-payments,finance.payments'])->group(funct
 Route::middleware(['permission:finance-payments,finance.payments.process'])->group(function () {
     Route::post('finance/payments/{kind}/{id}/{action}', [App\Http\Controllers\FinanceDeskController::class, 'paymentAction'])->name('finance.payments.action')->where('kind', 'withdrawals|transfers|bills|receipts');
 });
+
+/* Spideli Finance - admin Phase C: collective savings, tontines, member loans
+ * (docs/FINANCE-ADMIN-PHASE-C.md). Daily jobs: finance:daily, finance:close-votes. */
+Route::middleware(['permission:finance-groups,finance.groups'])->group(function () {
+    Route::get('finance/savings', [App\Http\Controllers\FinanceGroupsController::class, 'savings'])->name('finance.savings');
+    Route::get('finance/savings/{id}', [App\Http\Controllers\FinanceGroupsController::class, 'saving'])->name('finance.savings.show');
+    Route::get('finance/tontines', [App\Http\Controllers\FinanceGroupsController::class, 'tontines'])->name('finance.tontines');
+    Route::get('finance/tontines/{id}', [App\Http\Controllers\FinanceGroupsController::class, 'tontine'])->name('finance.tontines.show');
+    Route::get('finance/loans', [App\Http\Controllers\FinanceGroupsController::class, 'loans'])->name('finance.loans');
+    Route::get('finance/loans/{id}', [App\Http\Controllers\FinanceGroupsController::class, 'loan'])->name('finance.loans.show');
+});
+Route::middleware(['permission:finance-groups,finance.groups.manage'])->group(function () {
+    Route::post('finance/savings/{id}/{action}', [App\Http\Controllers\FinanceGroupsController::class, 'savingAction'])->name('finance.savings.action')
+        ->where('action', 'pay-withdrawal|refuse-withdrawal|cancel|complete|keep');
+    Route::post('finance/tontines/{id}/{action}', [App\Http\Controllers\FinanceGroupsController::class, 'tontineAction'])->name('finance.tontines.action')
+        ->where('action', 'approve-payout|suspend|resume|dispute');
+    Route::post('finance/loans/{id}/{action}', [App\Http\Controllers\FinanceGroupsController::class, 'loanAction'])->name('finance.loans.action')
+        ->where('action', 'review|assessment|open-vote|reject|close-vote|default|refund|pay-lenders|sweep');
+});

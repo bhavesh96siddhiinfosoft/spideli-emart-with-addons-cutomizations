@@ -817,6 +817,19 @@
                                                 </td>
                                             </tr>
 
+                                            <tr>
+                                                <td>
+                                                    <strong>{{ __('Finance: savings, tontines and loans') }}</strong>
+                                                </td>
+                                                <td>
+                                                    <input type="checkbox" id="finance-groups" value="finance.groups" name="finance-groups[]" class="permission" {{ in_array('finance.groups', $permissions) ? 'checked' : '' }}>
+                                                    <label class=" control-label2" for="finance-groups">{{ __('View') }}</label>
+                                                    <input type="checkbox" id="finance-groups-manage" value="finance.groups.manage" name="finance-groups[]" class="permission" {{ in_array('finance.groups.manage', $permissions) ? 'checked' : '' }}>
+                                                    <label class=" control-label2" for="finance-groups-manage">{{ __('Decide and pay') }}</label>
+                                                </td>
+                                            </tr>
+
+
 
                                             
                                             <tr>

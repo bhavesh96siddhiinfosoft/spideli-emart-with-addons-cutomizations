@@ -30,6 +30,11 @@
         @if (in_array('finance.payments', $financePerms))
             <li class="nav-item"><a class="nav-link {{ $tab == 'payments' ? 'active' : '' }}" href="{{ route('finance.payments') }}">{{ __('Payouts') }}</a></li>
         @endif
+        @if (in_array('finance.groups', $financePerms))
+            <li class="nav-item"><a class="nav-link {{ $tab == 'savings' ? 'active' : '' }}" href="{{ route('finance.savings') }}">{{ __('Savings') }}</a></li>
+            <li class="nav-item"><a class="nav-link {{ $tab == 'tontines' ? 'active' : '' }}" href="{{ route('finance.tontines') }}">{{ __('Tontines') }}</a></li>
+            <li class="nav-item"><a class="nav-link {{ $tab == 'loans' ? 'active' : '' }}" href="{{ route('finance.loans') }}">{{ __('Loans') }}</a></li>
+        @endif
         @if (in_array('finance.ledger', $financePerms))
             <li class="nav-item"><a class="nav-link {{ $tab == 'ledger' ? 'active' : '' }}" href="{{ route('finance.ledger') }}">{{ __('Ledger') }}</a></li>
             <li class="nav-item"><a class="nav-link {{ $tab == 'approvals' ? 'active' : '' }}" href="{{ route('finance.approvals') }}">{{ __('Approvals') }}

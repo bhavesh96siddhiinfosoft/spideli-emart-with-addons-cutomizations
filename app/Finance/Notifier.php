@@ -53,7 +53,8 @@ class Notifier
             }
             $u = $user['data'];
 
-            $category = array_key_exists($type, self::CATEGORIES) ? self::CATEGORIES[$type] : 'payments';
+            $category = array_key_exists($type, self::CATEGORIES) ? self::CATEGORIES[$type]
+                : (strpos($type, 'loan_') === 0 ? 'loans' : (preg_match('/^(savings_|tontine_)/', $type) ? 'groups' : 'payments'));
             $pushAllowed = $category === null || (($u['financeNotificationPrefs']['push'][$category] ?? true) !== false);
 
             $data = ['type' => $type] + array_map('strval', $data);

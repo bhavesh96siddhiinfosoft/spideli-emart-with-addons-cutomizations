@@ -234,6 +234,26 @@ class Regions
         return $this->all()[$regionId]['currency'] ?? '';
     }
 
+    /**
+     * A module's settings for a record: the first finance-enabled region of
+     * $regionIds that has them (the record's own regionId first, then its
+     * customer's regions), else the app's platform_settings/{module}.
+     * Returns [settings, where they came from].
+     */
+    public function moduleSettings($module, array $regionIds)
+    {
+        foreach (array_values(array_unique(array_filter($regionIds, 'is_string'))) as $rid) {
+            if (!empty($this->all()[$rid]['financeEnabled'])) {
+                $doc = $this->db->get('finance_settings/' . self::docId($rid, $module));
+                if ($doc) {
+                    return [$doc['data'], $this->name($rid)];
+                }
+            }
+        }
+        $doc = $this->db->get('platform_settings/' . $module);
+        return [$doc ? $doc['data'] : [], __('the app\'s settings')];
+    }
+
     /** The Firestore id of a module's settings for a region. */
     public static function docId($regionId, $module)
     {
