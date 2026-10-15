@@ -177,6 +177,7 @@
     }
 </style>
 @section('scripts')
+    @include('zone.partials.google_search')
     <script>
         var id = "<?php echo $id; ?>";
         var database = firebase.firestore();
@@ -206,20 +207,49 @@
                     enablePolygonDrawing(map);
                 };
             } else {
+                // Google removed the DrawingManager (Maps JavaScript API 3.65), which
+                // made this screen throw and stopped the map tools. Zones are now drawn
+                // by clicking points on the map, as on the create screen.
                 onclick = function() {
-                    drawingManager.setDrawingMode(null);
+                    window.stopDrawing && window.stopDrawing();
                 };
                 polygon = function() {
-                    drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYGON);
+                    window.startDrawing && window.startDrawing();
                 };
                 deletearea = function() {
-                    clearMap();
+                    window.clearMap && window.clearMap();
                 };
             }
             document.getElementById("select-button").onclick = onclick;
             document.getElementById("add-button").onclick = polygon;
             document.getElementById("delete-all-button").onclick = deletearea;
+            zoneReady.mapType = true;
+            startMapWhenReady();
         });
+
+        /* The map starts once the zone is loaded, the map type is known and (in
+         * Google mode) the Maps script is there - it used to start on a fixed
+         * 2.5 s timer, and drew without the zone whenever loading was slower. */
+        var zoneReady = { zone: false, mapType: false, started: false };
+        function startMapWhenReady() {
+            if (zoneReady.started || !zoneReady.zone || !zoneReady.mapType) {
+                return;
+            }
+            if (mapType == "ONLINE" && !(window.google && google.maps && google.maps.Map && google.maps.places)) {
+                setTimeout(startMapWhenReady, 200);
+                return;
+            }
+            zoneReady.started = true;
+            drawZoneMap();
+        }
+
+        /* The layout calls initMap() as soon as the Maps script loads - before the
+         * zone is read. Drawing then gave an empty map at the default location,
+         * and a second map was drawn over it later. Here it only says "Maps is
+         * ready"; the map is drawn once, by startMapWhenReady(). */
+        function initMap() {
+            startMapWhenReady();
+        }
         $(document).ready(function() {
             ref.get().then(async function(snapshots) {
                 if (snapshots.docs) {
@@ -257,10 +287,9 @@
                     default_lng = zone.longitude;
                     geopoints = zone.area;
                 }
+                zoneReady.zone = true;
+                startMapWhenReady();
             });
-            setTimeout(function() {
-                initMap();
-            }, 2500);
             $(".edit-setting-btn").click(function() {
                 var name = $("#name").val();
                 var publish = $("#publish").is(":checked");
@@ -416,7 +445,6 @@
             });
         });
         var map;
-        var drawingManager;
         var selectedShape;
         var selectedKernel;
         var gmarkers = [];
@@ -425,6 +453,111 @@
         var sendable_coordinates = [];
         var shapeColor = "#007cff";
         var kernelColor = "#000";
+
+        // Manual polygon-drawing state (replaces the removed DrawingManager)
+        var isDrawingMode = false;
+        var tempPoints = [];
+        var tempMarkers = [];
+        var tempPolygon = null;
+
+        function clearTempDrawing() {
+            tempMarkers.forEach(function(m) { m.setMap(null); });
+            tempMarkers = [];
+            if (tempPolygon) {
+                tempPolygon.setMap(null);
+                tempPolygon = null;
+            }
+            tempPoints = [];
+        }
+
+        function redrawTempPolygon() {
+            if (tempPolygon) {
+                tempPolygon.setMap(null);
+            }
+            tempPolygon = new google.maps.Polygon({
+                paths: tempPoints,
+                strokeColor: shapeColor,
+                strokeWeight: 2,
+                fillColor: shapeColor,
+                fillOpacity: 0.35,
+                clickable: false,
+                editable: false,
+                draggable: false,
+                map: map
+            });
+        }
+
+        function finishCurrentPolygon() {
+            map.setOptions({ disableDoubleClickZoom: false, draggableCursor: null });
+            isDrawingMode = false;
+            if (tempPoints.length < 3) {
+                clearTempDrawing();
+                return;
+            }
+            var newShape = tempPolygon;
+            tempPolygon = null;
+            tempMarkers.forEach(function(m) { m.setMap(null); });
+            tempMarkers = [];
+            tempPoints = [];
+            newShape.setOptions({ clickable: true, editable: true, draggable: true, fillOpacity: 0.4 });
+
+            // A zone is one area: the new drawing replaces the previous one.
+            allShapes.forEach(function(shape) { shape.setMap(null); });
+            allShapes = [newShape];
+            getCoordinates(newShape);
+            setSelection(newShape, 0);
+
+            google.maps.event.addListener(newShape, 'click', function(e) {
+                if (e.vertex !== undefined) {
+                    var path = newShape.getPaths().getAt(e.path);
+                    path.removeAt(e.vertex);
+                    if (path.length < 3) {
+                        newShape.setMap(null);
+                        allShapes = [];
+                        document.getElementById('coordinates').value = '';
+                        return;
+                    }
+                }
+                getCoordinates(newShape);
+                setSelection(newShape, 0);
+            });
+            google.maps.event.addListener(newShape, "dragend", function() { getCoordinates(newShape); });
+            google.maps.event.addListener(newShape.getPath(), "insert_at", function() { getCoordinates(newShape); });
+            google.maps.event.addListener(newShape.getPath(), "remove_at", function() { getCoordinates(newShape); });
+            google.maps.event.addListener(newShape.getPath(), "set_at", function() { getCoordinates(newShape); });
+        }
+
+        window.startDrawing = function() {
+            if (!map || !map.setOptions) return;
+            isDrawingMode = true;
+            clearTempDrawing();
+            clearSelection();
+            map.setOptions({ draggableCursor: 'crosshair', disableDoubleClickZoom: true });
+        };
+
+        window.stopDrawing = function() {
+            if (!map || !map.setOptions) return;
+            if (isDrawingMode) {
+                finishCurrentPolygon();
+            }
+        };
+
+        window.clearMap = function() {
+            if (!map || !map.setOptions) return;
+            clearTempDrawing();
+            isDrawingMode = false;
+            map.setOptions({ draggableCursor: null, disableDoubleClickZoom: false });
+            clearMap();
+        };
+
+        /* Frames the map on the zone, so the edit screen opens on it. */
+        function fitToZone(polygon) {
+            var bounds = new google.maps.LatLngBounds();
+            polygon.getPath().forEach(function(point) { bounds.extend(point); });
+            if (!bounds.isEmpty()) {
+                map.fitBounds(bounds);
+            }
+        }
 
         function addNewPolys(newPoly) {
             google.maps.event.addListener(newPoly, 'click', function() {
@@ -808,62 +941,12 @@
                         });
                 }
             } else {
-                var input = document.getElementById('search-box');
-                var searchBox = new google.maps.places.SearchBox(input);
-                map.addListener('bounds_changed', function() {
-                    searchBox.setBounds(map.getBounds());
-                });
-                searchBox.addListener('places_changed', function() {
-                    var places = searchBox.getPlaces();
-                    if (places.length == 0) {
-                        return;
-                    }
-                    var bounds = new google.maps.LatLngBounds();
-                    places.forEach(function(place) {
-                        if (!place.geometry) {
-                            return;
-                        }
-                        var icon = {
-                            url: place.icon,
-                            size: new google.maps.Size(71, 71),
-                            origin: new google.maps.Point(0, 0),
-                            anchor: new google.maps.Point(17, 34),
-                            scaledSize: new google.maps.Size(25, 25)
-                        };
-                        if (place.geometry.viewport) {
-                            bounds.union(place.geometry.viewport);
-                        } else {
-                            bounds.extend(place.geometry.location);
-                        }
-                    });
-                    map.fitBounds(bounds);
-                });
-                var autocomplete = new google.maps.places.Autocomplete(input);
-                autocomplete.addListener('place_changed', function() {
-                    var place = autocomplete.getPlace();
-                    if (place && place.address_components) {
-                        var placeaddress = autocomplete.getPlace().address_components;
-                        /* 02#27: these three lines compared the whole `types` list with
-                         * JSON.stringify, which throws whenever Google returns an extra
-                         * type, a different order, or no locality at all - killing the
-                         * listener before the coordinates below were ever set. The helper
-                         * matches on membership and returns '' instead of throwing. */
-                        var city = spideliPlaceCity(place);
-                        var state = spideliPlaceComponent(place, 'administrative_area_level_1');
-                        var country = spideliPlaceComponent(place, 'country');
-                        
-                        /* A place typed but never chosen from the list has no geometry,
-                         * and reading .lat() off it throws the same way. */
-                        var placeLocation = place.geometry && place.geometry.location;
-                        var placeLat = (placeLocation && typeof placeLocation.lat === 'function') ? placeLocation.lat() : '';
-                        var placeLng = (placeLocation && typeof placeLocation.lng === 'function') ? placeLocation.lng() : '';
-                        $("#search-box").val(place.formatted_address).attr('data-latitude', placeLat).attr('data-longitude', placeLng).attr('data-city', city).attr('data-state', state).attr('data-country', country)
-                    }
-                });
+                // One Autocomplete moves the map to the chosen place (zone/partials/google_search).
+                spideliZoneSearch(map, document.getElementById('search-box'));
             }
         }
 
-        function initMap() {
+        function drawZoneMap() {
             if (mapType == "ONLINE") {
                 var infowindow = new google.maps.InfoWindow({
                     size: new google.maps.Size(150, 50)
@@ -951,69 +1034,35 @@
                     lat_lng[index] = getCoordinates(data);
                 });
                 document.getElementById('coordinates').value = JSON.stringify(lat_lng);
+                if (polygon && geopoints.length) {
+                    fitToZone(polygon);
+                }
                 searchBox();
-                var shapeOptions = {
-                    strokeWeight: 1,
-                    fillOpacity: 0.4,
-                    editable: true,
-                    draggable: true
-                };
-                drawingManager = new google.maps.drawing.DrawingManager({
-                    // direct polygon drawing setting
-                    // drawingMode: google.maps.drawing.OverlayType.POLYGON,
-                    drawingMode: null,
-                    drawingControl: false,
-                    drawingControlOptions: {
-                        position: google.maps.ControlPosition.RIGHT_CENTER,
-                        drawingModes: ['polygon']
-                    },
-                    polygonOptions: shapeOptions,
-                    map: map
-                });
-                google.maps.event.addListener(drawingManager, 'overlaycomplete', function(e) {
-                    var newShape = e.overlay;
-                    allShapes.push(newShape);
-                    let lat_lng = [];
-                    allShapes.forEach(function(data, index) {
-                        lat_lng[index] = getCoordinates(data);
-                    });
-                    document.getElementById('coordinates').value = JSON.stringify(lat_lng);
-                    newShape.setOptions({
-                        fillColor: shapeColor
-                    });
-                    getCoordinates(newShape);
-                    drawingManager.setDrawingMode(null);
-                    setSelection(newShape, 0);
-                    google.maps.event.addListener(newShape, 'click', function(e) {
-                        if (e.vertex !== undefined) {
-                            var path = newShape.getPaths().getAt(e.path);
-                            path.removeAt(e.vertex);
-                            getCoordinates(newShape);
-                            if (path.length < 3) {
-                                newShape.setMap(null);
-                            }
+                // Click to add points, double-click to finish (DrawingManager no longer exists).
+                google.maps.event.addListener(map, 'click', function(e) {
+                    if (!isDrawingMode) {
+                        clearSelection();
+                        return;
+                    }
+                    tempPoints.push({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+                    tempMarkers.push(new google.maps.Marker({
+                        position: e.latLng,
+                        map: map,
+                        icon: {
+                            path: google.maps.SymbolPath.CIRCLE,
+                            scale: 5,
+                            fillColor: shapeColor,
+                            fillOpacity: 1,
+                            strokeWeight: 1
                         }
-                        setSelection(newShape, 0);
-                    });
-                    //update coordinates
-                    google.maps.event.addListener(newShape, 'click', function(e) {
-                        getCoordinates(newShape);
-                    });
-                    google.maps.event.addListener(newShape, "dragend", function(e) {
-                        getCoordinates(newShape);
-                    });
-                    google.maps.event.addListener(newShape.getPath(), "insert_at", function(e) {
-                        getCoordinates(newShape);
-                    });
-                    google.maps.event.addListener(newShape.getPath(), "remove_at", function(e) {
-                        getCoordinates(newShape);
-                    });
-                    google.maps.event.addListener(newShape.getPath(), "set_at", function(e) {
-                        getCoordinates(newShape);
-                    });
+                    }));
+                    redrawTempPolygon();
                 });
-                google.maps.event.addListener(drawingManager, 'drawingmode_changed', clearSelection);
-                google.maps.event.addListener(map, 'click', clearSelection);
+                google.maps.event.addListener(map, 'dblclick', function() {
+                    if (isDrawingMode) {
+                        finishCurrentPolygon();
+                    }
+                });
             } else {
                 $(".mapType").hide();
                 searchBox();
@@ -1032,6 +1081,9 @@
 
                 // Create a polygon and add it to the map
                 var polygon = L.polygon(latLonArray, { color: 'blue' }).addTo(drawnItems);
+                if (latLonArray.length) {
+                    map.fitBounds(polygon.getBounds());
+                }
                 polygon.on('click', function () {
                     if (selectedPolygon) {
                         selectedPolygon.setStyle({ color: 'blue', weight: 3 });
