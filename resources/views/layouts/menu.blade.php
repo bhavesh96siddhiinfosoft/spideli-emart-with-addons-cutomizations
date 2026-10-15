@@ -827,7 +827,38 @@ $service_type = @$_COOKIE['service_type'];
             @endif
             
         @endif
-        
+
+        {{-- Spideli Finance (admin Phase A). Shown in every section: finance is not tied to one service. --}}
+        @if (in_array('finance-settings', $role_has_permission) || in_array('finance-ledger', $role_has_permission) || in_array('finance-audit', $role_has_permission))
+            <li class="nav-subtitle"><span class="nav-subtitle-span">{{ __('Spideli Finance') }}</span></li>
+            @if (in_array('finance-settings', $role_has_permission))
+            <li><a class="waves-effect waves-dark" href="{!! route('finance.settings') !!}" aria-expanded="false">
+                    <i class="ri-settings-4-fill"></i>
+                    <span class="hide-menu">{{ __('Finance settings') }}</span>
+                </a>
+            </li>
+            @endif
+            @if (in_array('finance-ledger', $role_has_permission))
+            <li><a class="waves-effect waves-dark" href="{!! route('finance.ledger') !!}" aria-expanded="false">
+                    <i class="ri-book-2-fill"></i>
+                    <span class="hide-menu">{{ __('Ledger') }}</span>
+                </a>
+            </li>
+            <li><a class="waves-effect waves-dark" href="{!! route('finance.approvals') !!}" aria-expanded="false">
+                    <i class="ri-shield-check-fill"></i>
+                    <span class="hide-menu">{{ __('Approvals') }}</span>
+                </a>
+            </li>
+            @endif
+            @if (in_array('finance-audit', $role_has_permission))
+            <li><a class="waves-effect waves-dark" href="{!! route('finance.audit') !!}" aria-expanded="false">
+                    <i class="ri-file-list-3-fill"></i>
+                    <span class="hide-menu">{{ __('Audit log') }}</span>
+                </a>
+            </li>
+            @endif
+        @endif
+
     </ul>
 
     <p class="web_version"></p>

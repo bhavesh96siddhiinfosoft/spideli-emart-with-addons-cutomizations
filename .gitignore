@@ -24,3 +24,4 @@ DRIVER_DISPATCH_DOCUMENTATION.md
 # local archives
 *.zip
 serviceAccountKey.json
+commit-msg.txt

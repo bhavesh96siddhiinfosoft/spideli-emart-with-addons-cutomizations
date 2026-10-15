@@ -992,3 +992,40 @@ Route::middleware(['permission:providers,providers.chat'])->group(function () {
 Route::middleware(['permission:ondemand-workers,ondemand.workers.chat'])->group(function () {
     Route::get('/worker/chat/{id}', [App\Http\Controllers\OnDemandServiceController::class, 'workerChat'])->name('ondemand.workers.chat');
 });
+/* Spideli Finance - admin Phase A: settings, platform accounts, ledger,
+ * four-eyes approvals and the audit log (docs/FINANCE-ADMIN-PHASE-A.md). */
+Route::middleware(['permission:finance-settings,finance.settings'])->group(function () {
+    Route::get('finance/settings', [App\Http\Controllers\FinanceController::class, 'settings'])->name('finance.settings');
+    Route::get('finance/settings/{doc}', [App\Http\Controllers\FinanceController::class, 'settingsEdit'])->name('finance.settings.edit');
+});
+Route::middleware(['permission:finance-settings,finance.settings.edit'])->group(function () {
+    Route::post('finance/settings/{doc}', [App\Http\Controllers\FinanceController::class, 'settingsUpdate'])->name('finance.settings.update');
+    Route::post('finance/four-eyes', [App\Http\Controllers\FinanceController::class, 'fourEyesUpdate'])->name('finance.four-eyes.update');
+    Route::post('finance/regions/{regionId}/seed', [App\Http\Controllers\FinanceController::class, 'seedRegion'])->name('finance.regions.seed');
+});
+/* Region Management switches Finance on for a region and asks for its first settings. */
+Route::middleware(['permission:region,region.edit'])->group(function () {
+    Route::post('region/{regionId}/finance-seed', [App\Http\Controllers\FinanceController::class, 'seedRegion'])->name('region.finance.seed');
+});
+Route::middleware(['permission:finance-settings,finance.platform-accounts.create'])->group(function () {
+    Route::post('finance/platform-accounts', [App\Http\Controllers\FinanceController::class, 'platformAccountStore'])->name('finance.platform-accounts.store');
+});
+Route::middleware(['permission:finance-ledger,finance.ledger'])->group(function () {
+    Route::get('finance/ledger', [App\Http\Controllers\FinanceController::class, 'ledger'])->name('finance.ledger');
+    Route::get('finance/ledger/{txId}', [App\Http\Controllers\FinanceController::class, 'ledgerShow'])->name('finance.ledger.show')->where('txId', '[A-Za-z0-9_\-]+');
+    Route::get('finance/approvals', [App\Http\Controllers\FinanceController::class, 'approvals'])->name('finance.approvals');
+});
+Route::middleware(['permission:finance-ledger,finance.ledger.reverse'])->group(function () {
+    Route::post('finance/ledger/{txId}/reverse', [App\Http\Controllers\FinanceController::class, 'ledgerReverse'])->name('finance.ledger.reverse')->where('txId', '[A-Za-z0-9_\-]+');
+});
+Route::middleware(['permission:finance-ledger,finance.ledger.adjust'])->group(function () {
+    Route::get('finance/adjustments/create', [App\Http\Controllers\FinanceController::class, 'adjustCreate'])->name('finance.adjust.create');
+    Route::post('finance/adjustments', [App\Http\Controllers\FinanceController::class, 'adjustStore'])->name('finance.adjust.store');
+});
+Route::middleware(['permission:finance-ledger,finance.ledger.approve'])->group(function () {
+    Route::post('finance/approvals/{id}/approve', [App\Http\Controllers\FinanceController::class, 'approve'])->name('finance.approvals.approve');
+    Route::post('finance/approvals/{id}/reject', [App\Http\Controllers\FinanceController::class, 'reject'])->name('finance.approvals.reject');
+});
+Route::middleware(['permission:finance-audit,finance.audit'])->group(function () {
+    Route::get('finance/audit', [App\Http\Controllers\FinanceController::class, 'audit'])->name('finance.audit');
+});

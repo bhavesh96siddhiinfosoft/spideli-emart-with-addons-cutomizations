@@ -2884,5 +2884,8 @@ return [
     'driver_mark_verified' => 'توثيق السائق',
     'driver_remove_verification' => 'إلغاء التوثيق',
     'parcel_commission_line' => 'عمولة المنصة',
+    'region_finance' => 'المالية',
+    'region_finance_help' => 'خدمة Spideli Finance متاحة في هذا الإقليم. تستخدم إعداداتها عملة الإقليم.',
+    'region_finance_seed_failed' => 'تم تفعيل المالية، لكن تعذّر إنشاء إعداداتها الأولى لهذا الإقليم. استخدم "نسخ إعدادات التطبيق" في إعدادات المالية.',
 ];
 ?>

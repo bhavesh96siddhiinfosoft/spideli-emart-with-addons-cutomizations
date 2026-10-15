@@ -779,6 +779,47 @@
 
                                                 <tr>
                                                     <td>
+                                                        <strong>{{ __('Finance: settings') }}</strong>
+                                                    </td>
+                                                    <td>
+                                                        <input type="checkbox" id="finance-settings" value="finance.settings" name="finance-settings[]" class="permission">
+                                                        <label class=" control-label2" for="finance-settings">{{ __('View') }}</label>
+                                                        <input type="checkbox" id="finance-settings-edit" value="finance.settings.edit" name="finance-settings[]" class="permission">
+                                                        <label class=" control-label2" for="finance-settings-edit">{{ __('Edit') }}</label>
+                                                        <input type="checkbox" id="finance-platform-accounts-create" value="finance.platform-accounts.create" name="finance-settings[]" class="permission">
+                                                        <label class=" control-label2" for="finance-platform-accounts-create">{{ __('Create platform accounts') }}</label>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td>
+                                                        <strong>{{ __('Finance: ledger') }}</strong>
+                                                    </td>
+                                                    <td>
+                                                        <input type="checkbox" id="finance-ledger" value="finance.ledger" name="finance-ledger[]" class="permission">
+                                                        <label class=" control-label2" for="finance-ledger">{{ __('View and export') }}</label>
+                                                        <input type="checkbox" id="finance-ledger-reverse" value="finance.ledger.reverse" name="finance-ledger[]" class="permission">
+                                                        <label class=" control-label2" for="finance-ledger-reverse">{{ __('Reverse') }}</label>
+                                                        <input type="checkbox" id="finance-ledger-adjust" value="finance.ledger.adjust" name="finance-ledger[]" class="permission">
+                                                        <label class=" control-label2" for="finance-ledger-adjust">{{ __('Manual adjustment') }}</label>
+                                                        <input type="checkbox" id="finance-ledger-approve" value="finance.ledger.approve" name="finance-ledger[]" class="permission">
+                                                        <label class=" control-label2" for="finance-ledger-approve">{{ __('Second approver') }}</label>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td>
+                                                        <strong>{{ __('Finance: audit log') }}</strong>
+                                                    </td>
+                                                    <td>
+                                                        <input type="checkbox" id="finance-audit" value="finance.audit" name="finance-audit[]" class="permission">
+                                                        <label class=" control-label2" for="finance-audit">{{ __('View') }}</label>
+                                                    </td>
+                                                </tr>
+
+
+                                                <tr>
+                                                    <td>
                                                         <strong>{{ trans('lang.subscription_plans') }}</strong>
                                                     </td>
                                                     <td>

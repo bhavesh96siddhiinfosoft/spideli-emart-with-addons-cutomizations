@@ -100,6 +100,14 @@
                                     <label class="col-3 control-label" for="publish">{{ trans('lang.status') }}</label>
                                 </div>
                             </div>
+
+                            <div class="form-group row width-100">
+                                <div class="form-check">
+                                    <input type="checkbox" class="finance_enabled" id="finance_enabled">
+                                    <label class="col-3 control-label" for="finance_enabled">{{ trans('lang.region_finance') }}</label>
+                                    <div class="form-text text-muted">{{ trans('lang.region_finance_help') }}</div>
+                                </div>
+                            </div>
                         </fieldset>
 
                         @include('region.partials.parcel_pricing')
@@ -120,6 +128,8 @@
 @endsection
 @section('scripts')
 @include('region.partials.parcel_pricing_scripts')
+@include('region.partials.finance_seed')
+<script>var financeWasEnabled = false;</script>
 <script type="text/javascript">
     var database = firebase.firestore();
     var regionId = '{{ $id }}';
@@ -201,6 +211,8 @@
         $('#zone_ids').trigger('chosen:updated');
 
         $('#publish').prop('checked', region.publish === true);
+        financeWasEnabled = region.financeEnabled === true;
+        $('#finance_enabled').prop('checked', financeWasEnabled);
 
         jQuery("#data-table_processing").hide();
     }
@@ -244,6 +256,7 @@
         var currencyId = $('#currency_id').val();
         var zoneIds = $('#zone_ids').val() || [];
         var publish = $('#publish').is(':checked');
+        var financeEnabled = $('#finance_enabled').is(':checked');
 
         if (name === '') {
             $('#error_name').html("{{ trans('lang.region_name_error') }}");
@@ -292,8 +305,13 @@
             'parcelPricing': parcelPricing,
             'zoneIds': zoneIds,
             'publish': publish,
+            'financeEnabled': financeEnabled,
             'updatedAt': firebase.firestore.FieldValue.serverTimestamp()
         });
+
+        if (financeEnabled && !financeWasEnabled) {
+            await financeSeedRegion(regionId);
+        }
 
         /* Zones dropped from this region lose THIS region only - any other
          * region holding them keeps it. */

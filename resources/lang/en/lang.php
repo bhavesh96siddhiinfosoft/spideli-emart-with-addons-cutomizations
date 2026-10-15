@@ -3074,5 +3074,8 @@ return [
     'driver_mark_verified' => 'Mark as verified',
     'driver_remove_verification' => 'Remove verification',
     'parcel_commission_line' => 'Platform commission',
+    'region_finance' => 'Finance',
+    'region_finance_help' => 'Spideli Finance is offered in this region. Its Finance settings use the region\'s currency.',
+    'region_finance_seed_failed' => 'Finance is on, but the region\'s first Finance settings could not be created. Use "Copy app settings" on Finance settings.',
 ];
 ?>

@@ -62,6 +62,7 @@
                                             <th>{{trans('lang.region_code')}}</th>
                                             <th>{{trans('lang.region_country_code')}}</th>
                                             <th>{{trans('lang.status')}}</th>
+                                            <th>{{trans('lang.region_finance')}}</th>
                                             <th>{{trans('lang.actions')}}</th>
                                         </tr>
                                     </thead>
@@ -78,6 +79,7 @@
 </div>
 @endsection
 @section('scripts')
+@include('region.partials.finance_seed')
 <script type="text/javascript">
     var database = firebase.firestore();
     var ref = database.collection('regions');
@@ -105,14 +107,14 @@
             if (checkDeletePermission) {
                 $('#regionTable').DataTable({
                     order: [[1, 'asc']],
-                    columnDefs: [{orderable: false, targets: [0, 4, 5]}],
+                    columnDefs: [{orderable: false, targets: [0, 4, 5, 6]}],
                     "language": datatableLang,
                     responsive: true
                 });
             } else {
                 $('#regionTable').DataTable({
                     order: [[0, 'asc']],
-                    columnDefs: [{orderable: false, targets: [3, 4]}],
+                    columnDefs: [{orderable: false, targets: [3, 4, 5]}],
                     "language": datatableLang,
                     responsive: true
                 });
@@ -152,6 +154,7 @@
         } else {
             html = html + '<td><label class="switch"><input type="checkbox" id="' + id + '" name="isSwitch"><span class="slider round"></span></label></td>';
         }
+        html = html + '<td><label class="switch"><input type="checkbox"' + (val.financeEnabled === true ? ' checked' : '') + ' data-region="' + id + '" name="financeSwitch"><span class="slider round"></span></label></td>';
         html = html + '<td class="action-btn"><a href="' + route1 + '" data-toggle="tooltip" data-bs-original-title="{{ trans("lang.edit") }}"><i class="mdi mdi-lead-pencil"></i></a>';
         if (checkDeletePermission) {
             html = html + '<a id="' + id + '" name="region-delete" class="delete-btn" href="javascript:void(0)" data-toggle="tooltip" data-bs-original-title="{{ trans("lang.delete") }}"><i class="mdi mdi-delete"></i></a>';
@@ -184,6 +187,17 @@
     $(document).on("click", "input[name='isSwitch']", function (e) {
         var ischeck = $(this).is(':checked');
         database.collection('regions').doc(this.id).update({'publish': ischeck});
+    });
+
+    /* Finance on/off for a region. Switching it on also gives the region its
+     * first Finance settings, copied from the app's current ones. */
+    $(document).on("click", "input[name='financeSwitch']", async function (e) {
+        var regionId = $(this).data('region');
+        var enabled = $(this).is(':checked');
+        await database.collection('regions').doc(regionId).update({'financeEnabled': enabled});
+        if (enabled) {
+            await financeSeedRegion(regionId);
+        }
     });
 
     $(document).on("click", "a[name='region-delete']", function (e) {
