@@ -889,6 +889,18 @@
                                                     </td>
                                                 </tr>
 
+                                                <tr>
+                                                    <td>
+                                                        <strong>{{ __('Finance: project financing and opportunities') }}</strong>
+                                                    </td>
+                                                    <td>
+                                                        <input type="checkbox" id="finance-financing" value="finance.financing" name="finance-financing[]" class="permission">
+                                                        <label class=" control-label2" for="finance-financing">{{ __('View') }}</label>
+                                                        <input type="checkbox" id="finance-financing-manage" value="finance.financing.manage" name="finance-financing[]" class="permission">
+                                                        <label class=" control-label2" for="finance-financing-manage">{{ __('Review and publish') }}</label>
+                                                    </td>
+                                                </tr>
+
 
 
 

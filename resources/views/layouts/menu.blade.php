@@ -832,7 +832,8 @@ $service_type = @$_COOKIE['service_type'];
         @if (in_array('finance-settings', $role_has_permission) || in_array('finance-ledger', $role_has_permission) || in_array('finance-audit', $role_has_permission)
             || in_array('finance-customers', $role_has_permission) || in_array('finance-kyc', $role_has_permission) || in_array('finance-payments', $role_has_permission)
             || in_array('finance-groups', $role_has_permission) || in_array('finance-investments', $role_has_permission)
-            || in_array('finance-insurance', $role_has_permission))
+            || in_array('finance-insurance', $role_has_permission)
+            || in_array('finance-financing', $role_has_permission))
             <li class="nav-subtitle"><span class="nav-subtitle-span">{{ __('Spideli Finance') }}</span></li>
             @if (in_array('finance-settings', $role_has_permission))
             <li><a class="waves-effect waves-dark" href="{!! route('finance.settings') !!}" aria-expanded="false">
@@ -890,6 +891,18 @@ $service_type = @$_COOKIE['service_type'];
             <li><a class="waves-effect waves-dark" href="{!! route('finance.insurance') !!}" aria-expanded="false">
                     <i class="ri-shield-cross-fill"></i>
                     <span class="hide-menu">{{ __('Insurance') }}</span>
+                </a>
+            </li>
+            @endif
+            @if (in_array('finance-financing', $role_has_permission))
+            <li><a class="waves-effect waves-dark" href="{!! route('finance.financing') !!}" aria-expanded="false">
+                    <i class="ri-briefcase-4-fill"></i>
+                    <span class="hide-menu">{{ __('Project financing') }}</span>
+                </a>
+            </li>
+            <li><a class="waves-effect waves-dark" href="{!! route('finance.financing.opportunities') !!}" aria-expanded="false">
+                    <i class="ri-lightbulb-flash-fill"></i>
+                    <span class="hide-menu">{{ __('Investment opportunities') }}</span>
                 </a>
             </li>
             @endif

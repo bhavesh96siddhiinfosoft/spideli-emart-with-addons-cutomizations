@@ -41,6 +41,10 @@
         @if (in_array('finance.insurance', $financePerms))
             <li class="nav-item"><a class="nav-link {{ $tab == 'insurance' ? 'active' : '' }}" href="{{ route('finance.insurance') }}">{{ __('Insurance') }}</a></li>
         @endif
+        @if (in_array('finance.financing', $financePerms))
+            <li class="nav-item"><a class="nav-link {{ $tab == 'financing' ? 'active' : '' }}" href="{{ route('finance.financing') }}">{{ __('Financing') }}</a></li>
+            <li class="nav-item"><a class="nav-link {{ $tab == 'opportunities' ? 'active' : '' }}" href="{{ route('finance.financing.opportunities') }}">{{ __('Opportunities') }}</a></li>
+        @endif
         @if (in_array('finance.ledger', $financePerms))
             <li class="nav-item"><a class="nav-link {{ $tab == 'ledger' ? 'active' : '' }}" href="{{ route('finance.ledger') }}">{{ __('Ledger') }}</a></li>
             <li class="nav-item"><a class="nav-link {{ $tab == 'approvals' ? 'active' : '' }}" href="{{ route('finance.approvals') }}">{{ __('Approvals') }}

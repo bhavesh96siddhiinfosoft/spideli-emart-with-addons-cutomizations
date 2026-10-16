@@ -53,9 +53,7 @@ class Notifier
             }
             $u = $user['data'];
 
-            $category = array_key_exists($type, self::CATEGORIES) ? self::CATEGORIES[$type]
-                : (strpos($type, 'loan_') === 0 ? 'loans' : (preg_match('/^(savings_|tontine_)/', $type) ? 'groups'
-                : (strpos($type, 'investment_') === 0 ? 'investments' : (strpos($type, 'insurance_') === 0 ? 'insurance' : 'payments'))));
+            $category = array_key_exists($type, self::CATEGORIES) ? self::CATEGORIES[$type] : self::categoryByPrefix($type);
             $pushAllowed = $category === null || (($u['financeNotificationPrefs']['push'][$category] ?? true) !== false);
 
             $data = ['type' => $type] + array_map('strval', $data);
@@ -76,6 +74,22 @@ class Notifier
             report($e);
             return 'not sent';
         }
+    }
+
+    /**
+     * The preference category of a type without its own entry, from its
+     * prefix; financing notices answer the customer's own request and are
+     * always sent (null). Anything else counts as payments.
+     */
+    private static function categoryByPrefix($type)
+    {
+        foreach (['loan_' => 'loans', 'savings_' => 'groups', 'tontine_' => 'groups', 'investment_' => 'investments',
+                  'intelligence_' => 'investments', 'insurance_' => 'insurance', 'financing_' => null] as $prefix => $category) {
+            if (strpos($type, $prefix) === 0) {
+                return $category;
+            }
+        }
+        return 'payments';
     }
 
     public static function fill($text, array $values)

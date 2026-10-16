@@ -1119,3 +1119,27 @@ Route::middleware(['permission:finance-insurance,finance.insurance.manage'])->gr
     Route::post('finance/insurance/claims/{id}/{action}', [App\Http\Controllers\FinanceInsuranceController::class, 'claimAction'])->name('finance.insurance.claims.action')
         ->where('action', 'review|request-info|approve|pay|reject');
 });
+
+/* Spideli Finance - admin Phase D3a: project financing review, financial
+ * resources, investment opportunities (docs/FINANCE-ADMIN-PHASE-D.md). */
+Route::middleware(['permission:finance-financing,finance.financing'])->group(function () {
+    Route::get('finance/financing', [App\Http\Controllers\FinanceFinancingController::class, 'index'])->name('finance.financing');
+    Route::get('finance/financing/applications/{id}', [App\Http\Controllers\FinanceFinancingController::class, 'application'])->name('finance.financing.show');
+    Route::get('finance/financing/documents/{id}/file', [App\Http\Controllers\FinanceFinancingController::class, 'documentFile'])->name('finance.financing.document');
+    Route::get('finance/financing/resources', [App\Http\Controllers\FinanceFinancingController::class, 'resources'])->name('finance.financing.resources');
+    Route::get('finance/financing/resources/{id}/file', [App\Http\Controllers\FinanceFinancingController::class, 'resourceFile'])->name('finance.financing.resources.file');
+    Route::get('finance/financing/opportunities', [App\Http\Controllers\FinanceFinancingController::class, 'opportunities'])->name('finance.financing.opportunities');
+    Route::get('finance/financing/opportunities/{id}', [App\Http\Controllers\FinanceFinancingController::class, 'opportunity'])->name('finance.financing.opportunities.show');
+    Route::get('finance/financing/opportunities/{id}/document/{index}', [App\Http\Controllers\FinanceFinancingController::class, 'opportunityDocument'])->name('finance.financing.opportunities.document')->where('index', '[0-9]+');
+});
+Route::middleware(['permission:finance-financing,finance.financing.manage'])->group(function () {
+    Route::post('finance/financing/applications/{id}/{action}', [App\Http\Controllers\FinanceFinancingController::class, 'applicationAction'])->name('finance.financing.action')
+        ->where('action', 'review|request-info|approve|reject|fund|close|note|document');
+    Route::post('finance/financing/resources', [App\Http\Controllers\FinanceFinancingController::class, 'resourceSave'])->name('finance.financing.resources.save');
+    Route::get('finance/financing/opportunities-new', [App\Http\Controllers\FinanceFinancingController::class, 'opportunityForm'])->name('finance.financing.opportunities.create');
+    Route::post('finance/financing/opportunities-new', [App\Http\Controllers\FinanceFinancingController::class, 'opportunitySave'])->name('finance.financing.opportunities.store');
+    Route::get('finance/financing/opportunities/{id}/edit', [App\Http\Controllers\FinanceFinancingController::class, 'opportunityForm'])->name('finance.financing.opportunities.edit');
+    Route::post('finance/financing/opportunities/{id}/edit', [App\Http\Controllers\FinanceFinancingController::class, 'opportunitySave'])->name('finance.financing.opportunities.update');
+    Route::post('finance/financing/opportunities/{id}/{action}', [App\Http\Controllers\FinanceFinancingController::class, 'opportunityAction'])->name('finance.financing.opportunities.action')
+        ->where('action', 'share|notify-matches');
+});
