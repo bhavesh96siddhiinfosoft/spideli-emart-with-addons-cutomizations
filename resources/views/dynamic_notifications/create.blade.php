@@ -413,9 +413,9 @@
                                 type = "{{ trans('lang.driver_cancelled') }}";
                             } else if (val.type == "new_delivery_order") {
                                 type = "{{ trans('lang.new_delivery_order') }}";
-                            } else if (np.type == "customer_cancelled") {
+                            } else if (val.type == "customer_cancelled") {
                                 type = "{{ trans('lang.customer_cancelled') }}";
-                            } else if (np.type == "dinein_rejected") {
+                            } else if (val.type == "dinein_rejected") {
                                 type = "{{ trans('lang.dinein_rejected') }}";
                             }
                             /* Types added since this screen was written (Finance, parcel,

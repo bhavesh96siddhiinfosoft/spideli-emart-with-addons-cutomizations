@@ -937,18 +937,6 @@
                                                     </td>
                                                 </tr>
 
-                                                <tr>
-                                                    <td>
-                                                        <strong>{{ __('Finance: notifications') }}</strong>
-                                                    </td>
-                                                    <td>
-                                                        <input type="checkbox" id="finance-notifications" value="finance.notifications" name="finance-notifications[]" class="permission">
-                                                        <label class=" control-label2" for="finance-notifications">{{ __('View') }}</label>
-                                                        <input type="checkbox" id="finance-notifications-manage" value="finance.notifications.manage" name="finance-notifications[]" class="permission">
-                                                        <label class=" control-label2" for="finance-notifications-manage">{{ __('Create templates and send tests') }}</label>
-                                                    </td>
-                                                </tr>
-
 
 
 

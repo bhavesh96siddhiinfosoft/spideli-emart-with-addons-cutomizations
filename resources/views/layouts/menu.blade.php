@@ -835,8 +835,7 @@ $service_type = @$_COOKIE['service_type'];
             || in_array('finance-insurance', $role_has_permission)
             || in_array('finance-financing', $role_has_permission)
             || in_array('finance-content', $role_has_permission)
-            || in_array('finance-tickets', $role_has_permission) || in_array('finance-reports', $role_has_permission)
-            || in_array('finance-notifications', $role_has_permission))
+            || in_array('finance-tickets', $role_has_permission) || in_array('finance-reports', $role_has_permission))
             <li class="nav-subtitle"><span class="nav-subtitle-span">{{ __('Spideli Finance') }}</span></li>
             <li><a class="waves-effect waves-dark" href="{!! route('finance.dashboard') !!}" aria-expanded="false">
                     <i class="ri-dashboard-3-fill"></i>
@@ -932,13 +931,6 @@ $service_type = @$_COOKIE['service_type'];
             <li><a class="waves-effect waves-dark" href="{!! route('finance.reports') !!}" aria-expanded="false">
                     <i class="ri-bar-chart-box-fill"></i>
                     <span class="hide-menu">{{ __('Finance reports') }}</span>
-                </a>
-            </li>
-            @endif
-            @if (in_array('finance-notifications', $role_has_permission))
-            <li><a class="waves-effect waves-dark" href="{!! route('finance.notifications') !!}" aria-expanded="false">
-                    <i class="ri-notification-3-fill"></i>
-                    <span class="hide-menu">{{ __('Finance notifications') }}</span>
                 </a>
             </li>
             @endif
