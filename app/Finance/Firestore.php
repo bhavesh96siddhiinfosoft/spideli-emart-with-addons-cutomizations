@@ -127,6 +127,12 @@ class Firestore
             '>' => 'GREATER_THAN', '>=' => 'GREATER_THAN_OR_EQUAL', 'in' => 'IN', 'not-in' => 'NOT_IN',
             'array-contains' => 'ARRAY_CONTAINS', 'array-contains-any' => 'ARRAY_CONTAINS_ANY',
         ];
+        // A subcollection ("insurance_claims/{id}/events") is queried under its parent document.
+        $parent = '';
+        if (strpos($collection, '/') !== false) {
+            $parent = '/' . substr($collection, 0, strrpos($collection, '/'));
+            $collection = substr($collection, strrpos($collection, '/') + 1);
+        }
         $q = ['from' => [['collectionId' => $collection]]];
 
         $filters = [];
@@ -158,7 +164,7 @@ class Firestore
         if ($transaction) {
             $body['transaction'] = $transaction;
         }
-        $rows = $this->call('POST', $this->root() . ':runQuery', $body) ?? [];
+        $rows = $this->call('POST', $this->root() . $parent . ':runQuery', $body) ?? [];
 
         $docs = [];
         foreach ($rows as $row) {

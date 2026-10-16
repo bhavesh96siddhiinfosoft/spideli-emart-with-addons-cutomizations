@@ -15,4 +15,18 @@ return [
 
     // Reminders go this many days before a due date.
     'reminder_days_before' => 2,
+
+    // Insurance (chosen 16 Oct 2026). A premium becomes "due" this many days
+    // before its date and "overdue" after it; still unpaid this many days
+    // after its date, the policy lapses.
+    'insurance_premium_due_days_before' => 7,
+    'insurance_lapse_days' => 30,
+
+    // This many days before coverEnd a policy becomes "renewal_due", at its
+    // current yearly premium (an admin may change it before it is paid).
+    'insurance_renewal_days_before' => 30,
+
+    // A priced quote can be accepted for this many days (the admin may change
+    // it on the quote).
+    'insurance_quote_valid_days' => 14,
 ];

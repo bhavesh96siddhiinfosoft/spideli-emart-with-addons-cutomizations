@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\DB;
  * Phase C scheduled work (spec 7): loan instalments due / overdue with the
  * late penalty / back to active, votes nobody closed, reminders and overdue
  * notices, savings targets reached, tontine invitations left unanswered;
- * since Phase D1, fund holdings revalued (units unlocked after the lock-up).
+ * since Phase D1, fund holdings revalued (units unlocked after the lock-up);
+ * since D2, insurance quotes expired, premiums due / overdue, lapses,
+ * renewals, auto-renewals and expiry.
  *
  * Demo records (demo: true) are never touched. Every notice is sent once
  * (finance_job_marks). Each change is its own transaction with its audit
@@ -66,7 +68,8 @@ class Jobs
 
     public function daily()
     {
-        foreach (['loanSchedules', 'tontineReminders', 'savingsReminders', 'savingsTargets', 'tontineInvitations', 'investmentHoldings'] as $job) {
+        foreach (['loanSchedules', 'tontineReminders', 'savingsReminders', 'savingsTargets', 'tontineInvitations', 'investmentHoldings',
+            'insuranceQuotes', 'insuranceRenewals', 'insurancePremiums'] as $job) {
             $this->line("[$job]");
             try {
                 $this->$job();
@@ -348,6 +351,206 @@ class Jobs
             $n = $inv->revalue($f['id'], $this->now);
             if ($n) {
                 $this->line("  {$f['id']}: $n holdings revalued");
+            }
+        }
+    }
+
+    /* ============================================================ insurance */
+
+    /** Priced quotes nobody accepted before validUntil → expired. */
+    public function insuranceQuotes()
+    {
+        foreach ($this->db->query('insurance_quotes', [['status', '==', 'quoted']], [], 1000) as $q) {
+            $until = Insurance::date($q['data']['validUntil'] ?? null);
+            if (self::demo($q['data']) || !$until || $until > $this->now) {
+                continue;
+            }
+            try {
+                $this->db->transaction(function (Transaction $t) use ($q) {
+                    $snap = $t->get('insurance_quotes/' . $q['id']);
+                    if (!$snap || ($snap['data']['status'] ?? '') !== 'quoted') {
+                        return;
+                    }
+                    $t->update('insurance_quotes/' . $q['id'], ['status' => 'expired', 'updatedAt' => Value::serverTimestamp()]);
+                    Audit::add($t, 'job.insurance_quote_expire', 'insurance_quotes', $q['id'], ['status' => 'quoted'], ['status' => 'expired']);
+                });
+                $this->line("  quote {$q['id']}: expired");
+            } catch (\Throwable $e) {
+                report($e);
+                $this->line("  quote {$q['id']} failed: " . $e->getMessage());
+            }
+        }
+    }
+
+    /**
+     * Renewals: an active policy within the renewal window → renewal_due at
+     * its premium; a renewal the customer paid → renewed; autoRenew → paid
+     * from the wallet (from 3 days before the renewal date, so a customer
+     * short of money has time to top up); still not renewed after coverEnd
+     * → expired.
+     */
+    public function insuranceRenewals()
+    {
+        $ins = new Insurance($this->db);
+        $window = (int)config('finance.insurance_renewal_days_before', 30);
+        foreach ($this->db->query('insurance_policies', [['status', 'in', ['active', 'renewal_due']]], [], 2000) as $pol) {
+            $p = $pol['data'];
+            $id = $pol['id'];
+            if (self::demo($p)) {
+                continue;
+            }
+            $end = Insurance::date($p['coverEnd'] ?? null);
+            if (!$end) {
+                continue;
+            }
+            $uid = $p['userId'] ?? '';
+            $cur = $p['currency'] ?? '';
+            try {
+                if ($p['status'] === 'active') {
+                    if ($end->modify("-$window days") <= $this->now) {
+                        $r = $ins->startRenewal($id);
+                        $this->line("  policy $id: renewal due");
+                        $this->notifyOnce("ins_renewal_{$id}_" . $end->format('Ymd'), $uid, 'insurance_renewal_due', ['productName' => $p['productName'] ?? '',
+                            'amount' => Money::format($r['renewalPremium'], $cur), 'renewalDate' => $this->date($end)], ['policyId' => $id]);
+                    }
+                    continue;
+                }
+                if (!empty($p['renewalRequestedAt']) && !empty($p['renewalTxId'])) {
+                    $r = $ins->renewPaid($id);
+                    $this->line("  policy $id: renewed (paid in the app)");
+                    $this->notifyOnce("ins_renewed_{$id}_" . $end->format('Ymd'), $uid, 'insurance_policy_renewed', ['productName' => $p['productName'] ?? '', 'coverEnd' => $this->date($r['coverEnd'])], ['policyId' => $id]);
+                    continue;
+                }
+                $renewalDate = Insurance::date($p['renewalDate'] ?? null) ?: $end;
+                if (!empty($p['autoRenew']) && $renewalDate->modify('-3 days') <= $this->now) {
+                    $r = $ins->autoRenew($id);
+                    if ($r) {
+                        $this->line("  policy $id: renewed from the wallet");
+                        $this->notifyOnce("ins_renewed_{$id}_" . $end->format('Ymd'), $uid, 'insurance_policy_renewed', ['productName' => $p['productName'] ?? '', 'coverEnd' => $this->date($r['coverEnd'])], ['policyId' => $id]);
+                        continue;
+                    }
+                    $this->line("  policy $id: auto-renewal, the wallet holds too little");
+                    $this->notifyOnce("ins_autorenew_short_{$id}_" . $end->format('Ymd'), $uid, 'insurance_renewal_due', ['productName' => $p['productName'] ?? '',
+                        'amount' => Money::format((int)($p['renewalPremium'] ?? 0), $cur), 'renewalDate' => $this->date($renewalDate)], ['policyId' => $id]);
+                }
+                if ($end < $this->now) {
+                    $this->db->transaction(function (Transaction $t) use ($id) {
+                        $snap = $t->get('insurance_policies/' . $id);
+                        if (!$snap || ($snap['data']['status'] ?? '') !== 'renewal_due' || !empty($snap['data']['renewalRequestedAt'])) {
+                            return;
+                        }
+                        $t->update('insurance_policies/' . $id, ['status' => 'expired', 'expiredAt' => Value::serverTimestamp(), 'nextPremiumDue' => null, 'updatedAt' => Value::serverTimestamp()]);
+                        Audit::add($t, 'job.insurance_expire', 'insurance_policies', $id, ['status' => 'renewal_due'], ['status' => 'expired']);
+                    });
+                    $this->line("  policy $id: expired");
+                }
+            } catch (\Throwable $e) {
+                report($e);
+                $this->line("  policy $id failed: " . $e->getMessage());
+            }
+        }
+    }
+
+    /**
+     * Premiums of active policies: upcoming → due a few days before the date,
+     * → overdue after it; still unpaid long after, the policy lapses. Each
+     * policy's nextPremiumDue is kept = its earliest unpaid premium's date.
+     */
+    public function insurancePremiums()
+    {
+        $before = (int)config('finance.insurance_premium_due_days_before', 7);
+        $lapse = (int)config('finance.insurance_lapse_days', 30);
+        $byPolicy = [];
+        foreach ($this->db->query('insurance_premiums', [['status', 'in', ['upcoming', 'due', 'overdue']]], [], 5000) as $pr) {
+            if (!self::demo($pr['data'])) {
+                $byPolicy[$pr['data']['policyId'] ?? ''][] = $pr;
+            }
+        }
+        $active = [];
+        foreach ($this->db->query('insurance_policies', [['status', 'in', ['active', 'renewal_due']]], [], 2000) as $pol) {
+            if (!self::demo($pol['data'])) {
+                $active[$pol['id']] = $pol['data'];
+            }
+        }
+        foreach ($active as $id => $p) {
+            $uid = $p['userId'] ?? '';
+            $cur = $p['currency'] ?? '';
+            $name = $p['productName'] ?? '';
+            try {
+                $result = $this->db->transaction(function (Transaction $t) use ($id, $byPolicy, $before, $lapse) {
+                    $pol = $t->get('insurance_policies/' . $id);
+                    if (!$pol || !in_array($pol['data']['status'] ?? '', ['active', 'renewal_due'], true)) {
+                        return null;
+                    }
+                    $rows = [];
+                    foreach ($byPolicy[$id] ?? [] as $pr) {
+                        $snap = $t->get('insurance_premiums/' . $pr['id']);
+                        if ($snap && in_array($snap['data']['status'] ?? '', ['upcoming', 'due', 'overdue'], true)) {
+                            $rows[] = $snap;
+                        }
+                    }
+                    $changed = ['due' => [], 'overdue' => []];
+                    $lapsed = false;
+                    $next = null;
+                    foreach ($rows as $r) {
+                        $d = $r['data'];
+                        $due = Insurance::date($d['dueDate'] ?? null);
+                        if (!$due) {
+                            continue;
+                        }
+                        $status = $d['status'];
+                        $to = $status;
+                        if ($due < $this->now) {
+                            $to = 'overdue';
+                        } elseif ($status === 'upcoming' && $due->modify("-$before days") <= $this->now) {
+                            $to = 'due';
+                        }
+                        if ($to !== $status) {
+                            $t->update('insurance_premiums/' . $r['id'], ['status' => $to, 'updatedAt' => Value::serverTimestamp()]);
+                            $changed[$to][] = $d + ['id' => $r['id']];
+                        }
+                        if ($to === 'overdue' && $due->modify("+$lapse days") < $this->now) {
+                            $lapsed = true;
+                        }
+                        $next = $next === null || $due < $next ? $due : $next;
+                    }
+                    $polChanges = [];
+                    $current = Insurance::date($pol['data']['nextPremiumDue'] ?? null);
+                    if (($current ? $current->getTimestamp() : null) !== ($next ? $next->getTimestamp() : null)) {
+                        $polChanges['nextPremiumDue'] = $next;
+                    }
+                    if ($lapsed) {
+                        $polChanges += ['status' => 'lapsed', 'statusBefore' => $pol['data']['status'], 'lapsedAt' => Value::serverTimestamp()];
+                    }
+                    if (!$polChanges && !$changed['due'] && !$changed['overdue']) {
+                        return null;
+                    }
+                    if ($polChanges) {
+                        $t->update('insurance_policies/' . $id, $polChanges + ['updatedAt' => Value::serverTimestamp()]);
+                    }
+                    Audit::add($t, 'job.insurance_premiums', 'insurance_policies', $id, ['status' => $pol['data']['status']],
+                        ['status' => $lapsed ? 'lapsed' : $pol['data']['status'], 'due' => count($changed['due']), 'overdue' => count($changed['overdue']), 'nextPremiumDue' => $next]);
+                    return $changed + ['lapsed' => $lapsed];
+                });
+            } catch (\Throwable $e) {
+                report($e);
+                $this->line("  policy $id premiums failed: " . $e->getMessage());
+                continue;
+            }
+            if (!$result) {
+                continue;
+            }
+            $this->line("  policy $id: " . count($result['due']) . ' due, ' . count($result['overdue']) . ' overdue' . ($result['lapsed'] ? ', lapsed' : ''));
+            foreach ($result['due'] as $d) {
+                $this->notifyOnce("ins_due_{$d['id']}", $uid, 'insurance_premium_due', ['productName' => $name, 'amount' => Money::format((int)($d['amount'] ?? 0), $cur),
+                    'dueDate' => $this->date($d['dueDate'] ?? null)], ['policyId' => $id, 'premiumId' => $d['id']]);
+            }
+            foreach ($result['overdue'] as $d) {
+                $this->notifyOnce("ins_overdue_{$d['id']}", $uid, 'insurance_premium_overdue', ['productName' => $name, 'amount' => Money::format((int)($d['amount'] ?? 0), $cur)],
+                    ['policyId' => $id, 'premiumId' => $d['id']]);
+            }
+            if ($result['lapsed']) {
+                $this->notifyOnce("ins_lapsed_$id", $uid, 'insurance_policy_lapsed', ['productName' => $name], ['policyId' => $id]);
             }
         }
     }

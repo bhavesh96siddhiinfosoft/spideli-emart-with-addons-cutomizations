@@ -1093,3 +1093,29 @@ Route::middleware(['permission:finance-investments,finance.investments.manage'])
     Route::post('finance/investments/{id}/{action}', [App\Http\Controllers\FinanceInvestmentsController::class, 'action'])->name('finance.investments.action')
         ->where('action', 'add-price|revalue|execute-subscriptions|refuse-subscription|execute-redemptions|refuse-redemption|settle|settle-due');
 });
+
+/* Spideli Finance - admin Phase D2: insurance partners, products, quotes,
+ * policies, renewals, cancellations and claims (docs/FINANCE-ADMIN-PHASE-D.md). */
+Route::middleware(['permission:finance-insurance,finance.insurance'])->group(function () {
+    Route::get('finance/insurance', [App\Http\Controllers\FinanceInsuranceController::class, 'index'])->name('finance.insurance');
+    Route::get('finance/insurance/partners', [App\Http\Controllers\FinanceInsuranceController::class, 'partners'])->name('finance.insurance.partners');
+    Route::get('finance/insurance/products', [App\Http\Controllers\FinanceInsuranceController::class, 'products'])->name('finance.insurance.products');
+    Route::get('finance/insurance/quotes/{id}', [App\Http\Controllers\FinanceInsuranceController::class, 'quote'])->name('finance.insurance.quotes.show');
+    Route::get('finance/insurance/policies/{id}', [App\Http\Controllers\FinanceInsuranceController::class, 'policy'])->name('finance.insurance.policies.show');
+    Route::get('finance/insurance/claims/{id}', [App\Http\Controllers\FinanceInsuranceController::class, 'claim'])->name('finance.insurance.claims.show');
+    Route::get('finance/insurance/claims/{id}/file/{index}', [App\Http\Controllers\FinanceInsuranceController::class, 'claimFile'])->name('finance.insurance.claims.file')->where('index', '[0-9]+');
+    Route::get('finance/insurance/{kind}/{id}/document/{index}', [App\Http\Controllers\FinanceInsuranceController::class, 'document'])->name('finance.insurance.document')
+        ->where(['kind' => 'products|quotes|policies', 'index' => '[0-9]+']);
+});
+Route::middleware(['permission:finance-insurance,finance.insurance.manage'])->group(function () {
+    Route::post('finance/insurance/partners', [App\Http\Controllers\FinanceInsuranceController::class, 'partnerSave'])->name('finance.insurance.partners.save');
+    Route::get('finance/insurance/products-new', [App\Http\Controllers\FinanceInsuranceController::class, 'productCreate'])->name('finance.insurance.products.create');
+    Route::post('finance/insurance/products-new', [App\Http\Controllers\FinanceInsuranceController::class, 'productSave'])->name('finance.insurance.products.store');
+    Route::get('finance/insurance/products/{id}/edit', [App\Http\Controllers\FinanceInsuranceController::class, 'productEdit'])->name('finance.insurance.products.edit');
+    Route::post('finance/insurance/products/{id}/edit', [App\Http\Controllers\FinanceInsuranceController::class, 'productSave'])->name('finance.insurance.products.update');
+    Route::post('finance/insurance/quotes/{id}/{action}', [App\Http\Controllers\FinanceInsuranceController::class, 'quoteAction'])->name('finance.insurance.quotes.action')->where('action', 'price|refuse');
+    Route::post('finance/insurance/policies/{id}/{action}', [App\Http\Controllers\FinanceInsuranceController::class, 'policyAction'])->name('finance.insurance.policies.action')
+        ->where('action', 'activate|refuse|start-renewal|renewal-premium|renew|cancel|keep');
+    Route::post('finance/insurance/claims/{id}/{action}', [App\Http\Controllers\FinanceInsuranceController::class, 'claimAction'])->name('finance.insurance.claims.action')
+        ->where('action', 'review|request-info|approve|pay|reject');
+});

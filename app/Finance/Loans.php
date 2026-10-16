@@ -88,7 +88,7 @@ class Loans
             }
             $ends = (new \DateTimeImmutable())->modify('+' . $hours . ' hours');
             $this->setStatus($t, $l, 'voting', ['votingEndsAt' => Value::timestamp($ends), 'eligibleVoterIds' => $voters], 'loan.open_vote');
-            return $l + ['eligibleVoterIds' => $voters];
+            return array_merge($l, ['eligibleVoterIds' => $voters]);
         });
     }
 

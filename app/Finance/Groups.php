@@ -86,7 +86,7 @@ class Groups
             $t->update('savings_goals/' . $goal['id'], ['savedAmount' => Value::increment(-$amount), 'lastTxId' => $tx['txId'], 'updatedAt' => Value::serverTimestamp()]);
             $t->update('savings_withdrawals/' . $withdrawalId, ['status' => 'completed', 'txId' => $tx['txId'], 'completedAt' => Value::serverTimestamp(), 'processedBy' => $this->admin()]);
             Audit::add($t, 'savings.withdrawal_pay', 'savings_withdrawals', $withdrawalId, ['status' => 'requested'], ['status' => 'completed', 'txId' => $tx['txId'], 'amount' => $amount]);
-            return $w + ['goalName' => $goal['name'] ?? '', 'currency' => $cur];
+            return array_merge($w, ['goalName' => $goal['name'] ?? '', 'currency' => $cur]);
         });
     }
 
@@ -249,7 +249,7 @@ class Groups
             }
             Audit::add($t, 'tontine.payout_approve', 'tontine_payouts', $payoutId, ['status' => 'pending_approval'],
                 ['status' => 'paid', 'amount' => $amount, 'txId' => $tx['txId'], 'completed' => !$next]);
-            return $p + ['amount' => $amount, 'currency' => $cur, 'tontineName' => $tontine['name'] ?? ''];
+            return array_merge($p, ['amount' => $amount, 'currency' => $cur, 'tontineName' => $tontine['name'] ?? '']);   // the amount paid, not the request's
         });
     }
 

@@ -841,6 +841,18 @@
                                                 </td>
                                             </tr>
 
+                                            <tr>
+                                                <td>
+                                                    <strong>{{ __('Finance: insurance') }}</strong>
+                                                </td>
+                                                <td>
+                                                    <input type="checkbox" id="finance-insurance" value="finance.insurance" name="finance-insurance[]" class="permission" {{ in_array('finance.insurance', $permissions) ? 'checked' : '' }}>
+                                                    <label class=" control-label2" for="finance-insurance">{{ __('View') }}</label>
+                                                    <input type="checkbox" id="finance-insurance-manage" value="finance.insurance.manage" name="finance-insurance[]" class="permission" {{ in_array('finance.insurance.manage', $permissions) ? 'checked' : '' }}>
+                                                    <label class=" control-label2" for="finance-insurance-manage">{{ __('Decide and pay') }}</label>
+                                                </td>
+                                            </tr>
+
 
 
                                             
