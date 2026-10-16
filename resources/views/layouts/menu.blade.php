@@ -833,7 +833,8 @@ $service_type = @$_COOKIE['service_type'];
             || in_array('finance-customers', $role_has_permission) || in_array('finance-kyc', $role_has_permission) || in_array('finance-payments', $role_has_permission)
             || in_array('finance-groups', $role_has_permission) || in_array('finance-investments', $role_has_permission)
             || in_array('finance-insurance', $role_has_permission)
-            || in_array('finance-financing', $role_has_permission))
+            || in_array('finance-financing', $role_has_permission)
+            || in_array('finance-content', $role_has_permission))
             <li class="nav-subtitle"><span class="nav-subtitle-span">{{ __('Spideli Finance') }}</span></li>
             @if (in_array('finance-settings', $role_has_permission))
             <li><a class="waves-effect waves-dark" href="{!! route('finance.settings') !!}" aria-expanded="false">
@@ -903,6 +904,13 @@ $service_type = @$_COOKIE['service_type'];
             <li><a class="waves-effect waves-dark" href="{!! route('finance.financing.opportunities') !!}" aria-expanded="false">
                     <i class="ri-lightbulb-flash-fill"></i>
                     <span class="hide-menu">{{ __('Investment opportunities') }}</span>
+                </a>
+            </li>
+            @endif
+            @if (in_array('finance-content', $role_has_permission))
+            <li><a class="waves-effect waves-dark" href="{!! route('finance.content') !!}" aria-expanded="false">
+                    <i class="ri-stock-fill"></i>
+                    <span class="hide-menu">{{ __('Markets and content') }}</span>
                 </a>
             </li>
             @endif

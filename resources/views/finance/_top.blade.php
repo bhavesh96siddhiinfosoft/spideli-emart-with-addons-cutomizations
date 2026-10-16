@@ -45,6 +45,9 @@
             <li class="nav-item"><a class="nav-link {{ $tab == 'financing' ? 'active' : '' }}" href="{{ route('finance.financing') }}">{{ __('Financing') }}</a></li>
             <li class="nav-item"><a class="nav-link {{ $tab == 'opportunities' ? 'active' : '' }}" href="{{ route('finance.financing.opportunities') }}">{{ __('Opportunities') }}</a></li>
         @endif
+        @if (in_array('finance.content', $financePerms))
+            <li class="nav-item"><a class="nav-link {{ $tab == 'content' ? 'active' : '' }}" href="{{ route('finance.content') }}">{{ __('Markets') }}</a></li>
+        @endif
         @if (in_array('finance.ledger', $financePerms))
             <li class="nav-item"><a class="nav-link {{ $tab == 'ledger' ? 'active' : '' }}" href="{{ route('finance.ledger') }}">{{ __('Ledger') }}</a></li>
             <li class="nav-item"><a class="nav-link {{ $tab == 'approvals' ? 'active' : '' }}" href="{{ route('finance.approvals') }}">{{ __('Approvals') }}

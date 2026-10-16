@@ -865,6 +865,18 @@
                                                 </td>
                                             </tr>
 
+                                            <tr>
+                                                <td>
+                                                    <strong>{{ __('Finance: markets and content') }}</strong>
+                                                </td>
+                                                <td>
+                                                    <input type="checkbox" id="finance-content" value="finance.content" name="finance-content[]" class="permission" {{ in_array('finance.content', $permissions) ? 'checked' : '' }}>
+                                                    <label class=" control-label2" for="finance-content">{{ __('View') }}</label>
+                                                    <input type="checkbox" id="finance-content-manage" value="finance.content.manage" name="finance-content[]" class="permission" {{ in_array('finance.content.manage', $permissions) ? 'checked' : '' }}>
+                                                    <label class=" control-label2" for="finance-content-manage">{{ __('Edit and publish') }}</label>
+                                                </td>
+                                            </tr>
+
 
 
                                             

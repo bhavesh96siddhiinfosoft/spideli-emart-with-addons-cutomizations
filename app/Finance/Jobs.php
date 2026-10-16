@@ -10,7 +10,8 @@ use Illuminate\Support\Facades\DB;
  * notices, savings targets reached, tontine invitations left unanswered;
  * since Phase D1, fund holdings revalued (units unlocked after the lock-up);
  * since D2, insurance quotes expired, premiums due / overdue, lapses,
- * renewals, auto-renewals and expiry.
+ * renewals, auto-renewals and expiry; since D3b, fixed exchange rates
+ * re-posted.
  *
  * Demo records (demo: true) are never touched. Every notice is sent once
  * (finance_job_marks). Each change is its own transaction with its audit
@@ -69,7 +70,7 @@ class Jobs
     public function daily()
     {
         foreach (['loanSchedules', 'tontineReminders', 'savingsReminders', 'savingsTargets', 'tontineInvitations', 'investmentHoldings',
-            'insuranceQuotes', 'insuranceRenewals', 'insurancePremiums'] as $job) {
+            'insuranceQuotes', 'insuranceRenewals', 'insurancePremiums', 'fixedRates'] as $job) {
             $this->line("[$job]");
             try {
                 $this->$job();
@@ -552,6 +553,16 @@ class Jobs
             if ($result['lapsed']) {
                 $this->notifyOnce("ins_lapsed_$id", $uid, 'insurance_policy_lapsed', ['productName' => $name], ['policyId' => $id]);
             }
+        }
+    }
+
+    /* ============================================================ content */
+
+    /** Re-posts every exchange rate marked fixed (an official peg), so conversions keep a fresh rate. */
+    public function fixedRates()
+    {
+        foreach ((new Content($this->db))->repostFixed() as $pair) {
+            $this->line("  $pair re-posted");
         }
     }
 }

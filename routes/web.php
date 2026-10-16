@@ -1143,3 +1143,19 @@ Route::middleware(['permission:finance-financing,finance.financing.manage'])->gr
     Route::post('finance/financing/opportunities/{id}/{action}', [App\Http\Controllers\FinanceFinancingController::class, 'opportunityAction'])->name('finance.financing.opportunities.action')
         ->where('action', 'share|notify-matches');
 });
+
+/* Spideli Finance - admin Phase D3b: markets and content - indicators,
+ * exchange rates, securities, IPOs, collections, news, billers (docs/FINANCE-ADMIN-PHASE-D.md). */
+Route::middleware(['permission:finance-content,finance.content'])->group(function () {
+    Route::get('finance/content', [App\Http\Controllers\FinanceContentController::class, 'index'])->name('finance.content');
+    Route::get('finance/content/import/{what}/template', [App\Http\Controllers\FinanceContentController::class, 'template'])->name('finance.content.template')->where('what', 'indicators|rates|prices');
+});
+Route::middleware(['permission:finance-content,finance.content.manage'])->group(function () {
+    Route::get('finance/content/{kind}/new', [App\Http\Controllers\FinanceContentController::class, 'form'])->name('finance.content.create')->where('kind', 'indicators|securities|ipos|collections|news|billers');
+    Route::post('finance/content/{kind}/new', [App\Http\Controllers\FinanceContentController::class, 'save'])->name('finance.content.store')->where('kind', 'indicators|securities|ipos|collections|news|billers');
+    Route::get('finance/content/{kind}/{id}/edit', [App\Http\Controllers\FinanceContentController::class, 'form'])->name('finance.content.edit')->where('kind', 'indicators|securities|ipos|collections|news|billers');
+    Route::post('finance/content/{kind}/{id}/edit', [App\Http\Controllers\FinanceContentController::class, 'save'])->name('finance.content.update')->where('kind', 'indicators|securities|ipos|collections|news|billers');
+    Route::post('finance/content/rates', [App\Http\Controllers\FinanceContentController::class, 'rateAdd'])->name('finance.content.rates.add');
+    Route::post('finance/content/rates/{pair}/unfix', [App\Http\Controllers\FinanceContentController::class, 'rateUnfix'])->name('finance.content.rates.unfix');
+    Route::post('finance/content/import/{what}', [App\Http\Controllers\FinanceContentController::class, 'import'])->name('finance.content.import')->where('what', 'indicators|rates|prices');
+});
