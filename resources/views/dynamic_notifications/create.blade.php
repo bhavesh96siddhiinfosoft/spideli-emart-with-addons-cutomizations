@@ -418,6 +418,13 @@
                             } else if (np.type == "dinein_rejected") {
                                 type = "{{ trans('lang.dinein_rejected') }}";
                             }
+                            /* Types added since this screen was written (Finance, parcel,
+                             * drivers...) have no label above: show the type itself as a
+                             * readable name. Only the subject and message are saved. */
+                            if (!type && val.type) {
+                                var words = String(val.type).replace(/_/g, ' ');
+                                type = words.charAt(0).toUpperCase() + words.slice(1) + ' (' + val.type + ')';
+                            }
 
 
 

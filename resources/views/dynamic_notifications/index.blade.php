@@ -271,6 +271,12 @@
                                 childData.notificationType = "{{trans('lang.dinein_rejected')}}";
                                 childData.title = "{{trans('lang.dinein_rejected_notification')}}";
                             }
+                            /* Types added since this list was written (Finance, parcel,
+                             * drivers...) have no label above and showed "undefined":
+                             * show a readable name from the type itself, with the type. */
+                            if (!childData.notificationType) {
+                                childData.notificationType = notificationTypeLabel(childData.type);
+                            }
 
                             var date = '';
                             var time = '';
@@ -368,6 +374,17 @@
             }
 
         });
+
+        /* "wallet_withdrawal_completed" -> "Wallet withdrawal completed", with the
+         * exact type underneath (the name the app sends). */
+        function notificationTypeLabel(type) {
+            type = String(type || '');
+            if (!type) {
+                return '';
+            }
+            var words = type.replace(/_/g, ' ');
+            return words.charAt(0).toUpperCase() + words.slice(1);
+        }
 
         function buildHTML(val) {
 
