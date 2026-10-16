@@ -1159,3 +1159,18 @@ Route::middleware(['permission:finance-content,finance.content.manage'])->group(
     Route::post('finance/content/rates/{pair}/unfix', [App\Http\Controllers\FinanceContentController::class, 'rateUnfix'])->name('finance.content.rates.unfix');
     Route::post('finance/content/import/{what}', [App\Http\Controllers\FinanceContentController::class, 'import'])->name('finance.content.import')->where('what', 'indicators|rates|prices');
 });
+
+/* Spideli Finance - admin Phase D4: support tickets and reports (docs/FINANCE-ADMIN-PHASE-D.md). */
+Route::middleware(['permission:finance-tickets,finance.tickets'])->group(function () {
+    Route::get('finance/tickets', [App\Http\Controllers\FinanceSupportController::class, 'tickets'])->name('finance.tickets');
+    Route::get('finance/tickets/{id}', [App\Http\Controllers\FinanceSupportController::class, 'ticket'])->name('finance.tickets.show')->where('id', '(?!new$)[A-Za-z0-9]+');
+});
+Route::middleware(['permission:finance-tickets,finance.tickets.manage'])->group(function () {
+    Route::get('finance/tickets-new', [App\Http\Controllers\FinanceSupportController::class, 'ticketForm'])->name('finance.tickets.create');
+    Route::post('finance/tickets-new', [App\Http\Controllers\FinanceSupportController::class, 'ticketStore'])->name('finance.tickets.store');
+    Route::post('finance/tickets/{id}/{action}', [App\Http\Controllers\FinanceSupportController::class, 'ticketAction'])->name('finance.tickets.action')->where('action', 'message|update|resolve|close|reopen');
+});
+Route::middleware(['permission:finance-reports,finance.reports'])->group(function () {
+    Route::get('finance/reports', [App\Http\Controllers\FinanceSupportController::class, 'reports'])->name('finance.reports');
+    Route::get('finance/reports/{section}.csv', [App\Http\Controllers\FinanceSupportController::class, 'reportExport'])->name('finance.reports.export');
+});

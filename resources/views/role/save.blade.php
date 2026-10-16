@@ -913,6 +913,28 @@
                                                     </td>
                                                 </tr>
 
+                                                <tr>
+                                                    <td>
+                                                        <strong>{{ __('Finance: support tickets') }}</strong>
+                                                    </td>
+                                                    <td>
+                                                        <input type="checkbox" id="finance-tickets" value="finance.tickets" name="finance-tickets[]" class="permission">
+                                                        <label class=" control-label2" for="finance-tickets">{{ __('View') }}</label>
+                                                        <input type="checkbox" id="finance-tickets-manage" value="finance.tickets.manage" name="finance-tickets[]" class="permission">
+                                                        <label class=" control-label2" for="finance-tickets-manage">{{ __('Open and handle') }}</label>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td>
+                                                        <strong>{{ __('Finance: reports') }}</strong>
+                                                    </td>
+                                                    <td>
+                                                        <input type="checkbox" id="finance-reports" value="finance.reports" name="finance-reports[]" class="permission">
+                                                        <label class=" control-label2" for="finance-reports">{{ __('View and export') }}</label>
+                                                    </td>
+                                                </tr>
+
 
 
 

@@ -48,6 +48,12 @@
         @if (in_array('finance.content', $financePerms))
             <li class="nav-item"><a class="nav-link {{ $tab == 'content' ? 'active' : '' }}" href="{{ route('finance.content') }}">{{ __('Markets') }}</a></li>
         @endif
+        @if (in_array('finance.tickets', $financePerms))
+            <li class="nav-item"><a class="nav-link {{ $tab == 'tickets' ? 'active' : '' }}" href="{{ route('finance.tickets') }}">{{ __('Tickets') }}</a></li>
+        @endif
+        @if (in_array('finance.reports', $financePerms))
+            <li class="nav-item"><a class="nav-link {{ $tab == 'reports' ? 'active' : '' }}" href="{{ route('finance.reports') }}">{{ __('Reports') }}</a></li>
+        @endif
         @if (in_array('finance.ledger', $financePerms))
             <li class="nav-item"><a class="nav-link {{ $tab == 'ledger' ? 'active' : '' }}" href="{{ route('finance.ledger') }}">{{ __('Ledger') }}</a></li>
             <li class="nav-item"><a class="nav-link {{ $tab == 'approvals' ? 'active' : '' }}" href="{{ route('finance.approvals') }}">{{ __('Approvals') }}

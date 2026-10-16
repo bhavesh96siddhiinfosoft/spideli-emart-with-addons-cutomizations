@@ -29,4 +29,8 @@ return [
     // A priced quote can be accepted for this many days (the admin may change
     // it on the quote).
     'insurance_quote_valid_days' => 14,
+
+    // Support tickets: hours to resolve, by priority (chosen 16 Oct 2026).
+    // A ticket open longer is shown late.
+    'ticket_sla_hours' => ['urgent' => 4, 'high' => 24, 'normal' => 72, 'low' => 168],
 ];

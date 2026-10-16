@@ -23,6 +23,26 @@
                 <div class="form-group row width-50"><label class="col-3 control-label">{{ __('Id') }}</label><div class="col-7"><span class="form-control-plaintext finance-mono">{{ $uid }}</span></div></div>
             </fieldset>
 
+            @if ($tickets !== null)
+            <fieldset>
+                <legend><i class="mr-3 mdi mdi-lifebuoy"></i>{{ __('Support tickets') }}
+                    @if ($canTicket)<a class="btn btn-sm btn-outline-primary float-right" href="{{ route('finance.tickets.create', ['userId' => $uid]) }}"><i class="mdi mdi-plus"></i> {{ __('Open a ticket') }}</a>@endif</legend>
+                <div class="form-group row width-100"><div class="col-7">
+                    <table class="table table-bordered table-sm mb-0">
+                        <thead><tr><th>{{ __('Opened') }}</th><th>{{ __('Subject') }}</th><th>{{ __('Priority') }}</th><th>{{ __('Status') }}</th></tr></thead>
+                        <tbody>
+                        @forelse ($tickets as $tk)
+                            <tr><td>{{ $fmtDate($tk['data']['createdAt'] ?? null) }}</td><td><a href="{{ route('finance.tickets.show', $tk['id']) }}">{{ $tk['data']['subject'] ?? '' }}</a></td>
+                                <td>{{ $tk['data']['priority'] ?? '' }}</td><td>{{ $tk['data']['status'] ?? '' }}</td></tr>
+                        @empty
+                            <tr><td colspan="4" class="text-muted">{{ __('No ticket.') }}</td></tr>
+                        @endforelse
+                        </tbody>
+                    </table>
+                </div></div>
+            </fieldset>
+            @endif
+
             <fieldset>
                 <legend><i class="mr-3 mdi mdi-block-helper"></i>{{ __('Restriction') }}</legend>
                 @if ($restr)

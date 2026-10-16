@@ -175,6 +175,8 @@ class FinanceDeskController extends Controller
             'operations' => array_slice(self::sortBy($db->query('wallet_operations', [['userId', '==', $uid]], [], 100), 'createdAt'), 0, 30),
             'scopes' => Desk::SCOPES,
             'canRestrict' => $this->can('finance.customers.restrict'),
+            'tickets' => $this->can('finance.tickets') ? $db->query('support_tickets', [['userId', '==', $uid]], [], 100) : null,
+            'canTicket' => $this->can('finance.tickets.manage'),
         ]);
     }
 

@@ -178,12 +178,19 @@ class Firestore
     /** count() aggregation; null when the index or the query is refused. */
     public function count($collection, array $where = [])
     {
+        $v = $this->aggregate($collection, $where, ['count' => (object)[]]);
+        return $v === null ? null : (int)$v;
+    }
+
+    private function aggregate($collection, array $where, array $aggregation)
+    {
+        $ops = ['==' => 'EQUAL', '!=' => 'NOT_EQUAL', 'in' => 'IN', 'array-contains' => 'ARRAY_CONTAINS', 'array-contains-any' => 'ARRAY_CONTAINS_ANY'];
         $q = ['from' => [['collectionId' => $collection]]];
         $filters = [];
         foreach ($where as [$field, $op, $value]) {
             $filters[] = ['fieldFilter' => [
                 'field' => ['fieldPath' => $field],
-                'op' => ['==' => 'EQUAL', '!=' => 'NOT_EQUAL'][$op],
+                'op' => $ops[$op],
                 'value' => Value::encode($value),
             ]];
         }
@@ -194,13 +201,16 @@ class Firestore
         }
         try {
             $rows = $this->call('POST', $this->root() . ':runAggregationQuery', [
-                'structuredAggregationQuery' => ['structuredQuery' => $q, 'aggregations' => [['alias' => 'n', 'count' => (object)[]]]],
+                'structuredAggregationQuery' => ['structuredQuery' => $q, 'aggregations' => [['alias' => 'n'] + $aggregation]],
             ]);
         } catch (FirestoreError $e) {
             return null;
         }
-        $v = $rows[0]['result']['aggregateFields']['n']['integerValue'] ?? null;
-        return $v === null ? null : (int)$v;
+        $f = $rows[0]['result']['aggregateFields']['n'] ?? null;
+        if ($f === null) {
+            return null;
+        }
+        return array_key_exists('integerValue', $f) ? (int)$f['integerValue'] : (array_key_exists('doubleValue', $f) ? (float)$f['doubleValue'] : (array_key_exists('nullValue', $f) ? 0 : null));
     }
 
     /* ----------------------------------------------------------------- writes */
