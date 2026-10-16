@@ -1074,3 +1074,22 @@ Route::middleware(['permission:finance-groups,finance.groups.manage'])->group(fu
     Route::post('finance/loans/{id}/{action}', [App\Http\Controllers\FinanceGroupsController::class, 'loanAction'])->name('finance.loans.action')
         ->where('action', 'review|assessment|open-vote|reject|close-vote|default|refund|pay-lenders|sweep');
 });
+
+/* Spideli Finance - admin Phase D1: investment funds, unit prices, orders and
+ * customer reports (docs/FINANCE-ADMIN-PHASE-D.md). */
+Route::middleware(['permission:finance-investments,finance.investments'])->group(function () {
+    Route::get('finance/investments', [App\Http\Controllers\FinanceInvestmentsController::class, 'index'])->name('finance.investments');
+    Route::get('finance/investments/reports', [App\Http\Controllers\FinanceInvestmentsController::class, 'reports'])->name('finance.investments.reports');
+    Route::get('finance/investments/reports/{id}/file', [App\Http\Controllers\FinanceInvestmentsController::class, 'reportFile'])->name('finance.investments.reports.file');
+    Route::get('finance/investments/{id}', [App\Http\Controllers\FinanceInvestmentsController::class, 'show'])->name('finance.investments.show');
+    Route::get('finance/investments/{id}/document/{index}', [App\Http\Controllers\FinanceInvestmentsController::class, 'document'])->name('finance.investments.document')->where('index', '[0-9]+');
+});
+Route::middleware(['permission:finance-investments,finance.investments.manage'])->group(function () {
+    Route::get('finance/investments-new', [App\Http\Controllers\FinanceInvestmentsController::class, 'create'])->name('finance.investments.create');
+    Route::post('finance/investments-new', [App\Http\Controllers\FinanceInvestmentsController::class, 'save'])->name('finance.investments.store');
+    Route::get('finance/investments/{id}/edit', [App\Http\Controllers\FinanceInvestmentsController::class, 'edit'])->name('finance.investments.edit');
+    Route::post('finance/investments/{id}/edit', [App\Http\Controllers\FinanceInvestmentsController::class, 'save'])->name('finance.investments.update');
+    Route::post('finance/investments/reports', [App\Http\Controllers\FinanceInvestmentsController::class, 'reportStore'])->name('finance.investments.reports.store');
+    Route::post('finance/investments/{id}/{action}', [App\Http\Controllers\FinanceInvestmentsController::class, 'action'])->name('finance.investments.action')
+        ->where('action', 'add-price|revalue|execute-subscriptions|refuse-subscription|execute-redemptions|refuse-redemption|settle|settle-due');
+});

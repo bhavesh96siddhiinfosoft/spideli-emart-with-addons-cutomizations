@@ -865,6 +865,18 @@
                                                     </td>
                                                 </tr>
 
+                                                <tr>
+                                                    <td>
+                                                        <strong>{{ __('Finance: investments') }}</strong>
+                                                    </td>
+                                                    <td>
+                                                        <input type="checkbox" id="finance-investments" value="finance.investments" name="finance-investments[]" class="permission">
+                                                        <label class=" control-label2" for="finance-investments">{{ __('View') }}</label>
+                                                        <input type="checkbox" id="finance-investments-manage" value="finance.investments.manage" name="finance-investments[]" class="permission">
+                                                        <label class=" control-label2" for="finance-investments-manage">{{ __('Manage funds and orders') }}</label>
+                                                    </td>
+                                                </tr>
+
 
 
 

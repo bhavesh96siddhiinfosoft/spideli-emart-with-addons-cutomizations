@@ -16,6 +16,35 @@ class Storage
         return env('FIREBASE_STORAGE_BUCKET') ?: (json_decode(file_get_contents(storage_path(self::CREDENTIALS)), true)['project_id'] . '.appspot.com');
     }
 
+    /**
+     * Uploads a file the admin chose to gs://{bucket}/{path} (fund documents,
+     * customer reports). Private: customers read it through the Storage rules,
+     * the panel through signed URLs. Returns the stored path.
+     */
+    public static function upload($localPath, $path, $contentType = 'application/pdf')
+    {
+        $token = \Illuminate\Support\Facades\Cache::remember('finance_storage_token', 3000, function () {
+            $client = new \Google\Client();
+            $client->setAuthConfig(storage_path(self::CREDENTIALS));
+            $client->addScope('https://www.googleapis.com/auth/devstorage.read_write');
+            return $client->fetchAccessTokenWithAssertion()['access_token'] ?? '';
+        });
+        $url = 'https://storage.googleapis.com/upload/storage/v1/b/' . rawurlencode(self::bucket()) . '/o?uploadType=media&name=' . rawurlencode($path);
+        $res = \Illuminate\Support\Facades\Http::withToken($token)->timeout(120)
+            ->withBody(file_get_contents($localPath), $contentType)->post($url);
+        if (!$res->successful()) {
+            throw new FinanceException('upload_failed', 'The file could not be stored (' . $res->status() . ').');
+        }
+        return $path;
+    }
+
+    /** A file name safe for a Storage path: letters, digits, dot, dash, underscore. */
+    public static function safeName($name)
+    {
+        $name = preg_replace('/[^A-Za-z0-9._-]+/', '-', (string)$name);
+        return trim($name, '-.') ?: 'file.pdf';
+    }
+
     /** A signed URL for gs://{bucket}/{path}, valid $seconds (capped at 300). */
     public static function signedUrl($path, $seconds = 300)
     {

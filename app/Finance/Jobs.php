@@ -7,7 +7,8 @@ use Illuminate\Support\Facades\DB;
 /**
  * Phase C scheduled work (spec 7): loan instalments due / overdue with the
  * late penalty / back to active, votes nobody closed, reminders and overdue
- * notices, savings targets reached, tontine invitations left unanswered.
+ * notices, savings targets reached, tontine invitations left unanswered;
+ * since Phase D1, fund holdings revalued (units unlocked after the lock-up).
  *
  * Demo records (demo: true) are never touched. Every notice is sent once
  * (finance_job_marks). Each change is its own transaction with its audit
@@ -65,7 +66,7 @@ class Jobs
 
     public function daily()
     {
-        foreach (['loanSchedules', 'tontineReminders', 'savingsReminders', 'savingsTargets', 'tontineInvitations'] as $job) {
+        foreach (['loanSchedules', 'tontineReminders', 'savingsReminders', 'savingsTargets', 'tontineInvitations', 'investmentHoldings'] as $job) {
             $this->line("[$job]");
             try {
                 $this->$job();
@@ -327,6 +328,26 @@ class Jobs
             }
             foreach ((array)($d['memberIds'] ?? []) as $uid) {
                 $this->notifyOnce("savings_target_{$g['id']}_$uid", $uid, 'savings_goal_completed', ['goalName' => $d['name'] ?? ''], ['goalId' => $g['id']]);
+            }
+        }
+    }
+
+    /* ========================================================== investments */
+
+    /**
+     * Revalues the holdings of every fund at its current price, so units whose
+     * lock-up has passed become redeemable (spec 6.10). Demo funds are skipped.
+     */
+    public function investmentHoldings()
+    {
+        $inv = new Investments($this->db);
+        foreach ($this->db->query('investment_funds', [], [], 500) as $f) {
+            if (self::demo($f['data'])) {
+                continue;
+            }
+            $n = $inv->revalue($f['id'], $this->now);
+            if ($n) {
+                $this->line("  {$f['id']}: $n holdings revalued");
             }
         }
     }

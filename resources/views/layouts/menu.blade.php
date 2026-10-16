@@ -831,7 +831,7 @@ $service_type = @$_COOKIE['service_type'];
         {{-- Spideli Finance (admin Phase A). Shown in every section: finance is not tied to one service. --}}
         @if (in_array('finance-settings', $role_has_permission) || in_array('finance-ledger', $role_has_permission) || in_array('finance-audit', $role_has_permission)
             || in_array('finance-customers', $role_has_permission) || in_array('finance-kyc', $role_has_permission) || in_array('finance-payments', $role_has_permission)
-            || in_array('finance-groups', $role_has_permission))
+            || in_array('finance-groups', $role_has_permission) || in_array('finance-investments', $role_has_permission))
             <li class="nav-subtitle"><span class="nav-subtitle-span">{{ __('Spideli Finance') }}</span></li>
             @if (in_array('finance-settings', $role_has_permission))
             <li><a class="waves-effect waves-dark" href="{!! route('finance.settings') !!}" aria-expanded="false">
@@ -875,6 +875,13 @@ $service_type = @$_COOKIE['service_type'];
             <li><a class="waves-effect waves-dark" href="{!! route('finance.loans') !!}" aria-expanded="false">
                     <i class="ri-hand-coin-fill"></i>
                     <span class="hide-menu">{{ __('Member loans') }}</span>
+                </a>
+            </li>
+            @endif
+            @if (in_array('finance-investments', $role_has_permission))
+            <li><a class="waves-effect waves-dark" href="{!! route('finance.investments') !!}" aria-expanded="false">
+                    <i class="ri-line-chart-fill"></i>
+                    <span class="hide-menu">{{ __('Investments') }}</span>
                 </a>
             </li>
             @endif
