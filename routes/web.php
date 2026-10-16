@@ -1182,3 +1182,10 @@ Route::middleware(['permission:finance-reports,finance.reports'])->group(functio
     Route::get('finance/reports', [App\Http\Controllers\FinanceSupportController::class, 'reports'])->name('finance.reports');
     Route::get('finance/reports/{section}.csv', [App\Http\Controllers\FinanceSupportController::class, 'reportExport'])->name('finance.reports.export');
 });
+Route::middleware(['permission:finance-notifications,finance.notifications'])->group(function () {
+    Route::get('finance/notifications', [App\Http\Controllers\FinanceNotificationsController::class, 'index'])->name('finance.notifications');
+});
+Route::middleware(['permission:finance-notifications,finance.notifications.manage'])->group(function () {
+    Route::post('finance/notifications/create-missing', [App\Http\Controllers\FinanceNotificationsController::class, 'createMissing'])->name('finance.notifications.create-missing');
+    Route::post('finance/notifications/test', [App\Http\Controllers\FinanceNotificationsController::class, 'test'])->name('finance.notifications.test');
+});

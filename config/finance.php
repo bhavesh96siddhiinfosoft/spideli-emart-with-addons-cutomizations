@@ -33,4 +33,10 @@ return [
     // Support tickets: hours to resolve, by priority (chosen 16 Oct 2026).
     // A ticket open longer is shown late.
     'ticket_sla_hours' => ['urgent' => 4, 'high' => 24, 'normal' => 72, 'low' => 168],
+
+    // Finance notices by SMS (the SMS gateway of Settings, when it is on) and
+    // by e-mail (the panel's mail settings), as each customer allows them.
+    // Set FINANCE_NOTIFY_SMS=false / FINANCE_NOTIFY_EMAIL=false to stop one.
+    'notify_sms' => env('FINANCE_NOTIFY_SMS', true),
+    'notify_email' => env('FINANCE_NOTIFY_EMAIL', true),
 ];

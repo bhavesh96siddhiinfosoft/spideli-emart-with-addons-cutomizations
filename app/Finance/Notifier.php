@@ -2,30 +2,33 @@
 
 namespace App\Finance;
 
+use App\Mail\FinanceNotice;
 use Google\Client as Google_Client;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 
 /**
- * Customer notifications for the panel's decisions (spec 5.4): the
+ * Customer notifications for the panel's decisions (spec 5.4, 6.14): the
  * dynamic_notification template of the event type, filled with its
- * placeholders, sent as an FCM push to users/{uid}.fcmToken and kept as a
- * Notification Center record users/{uid}/notifications/{id}.
+ * placeholders, kept as a Notification Center record
+ * users/{uid}/notifications/{id} and sent
+ *   - as an FCM push to users/{uid}.fcmToken,
+ *   - by SMS (the panel's SMS gateway, settings/SMSGateway) for the critical
+ *     types, and
+ *   - by e-mail (the panel's mail settings) for receipts and alerts,
+ * each channel only when the customer's financeNotificationPrefs allow the
+ * type's category (security notices always go). The channels of each type
+ * are in NotificationTypes.
  *
- * Best effort and after the decision is saved: a missing template, token or
- * a refused push never undoes the decision; the result says what happened.
+ * Best effort and after the decision is saved: a missing template, token,
+ * phone or a refused send never undoes the decision; the result says what
+ * happened.
  */
 class Notifier
 {
-    /** Template type => preference category (financeNotificationPrefs); null = always sent. */
-    private const CATEGORIES = [
-        'kyc_approved' => null, 'kyc_rejected' => null, 'kyc_additional_info_required' => null,
-        'wallet_withdrawal_completed' => 'payments', 'wallet_withdrawal_failed' => 'payments',
-        'transfer_sent' => 'payments', 'transfer_reversed' => 'payments', 'transfer_failed' => 'payments',
-        'bill_paid' => 'payments', 'bill_token' => 'payments', 'bill_reversed' => 'payments', 'bill_failed' => 'payments',
-    ];
-
     private $db;
+    private $sms = false;
 
     public function __construct(Firestore $db)
     {
@@ -52,9 +55,8 @@ class Notifier
                 return 'customer not found';
             }
             $u = $user['data'];
-
-            $category = array_key_exists($type, self::CATEGORIES) ? self::CATEGORIES[$type] : self::categoryByPrefix($type);
-            $pushAllowed = $category === null || (($u['financeNotificationPrefs']['push'][$category] ?? true) !== false);
+            $category = NotificationTypes::category($type);
+            $kind = NotificationTypes::get($type) ?: ['sms' => false, 'email' => false];
 
             $data = ['type' => $type] + array_map('strval', $data);
             $this->db->batch([$this->db->write('create', 'users/' . $uid . '/notifications/' . Audit::newId(), [
@@ -62,34 +64,113 @@ class Notifier
                 'read' => false, 'createdAt' => Value::serverTimestamp(), 'data' => $data ?: Value::map([]),
             ])]);
 
-            if (!$pushAllowed) {
-                return 'saved (push turned off by the customer)';
+            $result = [$this->pushStatus($u, $category, $title, $body, $data)];
+            if ($kind['sms'] && config('finance.notify_sms', true) && NotificationTypes::allowed($u, 'sms', $category)) {
+                $result[] = $this->smsStatus($u, $title, $body);
             }
-            $token = (string)($u['fcmToken'] ?? '');
-            if ($token === '') {
-                return 'saved (no device to push to)';
+            if ($kind['email'] && config('finance.notify_email', true) && NotificationTypes::allowed($u, 'email', $category)) {
+                $result[] = $this->emailStatus($u, $title, $body);
             }
-            return $this->push($token, $title, $body, $data) ? 'sent' : 'saved (push refused)';
+            $left = NotificationTypes::placeholders($title . ' ' . $body);
+            if ($left) {
+                $result[] = 'the template uses {' . implode('}, {', $left) . '}, which the panel does not fill';
+            }
+            return implode('; ', $result);
         } catch (\Throwable $e) {
             report($e);
             return 'not sent';
         }
     }
 
-    /**
-     * The preference category of a type without its own entry, from its
-     * prefix; financing notices answer the customer's own request and are
-     * always sent (null). Anything else counts as payments.
-     */
-    private static function categoryByPrefix($type)
+    private function pushStatus(array $u, $category, $title, $body, array $data)
     {
-        foreach (['loan_' => 'loans', 'savings_' => 'groups', 'tontine_' => 'groups', 'investment_' => 'investments',
-                  'intelligence_' => 'investments', 'insurance_' => 'insurance', 'financing_' => null] as $prefix => $category) {
-            if (strpos($type, $prefix) === 0) {
-                return $category;
-            }
+        if (!NotificationTypes::allowed($u, 'push', $category)) {
+            return 'saved (push turned off by the customer)';
         }
-        return 'payments';
+        $token = (string)($u['fcmToken'] ?? '');
+        if ($token === '') {
+            return 'saved (no device to push to)';
+        }
+        try {
+            return $this->push($token, $title, $body, $data) ? 'sent' : 'saved (push refused)';
+        } catch (\Throwable $e) {
+            report($e);
+            return 'saved (push refused)';
+        }
+    }
+
+    private function smsStatus(array $u, $title, $body)
+    {
+        $settings = $this->smsSettings();
+        if (!$settings) {
+            return 'no SMS (the SMS gateway is off)';
+        }
+        $to = self::phone($u);
+        if ($to === '') {
+            return 'no SMS (no phone number)';
+        }
+        $text = trim($title) === '' ? $body : $title . ': ' . $body;
+        try {
+            $res = Http::timeout(15)->get(rtrim(trim((string)($settings['apiUrl'] ?? '')) ?: 'https://obitsms.com/api/v2', '/') . '/bulksms', [
+                'key_api' => $settings['apiKey'],
+                'sender' => $settings['senderId'] ?? '',
+                'destination' => $to,
+                'message' => mb_substr($text, 0, 320),
+            ]);
+            $json = $res->json();
+            return is_array($json) && ($json['success'] ?? false) === true ? 'SMS sent' : 'SMS refused by the gateway';
+        } catch (\Throwable $e) {
+            report($e);
+            return 'SMS not sent (gateway unreachable)';
+        }
+    }
+
+    private function emailStatus(array $u, $title, $body)
+    {
+        $email = trim((string)($u['email'] ?? ''));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return 'no e-mail (no address)';
+        }
+        try {
+            Mail::to($email)->send(new FinanceNotice($title, $body));
+            return 'e-mail sent';
+        } catch (\Throwable $e) {
+            report($e);
+            return 'e-mail not sent';
+        }
+    }
+
+    /** settings/SMSGateway when it is switched on and has a key, else null (read once). */
+    private function smsSettings()
+    {
+        if ($this->sms === false) {
+            $doc = $this->db->get('settings/SMSGateway');
+            $s = $doc ? $doc['data'] : [];
+            $this->sms = (($s['isEnabled'] ?? false) === true && trim((string)($s['apiKey'] ?? '')) !== '') ? $s : null;
+        }
+        return $this->sms;
+    }
+
+    /**
+     * The customer's number as the gateway wants it: digits only, with the
+     * country code (countryCode "+237" + phoneNumber "652365869" =
+     * 237652365869). A number saved with its own "+" is used as it is.
+     */
+    public static function phone(array $u)
+    {
+        $phone = trim((string)($u['phoneNumber'] ?? ''));
+        $digits = preg_replace('/\D+/', '', $phone);
+        if (strlen($digits) < 6) {
+            return '';
+        }
+        if (strpos($phone, '+') === 0) {
+            return $digits;
+        }
+        if (strpos($digits, '00') === 0) {
+            return substr($digits, 2);
+        }
+        $cc = preg_replace('/\D+/', '', (string)($u['countryCode'] ?? ''));
+        return $cc === '' ? '' : $cc . ltrim($digits, '0');
     }
 
     public static function fill($text, array $values)
