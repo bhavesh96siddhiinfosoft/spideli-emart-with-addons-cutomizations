@@ -804,6 +804,8 @@
                                                         <label class=" control-label2" for="finance-ledger-adjust">{{ __('Manual adjustment') }}</label>
                                                         <input type="checkbox" id="finance-ledger-approve" value="finance.ledger.approve" name="finance-ledger[]" class="permission">
                                                         <label class=" control-label2" for="finance-ledger-approve">{{ __('Second approver') }}</label>
+                                                        <input type="checkbox" id="finance-ledger-reconcile" value="finance.reconcile" name="finance-ledger[]" class="permission">
+                                                        <label class=" control-label2" for="finance-ledger-reconcile">{{ __('Bank reconciliation') }}</label>
                                                     </td>
                                                 </tr>
 

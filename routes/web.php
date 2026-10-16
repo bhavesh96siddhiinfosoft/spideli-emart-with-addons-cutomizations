@@ -1011,6 +1011,11 @@ Route::middleware(['permission:finance-settings,finance.platform-accounts.create
     Route::post('finance/platform-accounts', [App\Http\Controllers\FinanceController::class, 'platformAccountStore'])->name('finance.platform-accounts.store');
 });
 /* Spideli Finance home (spec 6.1): every admin with a Finance permission; each tile checks its own. */
+/* Daily bank reconciliation (spec 6.5.3), Finance: ledger > Bank reconciliation. */
+Route::middleware(['permission:finance-ledger,finance.reconcile'])->group(function () {
+    Route::get('finance/reconciliation', [App\Http\Controllers\FinanceReconciliationController::class, 'index'])->name('finance.reconciliation');
+    Route::post('finance/reconciliation', [App\Http\Controllers\FinanceReconciliationController::class, 'save'])->name('finance.reconciliation.save');
+});
 Route::get('finance', [App\Http\Controllers\FinanceDashboardController::class, 'index'])->name('finance.dashboard');
 Route::middleware(['permission:finance-ledger,finance.ledger'])->group(function () {
     Route::get('finance/ledger', [App\Http\Controllers\FinanceController::class, 'ledger'])->name('finance.ledger');

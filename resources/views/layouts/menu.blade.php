@@ -946,6 +946,13 @@ $service_type = @$_COOKIE['service_type'];
                 </a>
             </li>
             @endif
+            @if (in_array('finance.reconcile', json_decode(session('user_permissions') ?? '[]', true) ?: []))
+            <li><a class="waves-effect waves-dark" href="{!! route('finance.reconciliation') !!}" aria-expanded="false">
+                    <i class="ri-scales-3-fill"></i>
+                    <span class="hide-menu">{{ __('Bank reconciliation') }}</span>
+                </a>
+            </li>
+            @endif
             @if (in_array('finance-audit', $role_has_permission))
             <li><a class="waves-effect waves-dark" href="{!! route('finance.audit') !!}" aria-expanded="false">
                     <i class="ri-file-list-3-fill"></i>

@@ -70,6 +70,10 @@ class FinanceDashboardController extends Controller
         if ($can('finance.ledger')) {
             $add(__('Payments'), __('Approvals waiting'), FourEyes::pendingCount(), route('finance.approvals'));
         }
+        if ($can('finance.reconcile')) {
+            $missing = (new \App\Finance\Reconciliation($this->db()))->missing((new Regions($this->db()))->financeCurrencies(), 7, $tz);
+            $add(__('Payments'), __('Days not reconciled (last 7)'), array_sum(array_map('count', $missing)), route('finance.reconciliation'));
+        }
         if ($can('finance.groups')) {
             $add(__('Groups and loans'), __('Savings withdrawals to decide'), $this->waiting('savings_withdrawals', [['status', '==', 'requested']], 'userId'), route('finance.savings'));
             $add(__('Groups and loans'), __('Tontine payouts to approve'), $this->waiting('tontine_payouts', [['status', '==', 'pending_approval']], 'beneficiaryUserId'), route('finance.tontines'));

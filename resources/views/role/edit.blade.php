@@ -768,6 +768,8 @@
                                                     <label class=" control-label2" for="finance-ledger-adjust">{{ __('Manual adjustment') }}</label>
                                                     <input type="checkbox" id="finance-ledger-approve" value="finance.ledger.approve" name="finance-ledger[]" class="permission" {{ in_array('finance.ledger.approve', $permissions) ? 'checked' : '' }}>
                                                     <label class=" control-label2" for="finance-ledger-approve">{{ __('Second approver') }}</label>
+                                                    <input type="checkbox" id="finance-ledger-reconcile" value="finance.reconcile" name="finance-ledger[]" class="permission" {{ in_array('finance.reconcile', $permissions) ? 'checked' : '' }}>
+                                                    <label class=" control-label2" for="finance-ledger-reconcile">{{ __('Bank reconciliation') }}</label>
                                                 </td>
                                             </tr>
 
