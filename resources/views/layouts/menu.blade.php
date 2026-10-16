@@ -837,6 +837,11 @@ $service_type = @$_COOKIE['service_type'];
             || in_array('finance-content', $role_has_permission)
             || in_array('finance-tickets', $role_has_permission) || in_array('finance-reports', $role_has_permission))
             <li class="nav-subtitle"><span class="nav-subtitle-span">{{ __('Spideli Finance') }}</span></li>
+            <li><a class="waves-effect waves-dark" href="{!! route('finance.dashboard') !!}" aria-expanded="false">
+                    <i class="ri-dashboard-3-fill"></i>
+                    <span class="hide-menu">{{ __('Finance dashboard') }}</span>
+                </a>
+            </li>
             @if (in_array('finance-settings', $role_has_permission))
             <li><a class="waves-effect waves-dark" href="{!! route('finance.settings') !!}" aria-expanded="false">
                     <i class="ri-settings-4-fill"></i>

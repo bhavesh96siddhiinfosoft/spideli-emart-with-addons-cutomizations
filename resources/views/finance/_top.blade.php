@@ -18,6 +18,7 @@
 <div class="container-fluid">
     <div class="payment-top-tab mb-3">
     <ul class="nav nav-tabs card-header-tabs align-items-end finance-tabs">
+        <li class="nav-item"><a class="nav-link {{ $tab == 'dashboard' ? 'active' : '' }}" href="{{ route('finance.dashboard') }}">{{ __('Dashboard') }}</a></li>
         @if (in_array('finance.settings', $financePerms))
             <li class="nav-item"><a class="nav-link {{ $tab == 'settings' ? 'active' : '' }}" href="{{ route('finance.settings') }}">{{ __('Settings') }}</a></li>
         @endif

@@ -1010,8 +1010,11 @@ Route::middleware(['permission:region,region.edit'])->group(function () {
 Route::middleware(['permission:finance-settings,finance.platform-accounts.create'])->group(function () {
     Route::post('finance/platform-accounts', [App\Http\Controllers\FinanceController::class, 'platformAccountStore'])->name('finance.platform-accounts.store');
 });
+/* Spideli Finance home (spec 6.1): every admin with a Finance permission; each tile checks its own. */
+Route::get('finance', [App\Http\Controllers\FinanceDashboardController::class, 'index'])->name('finance.dashboard');
 Route::middleware(['permission:finance-ledger,finance.ledger'])->group(function () {
     Route::get('finance/ledger', [App\Http\Controllers\FinanceController::class, 'ledger'])->name('finance.ledger');
+    Route::get('finance/ledger-export.csv', [App\Http\Controllers\FinanceController::class, 'ledgerExport'])->name('finance.ledger.export');
     Route::get('finance/ledger/{txId}', [App\Http\Controllers\FinanceController::class, 'ledgerShow'])->name('finance.ledger.show')->where('txId', '[A-Za-z0-9_\-]+');
     Route::get('finance/approvals', [App\Http\Controllers\FinanceController::class, 'approvals'])->name('finance.approvals');
 });

@@ -41,6 +41,8 @@
                     <div class="col-md-3 form-group d-flex align-items-end">
                         <button class="btn btn-primary mr-2">{{ __('Filter') }}</button>
                         <a class="btn btn-light" href="{{ route('finance.ledger') }}">{{ __('Reset') }}</a>
+                        <a class="btn btn-outline-info ml-2" href="{{ route('finance.ledger.export', request()->only(['from', 'to', 'type', 'status', 'currency', 'user', 'reference'])) }}"
+                           title="{{ __('Every posting matching these filters (up to 20 000), with the raw amounts, fees, accounts and source') }}"><i class="mdi mdi-download"></i> {{ __('Download all (CSV)') }}</a>
                     </div>
                 </form>
                 @if ($filters['userNote'])<div class="alert alert-warning">{{ $filters['userNote'] }}</div>@endif

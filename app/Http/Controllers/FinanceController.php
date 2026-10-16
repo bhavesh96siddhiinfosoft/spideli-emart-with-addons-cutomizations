@@ -325,6 +325,56 @@ class FinanceController extends Controller
     /* ============================================================== ledger */
 
     /** Reads the filters, resolving a user given by e-mail or phone to a uid. */
+    /**
+     * Every posting matching the filters (up to 20 000) as CSV: one line per
+     * posting with raw amounts (minor units) and the major-unit amount, fee,
+     * accounts, customers, source and reversal links. UTF-8 with a byte-order
+     * mark, so it opens in Excel; the export is audited.
+     */
+    public function ledgerExport(Request $request)
+    {
+        $db = app(Firestore::class);
+        $f = $this->ledgerFilters($request, $db);
+        try {
+            [$rows, $capped] = $this->ledgerRows($f, $db, 20000);
+        } catch (\Exception $e) {
+            return back()->with('error', 'Invalid dates.');
+        }
+        $users = $this->userNames($db, array_merge([], ...array_map(function ($r) { return $r['data']['userIds'] ?? []; }, $rows)));
+        $tz = new \DateTimeZone(config('app.timezone'));
+        $out = fopen('php://temp', 'r+');
+        fwrite($out, "\xEF\xBB\xBF");   // byte-order mark: Excel reads it as UTF-8
+        fputcsv($out, ['Date', 'Reference', 'Type', 'Status', 'Currency', 'Amount', 'Amount (minor units)', 'Fee (minor units)', 'From account', 'To account',
+            'Customers', 'Source', 'Description', 'Created by', 'Reversal of', 'Reversed by', 'Transaction id']);
+        foreach ($rows as $r) {
+            $d = $r['data'];
+            $lines = (array)($d['lines'] ?? []);
+            $debit = $lines[0] ?? [];
+            $amount = (int)($lines[1]['amount'] ?? ($debit['amount'] ?? 0));
+            $fee = (int)($lines[2]['amount'] ?? 0);
+            $at = $d['createdAt'] ?? null;
+            $cur = $d['currency'] ?? '';
+            fputcsv($out, [
+                $at instanceof \DateTimeInterface ? $at->setTimezone($tz)->format('Y-m-d H:i:s') : '',
+                $d['reference'] ?? '', $d['type'] ?? '', $d['status'] ?? '', $cur,
+                Money::toMajor($amount, $cur), $amount, $fee,
+                $debit['accountId'] ?? '', $lines[1]['accountId'] ?? '',
+                implode('; ', array_map(function ($u) use ($users) { return ($users[$u] ?? '') !== '' ? $users[$u] . ' (' . $u . ')' : $u; }, (array)($d['userIds'] ?? []))),
+                trim(($d['source']['kind'] ?? '') . ' ' . ($d['source']['id'] ?? '')),
+                $d['description'] ?? '', $d['createdBy'] ?? '', $d['reversalOf'] ?? '', implode('; ', (array)($d['reversedBy'] ?? [])), $r['id'],
+            ]);
+        }
+        if ($capped) {
+            fputcsv($out, ['Cut at 20 000 postings: narrow the dates for the rest.']);
+        }
+        rewind($out);
+        $csv = stream_get_contents($out);
+        $db->batch([Audit::write($db, 'ledger.export', 'ledger_transactions', 'csv', null,
+            array_intersect_key($f, array_flip(['from', 'to', 'type', 'reference', 'currency', 'status', 'uid'])) + ['rows' => count($rows)])]);
+        return response($csv, 200, ['Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="spideli-ledger-' . $f['from'] . '-' . $f['to'] . '.csv"']);
+    }
+
     private function ledgerFilters(Request $request, Firestore $db)
     {
         $f = [
@@ -367,18 +417,14 @@ class FinanceController extends Controller
         return $found[0]['id'];
     }
 
-    public function ledger(Request $request)
+    /**
+     * The postings matching the ledger filters, newest first: by reference,
+     * by customer, else by date. Returns [rows, capped].
+     */
+    private function ledgerRows(array $f, Firestore $db, $limit)
     {
-        $db = app(Firestore::class);
-        $f = $this->ledgerFilters($request, $db);
-        $limit = 1000;
-
-        try {
-            $from = new \DateTimeImmutable($f['from'] . ' 00:00:00');
-            $to = (new \DateTimeImmutable($f['to'] . ' 00:00:00'))->modify('+1 day');
-        } catch (\Exception $e) {
-            return back()->with('error', 'Invalid dates.');
-        }
+        $from = new \DateTimeImmutable($f['from'] . ' 00:00:00');
+        $to = (new \DateTimeImmutable($f['to'] . ' 00:00:00'))->modify('+1 day');
 
         if ($f['reference'] !== '') {
             $rows = $db->query('ledger_transactions', [['reference', '==', $f['reference']]], [], 20);
@@ -413,6 +459,18 @@ class FinanceController extends Controller
             $y = $b['data']['createdAt'] ?? null;
             return ($y instanceof \DateTimeInterface ? $y->getTimestamp() : 0) <=> ($x instanceof \DateTimeInterface ? $x->getTimestamp() : 0);
         });
+        return [$rows, $capped];
+    }
+
+    public function ledger(Request $request)
+    {
+        $db = app(Firestore::class);
+        $f = $this->ledgerFilters($request, $db);
+        try {
+            [$rows, $capped] = $this->ledgerRows($f, $db, 1000);
+        } catch (\Exception $e) {
+            return back()->with('error', 'Invalid dates.');
+        }
 
         $users = $this->userNames($db, array_merge(...array_map(function ($r) {
             return $r['data']['userIds'] ?? [];
