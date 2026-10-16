@@ -21,7 +21,26 @@
                 <div class="form-group row width-50"><label class="col-3 control-label">{{ __('Verification') }}</label><div class="col-7"><span class="form-control-plaintext">
                     @if (!empty($u['kycLevel']))<span class="finance-badge-ok">{{ $u['kycLevel'] }}</span>@else{{ $u['kycStatus'] ?? __('not verified') }}@endif</span></div></div>
                 <div class="form-group row width-50"><label class="col-3 control-label">{{ __('Id') }}</label><div class="col-7"><span class="form-control-plaintext finance-mono">{{ $uid }}</span></div></div>
+                <div class="form-group row width-50"><label class="col-3 control-label">{{ __('Sign-in') }}</label><div class="col-7"><span class="form-control-plaintext">
+                    @if (is_array($auth))
+                        @if ($auth['disabled'])<span class="finance-badge-no">{{ __('blocked') }}</span>@else<span class="finance-badge-ok">{{ __('allowed') }}</span>@endif
+                        <span class="finance-help">{{ implode(', ', $auth['providers']) }}@if ($auth['lastSignIn']) · {{ __('last sign-in') }} {{ $fmtDate($auth['lastSignIn']) }}@endif</span>
+                    @elseif ($auth === 'missing'){{ __('No sign-in account') }}
+                    @else<span class="finance-help">{{ __('Could not be read from Firebase.') }}</span>@endif
+                </span></div></div>
+                <div class="form-group row width-50"><label class="col-3 control-label">{{ __('Two-step verification') }}</label><div class="col-7"><span class="form-control-plaintext">
+                    @if (is_array($auth))
+                        @if ($auth['twoStep'])
+                            <span class="finance-badge-ok">{{ __('on') }}</span>
+                            @foreach ($auth['twoStep'] as $f)<span class="finance-help">{{ $f['kind'] === 'sms' ? __('SMS to') : __('Authenticator') }} {{ $f['hint'] }}@if ($f['enrolledAt']) · {{ __('since') }} {{ $fmtDate($f['enrolledAt']) }}@endif</span>@endforeach
+                        @else{{ __('off') }}@endif
+                    @else—@endif
+                </span></div></div>
             </fieldset>
+
+            @if ($failed)
+                <div class="alert alert-warning">{{ __('Could not be read from Firebase:') }} {{ implode(', ', $failed) }}. {{ __('Reload the page to try again.') }}</div>
+            @endif
 
             @if ($tickets !== null)
             <fieldset>
@@ -146,6 +165,111 @@
                                 </tr>
                             @empty
                                 <tr><td colspan="5" class="text-muted">{{ __('Nothing yet.') }}</td></tr>
+                            @endforelse
+                            </tbody>
+                        </table>
+                    </div></div>
+                </fieldset>
+            @endforeach
+
+            @php
+                $m = function ($v, $cur) { return Money::format((int)($v ?? 0), (string)($cur ?? '')); };
+                $link = function ($route, $id, $text) { return ['text' => $text, 'href' => route($route, $id)]; };
+                $sections = [];
+                if ($goals !== null) {
+                    $sections[] = ['title' => __('Savings goals'), 'icon' => 'mdi-piggy-bank', 'head' => [__('Goal'), __('Role'), __('Saved'), __('Target'), __('Status')],
+                        'rows' => array_map(function ($r) use ($uid, $m, $link) { $d = $r['data']; return [
+                            $link('finance.savings.show', $r['id'], $d['name'] ?? $r['id']),
+                            ($d['ownerId'] ?? '') === $uid ? __('owner') : __('member'),
+                            ['text' => $m($d['savedAmount'] ?? 0, $d['currency'] ?? ''), 'amount' => true],
+                            ['text' => $m($d['targetAmount'] ?? 0, $d['currency'] ?? ''), 'amount' => true],
+                            $d['status'] ?? '']; }, $goals)];
+                }
+                if ($tontines !== null) {
+                    $sections[] = ['title' => __('Tontines'), 'icon' => 'mdi-account-group', 'head' => [__('Tontine'), __('Role'), __('Contribution'), __('Cycle'), __('Status')],
+                        'rows' => array_map(function ($r) use ($uid, $m, $link) { $d = $r['data']; return [
+                            $link('finance.tontines.show', $r['id'], $d['name'] ?? $r['id']),
+                            in_array($uid, (array)($d['adminIds'] ?? []), true) ? __('admin') : __('member'),
+                            ['text' => $m($d['contributionAmount'] ?? 0, $d['currency'] ?? '') . ' / ' . ($d['frequency'] ?? ''), 'amount' => true],
+                            (string)($d['currentCycle'] ?? 0),
+                            $d['status'] ?? '']; }, $tontines)];
+                }
+                if ($loans !== null) {
+                    $sections[] = ['title' => __('Loans'), 'icon' => 'mdi-hand-coin', 'head' => [__('Date'), __('Role'), __('Group'), __('Amount'), __('Still to repay'), __('Status')],
+                        'rows' => array_map(function ($r) use ($m, $link, $fmtDate) { $d = $r['data']; return [
+                            $link('finance.loans.show', $r['id'], $fmtDate($d['createdAt'] ?? null) ?: $r['id']),
+                            $r['role'] === 'borrower' ? __('borrower') : __('lender'),
+                            $d['groupName'] ?? '',
+                            ['text' => $m($d['amount'] ?? 0, $d['currency'] ?? ''), 'amount' => true],
+                            ['text' => $m($d['outstandingAmount'] ?? 0, $d['currency'] ?? ''), 'amount' => true],
+                            $d['status'] ?? '']; }, $loans)];
+                }
+                if ($holdings !== null) {
+                    $sections[] = ['title' => __('Investments'), 'icon' => 'mdi-chart-line', 'head' => [__('Fund'), __('Units'), __('Invested'), __('Current value'), __('Gains')],
+                        'rows' => array_map(function ($r) use ($m, $link) { $d = $r['data']; return [
+                            $link('finance.investments.show', $d['fundId'] ?? '', $d['fundName'] ?? ($d['fundId'] ?? '')),
+                            ['text' => rtrim(rtrim(number_format((float)($d['units'] ?? 0), 4, '.', ' '), '0'), '.'), 'amount' => true],
+                            ['text' => $m($d['investedAmount'] ?? 0, $d['currency'] ?? ''), 'amount' => true],
+                            ['text' => $m($d['currentValue'] ?? 0, $d['currency'] ?? ''), 'amount' => true],
+                            ['text' => $m($d['unrealizedGains'] ?? 0, $d['currency'] ?? ''), 'amount' => true]]; }, $holdings)];
+                }
+                if ($policies !== null) {
+                    $sections[] = ['title' => __('Insurance policies'), 'icon' => 'mdi-shield-check', 'head' => [__('Product'), __('Policy number'), __('Premium (a year)'), __('Cover ends'), __('Status')],
+                        'rows' => array_map(function ($r) use ($m, $link, $fmtDate) { $d = $r['data']; return [
+                            $link('finance.insurance.policies.show', $r['id'], $d['productName'] ?? $r['id']),
+                            $d['policyNumber'] ?? '—',
+                            ['text' => $m($d['premium'] ?? 0, $d['currency'] ?? ''), 'amount' => true],
+                            $fmtDate($d['coverEnd'] ?? null),
+                            $d['status'] ?? '']; }, $policies)];
+                }
+                if ($claims !== null) {
+                    $sections[] = ['title' => __('Insurance claims'), 'icon' => 'mdi-file-document-alert', 'head' => [__('Date'), __('Product'), __('Claimed'), __('Paid'), __('Status')],
+                        'rows' => array_map(function ($r) use ($m, $link, $fmtDate) { $d = $r['data']; return [
+                            $link('finance.insurance.claims.show', $r['id'], $fmtDate($d['createdAt'] ?? null) ?: $r['id']),
+                            $d['productName'] ?? '',
+                            ['text' => $m($d['amountClaimed'] ?? 0, $d['currency'] ?? ''), 'amount' => true],
+                            ['text' => isset($d['paidAmount']) ? $m($d['paidAmount'], $d['currency'] ?? '') : '—', 'amount' => true],
+                            $d['status'] ?? '']; }, $claims)];
+                }
+                if ($financing !== null) {
+                    $sections[] = ['title' => __('Project financing'), 'icon' => 'mdi-briefcase', 'head' => [__('Project'), __('Type'), __('Amount'), __('Date'), __('Status')],
+                        'rows' => array_map(function ($r) use ($m, $link, $fmtDate) { $d = $r['data']; return [
+                            $link('finance.financing.show', $r['id'], $d['projectName'] ?? $r['id']),
+                            $d['financingType'] ?? '',
+                            ['text' => $m($d['amount'] ?? 0, $d['currency'] ?? ''), 'amount' => true],
+                            $fmtDate($d['submittedAt'] ?? $d['createdAt'] ?? null),
+                            $d['status'] ?? '']; }, $financing)];
+                }
+                $sections[] = ['title' => __('Virtual cards'), 'icon' => 'mdi-credit-card', 'head' => [__('Card'), __('Number'), __('Balance'), __('Status')],
+                    'rows' => array_map(function ($r) use ($m) { $d = $r['data']; return [
+                        $d['label'] ?? $r['id'],
+                        !empty($d['last4']) ? '•••• ' . $d['last4'] : '—',
+                        ['text' => $m($d['balance'] ?? 0, $d['currency'] ?? ''), 'amount' => true],
+                        ($d['status'] ?? '') . (!empty($d['frozenBy']) && ($d['status'] ?? '') === 'frozen' ? ' (' . $d['frozenBy'] . ')' : '')]; }, $cards)];
+                if ($audit !== null) {
+                    $sections[] = ['title' => __('Audit trail (latest 50)'), 'icon' => 'mdi-history', 'head' => [__('When'), __('Admin'), __('Action'), __('Record'), __('Reason')],
+                        'rows' => array_map(function ($r) use ($fmtDate) { $d = $r['data']; return [
+                            $fmtDate($d['at'] ?? null),
+                            $d['adminEmail'] ?? '',
+                            ['text' => $d['action'] ?? '', 'mono' => true],
+                            ['text' => ($d['collection'] ?? '') . '/' . ($d['docId'] ?? ''), 'mono' => true],
+                            $d['reason'] ?? '']; }, $audit)];
+                }
+            @endphp
+            @foreach ($sections as $s)
+                <fieldset>
+                    <legend><i class="mr-3 mdi {{ $s['icon'] }}"></i>{{ $s['title'] }}</legend>
+                    <div class="form-group row width-100"><div class="col-7">
+                        <table class="table table-bordered table-sm mb-0">
+                            <thead><tr>@foreach ($s['head'] as $h)<th>{{ $h }}</th>@endforeach</tr></thead>
+                            <tbody>
+                            @forelse ($s['rows'] as $row)
+                                <tr>@foreach ($row as $c)
+                                    @php $c = is_array($c) ? $c : ['text' => (string)$c]; @endphp
+                                    <td class="{{ !empty($c['amount']) ? 'finance-amount' : '' }} {{ !empty($c['mono']) ? 'finance-mono' : '' }}">@if (!empty($c['href']))<a href="{{ $c['href'] }}">{{ $c['text'] }}</a>@else{{ $c['text'] }}@endif</td>
+                                @endforeach</tr>
+                            @empty
+                                <tr><td colspan="{{ count($s['head']) }}" class="text-muted">{{ __('Nothing yet.') }}</td></tr>
                             @endforelse
                             </tbody>
                         </table>

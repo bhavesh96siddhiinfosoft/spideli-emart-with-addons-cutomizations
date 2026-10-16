@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Finance\AuthAccounts;
 use App\Finance\Desk;
 use App\Finance\FinanceException;
 use App\Finance\Firestore;
@@ -163,16 +164,76 @@ class FinanceDeskController extends Controller
         $regions = new Regions($db);
 
         $ledger = self::sortBy($db->query('ledger_transactions', [['userIds', 'array-contains', $uid]], [], 200), 'createdAt');
-        return view('finance.customers.show', [
+        $kyc = self::sortBy($db->query('kyc_applications', [['userId', '==', $uid]]), 'createdAt');
+        $transfers = array_slice(self::sortBy($db->query('money_transfers', [['participantIds', 'array-contains', $uid]], [], 100), 'createdAt'), 0, 30);
+        $bills = array_slice(self::sortBy($db->query('utility_payment_requests', [['userId', '==', $uid]], [], 100), 'createdAt'), 0, 30);
+        $operations = array_slice(self::sortBy($db->query('wallet_operations', [['userId', '==', $uid]], [], 100), 'createdAt'), 0, 30);
+
+        /* The customer's other Finance records (spec 6.3), each shown only to
+         * admins who may open that module; a read that fails leaves its
+         * section empty with a note instead of breaking the page. */
+        $failed = [];
+        $read = function ($label, $collection, array $where, $limit = 100) use ($db, &$failed) {
+            try {
+                return $db->query($collection, $where, [], $limit);
+            } catch (\Throwable $e) {
+                report($e);
+                $failed[] = $label;
+                return [];
+            }
+        };
+        $perm = ['groups' => $this->can('finance.groups'), 'investments' => $this->can('finance.investments'),
+                 'insurance' => $this->can('finance.insurance'), 'financing' => $this->can('finance.financing'),
+                 'ledger' => $this->can('finance.ledger'), 'audit' => $this->can('finance.audit')];
+        $loans = [];
+        if ($perm['groups']) {
+            foreach ($read(__('Loans'), 'loan_applications', [['borrowerId', '==', $uid]]) as $l) {
+                $loans[$l['id']] = $l + ['role' => 'borrower'];
+            }
+            foreach ($read(__('Loans'), 'loan_applications', [['lenderIds', 'array-contains', $uid]]) as $l) {
+                $loans[$l['id']] = $loans[$l['id']] ?? ($l + ['role' => 'lender']);
+            }
+        }
+        $records = [
+            'goals' => $perm['groups'] ? self::sortBy($read(__('Savings goals'), 'savings_goals', [['memberIds', 'array-contains', $uid]]), 'createdAt') : null,
+            'tontines' => $perm['groups'] ? self::sortBy($read(__('Tontines'), 'tontines', [['memberIds', 'array-contains', $uid]]), 'createdAt') : null,
+            'loans' => $perm['groups'] ? self::sortBy(array_values($loans), 'createdAt') : null,
+            'holdings' => $perm['investments'] ? $read(__('Investments'), 'investment_holdings', [['userId', '==', $uid]]) : null,
+            'policies' => $perm['insurance'] ? self::sortBy($read(__('Insurance policies'), 'insurance_policies', [['userId', '==', $uid]]), 'createdAt') : null,
+            'claims' => $perm['insurance'] ? self::sortBy($read(__('Insurance claims'), 'insurance_claims', [['userId', '==', $uid]]), 'createdAt') : null,
+            'financing' => $perm['financing'] ? self::sortBy($read(__('Project financing'), 'financing_applications', [['ownerId', '==', $uid]]), 'createdAt') : null,
+            'cards' => self::sortBy($read(__('Virtual cards'), 'virtual_cards', [['userId', '==', $uid]]), 'createdAt'),
+        ];
+
+        /* Audit trail: the panel's entries about the customer or one of their
+         * records (admin_audit_logs.docId), newest first. */
+        $audit = null;
+        if ($perm['audit']) {
+            $ids = [$uid];
+            foreach (array_merge($kyc, $transfers, $bills, $operations, ...array_values(array_filter($records, 'is_array'))) as $r) {
+                $ids[] = $r['id'];
+            }
+            $audit = [];
+            foreach (array_chunk(array_values(array_unique($ids)), 30) as $chunk) {
+                $audit = array_merge($audit, $read(__('Audit trail'), 'admin_audit_logs', [['docId', 'in', $chunk]], 200));
+            }
+            $audit = array_slice(self::sortBy($audit, 'at'), 0, 50);
+        }
+
+        return view('finance.customers.show', $records + [
             'uid' => $uid,
             'u' => $user['data'],
             'regionNames' => array_map(function ($r) { return $r['name'] ?? ''; }, $regions->all()),
             'wallets' => $db->query('financial_accounts', [['userId', '==', $uid]]),
-            'kyc' => self::sortBy($db->query('kyc_applications', [['userId', '==', $uid]]), 'createdAt'),
+            'kyc' => $kyc,
             'ledger' => array_slice($ledger, 0, 50),
-            'transfers' => array_slice(self::sortBy($db->query('money_transfers', [['participantIds', 'array-contains', $uid]], [], 100), 'createdAt'), 0, 30),
-            'bills' => array_slice(self::sortBy($db->query('utility_payment_requests', [['userId', '==', $uid]], [], 100), 'createdAt'), 0, 30),
-            'operations' => array_slice(self::sortBy($db->query('wallet_operations', [['userId', '==', $uid]], [], 100), 'createdAt'), 0, 30),
+            'transfers' => $transfers,
+            'bills' => $bills,
+            'operations' => $operations,
+            'auth' => (new AuthAccounts($db))->lookup($uid),
+            'audit' => $audit,
+            'failed' => array_values(array_unique($failed)),
+            'perm' => $perm,
             'scopes' => Desk::SCOPES,
             'canRestrict' => $this->can('finance.customers.restrict'),
             'tickets' => $this->can('finance.tickets') ? $db->query('support_tickets', [['userId', '==', $uid]], [], 100) : null,
