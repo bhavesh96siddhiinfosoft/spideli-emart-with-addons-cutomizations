@@ -73,6 +73,17 @@ class AuthAccounts
         return $this->admin('accounts:update', ['localId' => (string)$uid, 'disableUser' => (bool)$disabled]);
     }
 
+    /**
+     * Removes every second factor of a customer's two-step verification (a
+     * lost phone), as the Admin SDK does: accounts:update with an EMPTY mfa
+     * object. The customer signs in with their password / Google / phone
+     * alone and can turn two-step on again in the app. True, or 'missing'.
+     */
+    public function resetTwoStep($uid)
+    {
+        return $this->admin('accounts:update', ['localId' => (string)$uid, 'mfa' => new \stdClass()]);
+    }
+
     /** Deletes a customer's sign-in account (accounts:delete). True, or 'missing'. */
     public function delete($uid)
     {

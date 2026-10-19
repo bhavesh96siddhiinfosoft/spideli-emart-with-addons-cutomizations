@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Finance\Audit;
 use App\Finance\AuthAccounts;
 use App\Finance\Desk;
 use App\Finance\FinanceException;
@@ -294,9 +295,45 @@ class FinanceDeskController extends Controller
             'perm' => $perm,
             'scopes' => Desk::SCOPES,
             'canRestrict' => $this->can('finance.customers.restrict'),
+            'canResetTwoStep' => $this->can('finance.customers.two-step'),
             'tickets' => $this->can('finance.tickets') ? $db->query('support_tickets', [['userId', '==', $uid]], [], 100) : null,
             'canTicket' => $this->can('finance.tickets.manage'),
         ]);
+    }
+
+    /**
+     * Reset a customer's two-step verification (spec 6.3): after the admin
+     * checked who is asking (a lost phone), remove every second factor in
+     * Firebase Authentication. The reason - how the identity was checked - is
+     * required and kept in the audit log with the factors removed (masked).
+     */
+    public function resetTwoStep(Request $request, $uid)
+    {
+        $db = $this->db();
+        $user = $db->get('users/' . $uid);
+        abort_unless($user && ($user['data']['role'] ?? 'customer') === 'customer', 404);
+        abort_unless($this->scope([$user], 'id') || !Regions::allowedIds(), 404);
+        $reason = trim((string)$request->input('reason'));
+        if ($reason === '') {
+            return back()->with('error', __('Write how the customer\'s identity was checked.'));
+        }
+        try {
+            $auth = new AuthAccounts($db);
+            $account = $auth->lookup($uid);
+            if (!is_array($account)) {
+                return back()->with('error', $account === 'missing' ? __('This customer has no sign-in account.') : __('Firebase could not be reached. Nothing was changed.'));
+            }
+            if (!$account['twoStep']) {
+                return back()->with('error', __('Two-step verification is already off for this customer.'));
+            }
+            $auth->resetTwoStep($uid);
+            $removed = array_map(function ($f) { return trim($f['kind'] . ' ' . $f['hint']); }, $account['twoStep']);
+            $db->batch([Audit::write($db, 'customer.two_step_reset', 'users', $uid, ['twoStep' => $removed], ['twoStep' => []], $reason)]);
+        } catch (\Throwable $e) {
+            report($e);
+            return back()->with('error', __('Firebase refused the change. Nothing was changed.'));
+        }
+        return back()->with('success', __('Two-step verification removed: the customer can sign in without the code and turn it on again in the app.'));
     }
 
     public function restrict(Request $request, $uid)

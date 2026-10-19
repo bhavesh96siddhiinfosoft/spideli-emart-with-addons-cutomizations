@@ -1640,5 +1640,15 @@
     "active": "نشط",
     "deleted": "محذوف",
     "name, e-mail, phone or id": "الاسم أو البريد الإلكتروني أو الهاتف أو المعرّف",
-    "suspended": "موقوف"
+    "suspended": "موقوف",
+    "Write how the customer's identity was checked.": "اكتب كيف تم التحقق من هوية العميل.",
+    "This customer has no sign-in account.": "ليس لدى هذا العميل حساب تسجيل دخول.",
+    "Firebase could not be reached. Nothing was changed.": "تعذر الاتصال بـ Firebase. لم يتم تغيير أي شيء.",
+    "Two-step verification is already off for this customer.": "التحقق بخطوتين متوقف بالفعل لهذا العميل.",
+    "Firebase refused the change. Nothing was changed.": "رفض Firebase التغيير. لم يتم تغيير أي شيء.",
+    "Two-step verification removed: the customer can sign in without the code and turn it on again in the app.": "تمت إزالة التحقق بخطوتين: يمكن للعميل تسجيل الدخول بدون الرمز وإعادة تفعيله من التطبيق.",
+    "Remove this customer's two-step verification? They will sign in without the code until they turn it on again.": "إزالة التحقق بخطوتين لهذا العميل؟ سيسجل الدخول بدون الرمز حتى يعيد تفعيله.",
+    "How was their identity checked? (kept in the audit log)": "كيف تم التحقق من هويته؟ (يُحفظ في سجل التدقيق)",
+    "Reset two-step": "إعادة تعيين التحقق بخطوتين",
+    "Only for a customer who lost their phone, after checking who is asking (for example a video call with their ID).": "فقط لعميل فقد هاتفه، بعد التحقق من هوية الطالب (مثلاً مكالمة فيديو مع بطاقة هويته)."
 }

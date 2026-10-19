@@ -1055,6 +1055,10 @@ Route::middleware(['permission:finance-customers,finance.customers.restrict'])->
     Route::post('finance/customers/{uid}/restrict', [App\Http\Controllers\FinanceDeskController::class, 'restrict'])->name('finance.customers.restrict');
     Route::post('finance/customers/{uid}/lift', [App\Http\Controllers\FinanceDeskController::class, 'lift'])->name('finance.customers.lift');
 });
+Route::middleware(['permission:finance-customers,finance.customers.two-step'])->group(function () {
+    /* Remove a customer's second factors after an identity check (spec 6.3). */
+    Route::post('finance/customers/{uid}/reset-two-step', [App\Http\Controllers\FinanceDeskController::class, 'resetTwoStep'])->name('finance.customers.reset-two-step');
+});
 Route::middleware(['permission:finance-kyc,finance.kyc'])->group(function () {
     Route::get('finance/kyc', [App\Http\Controllers\FinanceDeskController::class, 'kycQueue'])->name('finance.kyc');
     Route::get('finance/kyc/{id}', [App\Http\Controllers\FinanceDeskController::class, 'kycShow'])->name('finance.kyc.show');

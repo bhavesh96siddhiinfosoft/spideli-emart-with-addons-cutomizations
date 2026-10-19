@@ -35,7 +35,17 @@
                             @foreach ($auth['twoStep'] as $f)<span class="finance-help">{{ $f['kind'] === 'sms' ? __('SMS to') : __('Authenticator') }} {{ $f['hint'] }}@if ($f['enrolledAt']) · {{ __('since') }} {{ $fmtDate($f['enrolledAt']) }}@endif</span>@endforeach
                         @else{{ __('off') }}@endif
                     @else—@endif
-                </span></div></div>
+                </span>
+                @if (is_array($auth) && $auth['twoStep'] && $canResetTwoStep)
+                    <form method="POST" action="{{ route('finance.customers.reset-two-step', $uid) }}" class="mt-1"
+                          onsubmit="return confirm('{{ __('Remove this customer\'s two-step verification? They will sign in without the code until they turn it on again.') }}')">@csrf
+                        <div class="d-flex"><input type="text" name="reason" class="form-control form-control-sm mr-2" required
+                               placeholder="{{ __('How was their identity checked? (kept in the audit log)') }}">
+                            <button class="btn btn-sm btn-outline-danger text-nowrap">{{ __('Reset two-step') }}</button></div>
+                        <div class="finance-help">{{ __('Only for a customer who lost their phone, after checking who is asking (for example a video call with their ID).') }}</div>
+                    </form>
+                @endif
+                </div></div>
             </fieldset>
 
             @if ($failed)

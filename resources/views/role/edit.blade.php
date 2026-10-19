@@ -792,6 +792,8 @@
                                                     <label class=" control-label2" for="finance-customers">{{ __('View') }}</label>
                                                     <input type="checkbox" id="finance-customers-restrict" value="finance.customers.restrict" name="finance-customers[]" class="permission" {{ in_array('finance.customers.restrict', $permissions) ? 'checked' : '' }}>
                                                     <label class=" control-label2" for="finance-customers-restrict">{{ __('Restrict / lift') }}</label>
+                                                    <input type="checkbox" id="finance-customers-two-step" value="finance.customers.two-step" name="finance-customers[]" class="permission" {{ in_array('finance.customers.two-step', $permissions) ? 'checked' : '' }}>
+                                                    <label class=" control-label2" for="finance-customers-two-step">{{ __('Reset two-step') }}</label>
                                                 </td>
                                             </tr>
 
