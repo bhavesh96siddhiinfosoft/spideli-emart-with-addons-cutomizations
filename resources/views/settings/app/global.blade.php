@@ -383,6 +383,18 @@
                                 {{ trans('lang.notification_json_file_help') }}
                             </div>
                         </div>
+                        {{-- Push relay (Finance spec 1.6): when set, the apps and the website send their pushes
+                             through it with the customer's own sign-in, instead of the key file above. --}}
+                        <div class="form-group row width-100">
+                            <label class="col-5 control-label">{{ __('Push relay address (serverPushUrl)') }}</label>
+                            <div class="col-7">
+                                <div class="d-flex">
+                                    <input type="text" class="form-control mr-2" id="server_push_url" placeholder="https://.../api/push">
+                                    <button type="button" class="btn btn-outline-primary text-nowrap" id="use_panel_relay" data-url="{{ url('/api/push') }}">{{ __('Use this panel') }}</button>
+                                </div>
+                            </div>
+                            <div class="form-text pl-3 text-muted">{{ __('Leave it empty until the app developer confirms the apps use the relay: while it is set, the apps and the website send every push through it (no other way). It must be an https:// address. This panel\'s relay is') }} {{ url('/api/push') }}</div>
+                        </div>
                     </fieldset>
                     {{-- Sign-in providers (Finance spec 2.13): settings/authProviders, read by the apps and the
                          website even before sign-in to show the LinkedIn / Facebook buttons. --}}
@@ -704,6 +716,7 @@
                 if (notificationData.senderId != '' && notificationData.senderId != null) {
                     $('#sender_id').val(shortString(notificationData.senderId));
                 }
+                $('#server_push_url').val(notificationData.serverPushUrl || '');
                 if (notificationData.serviceJson != '' && notificationData.serviceJson != null) {
                     $('#uploded_json_file').html("File Uploaded");
                     serviceJsonFile = notificationData.serviceJson;
@@ -715,6 +728,7 @@
                 var authLinkedin = $("#auth_linkedin").is(":checked");
                 var authFacebook = $("#auth_facebook").is(":checked");
                 var authLinkedinProvider = $.trim($("#auth_linkedin_provider").val()) || 'oidc.linkedin';
+                var serverPushUrl = $.trim($("#server_push_url").val());
                 var website_color = $("#website_color").val();
                 var admin_color = $("#admin_color").val();
                 var store_color = $("#store_color").val();
@@ -823,6 +837,11 @@
                     $(".error_top").html("");
                     $(".error_top").append("<p>{{ trans('lang.setting_api_secure_key_error') }}</p>");
                     window.scrollTo(0, 0);
+                } else if (serverPushUrl !== '' && !/^https:\/\/[^\/\s?#]+\.[^\/\s?#]+(\/\S*)?$/.test(serverPushUrl)) {
+                    $(".error_top").show();
+                    $(".error_top").html("");
+                    $(".error_top").append("<p>{{ __('The push relay address must be an https:// address, or empty.') }}</p>");
+                    window.scrollTo(0, 0);
                 } else if (authLinkedin && !/^oidc\.[A-Za-z0-9._-]+$/.test(authLinkedinProvider)) {
                     $(".error_top").show();
                     $(".error_top").html("");
@@ -904,6 +923,7 @@
                     database.collection('settings').doc("notification_setting").update({
                         'senderId': senderId,
                         'serviceJson': serviceJsonFile,
+                        'serverPushUrl': serverPushUrl,
                     });
                     /* set + merge: the document does not exist until the first save. Awaited, because
                      * the page reloads as soon as the e-mail settings below are saved. */
@@ -934,6 +954,10 @@
             })
         })
         
+        $("#use_panel_relay").click(function() {
+            $("#server_push_url").val($(this).data('url'));
+        });
+
         $("#store_can_upload_story").click(function() {
             if ($(this).is(':checked')) {
                 $("#story_upload_time_div").show();

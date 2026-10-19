@@ -59,5 +59,12 @@ class RouteServiceProvider extends ServiceProvider
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by(optional($request->user())->id ?: $request->ip());
         });
+
+        // The push relay (Finance spec 1.6) limits each account itself (60 a
+        // minute, 3 000 a day); this only stops a flood from one address, which
+        // many phones on one mobile network can share.
+        RateLimiter::for('push-relay', function (Request $request) {
+            return Limit::perMinute(1200)->by($request->ip());
+        });
     }
 }

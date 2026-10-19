@@ -3,8 +3,6 @@
 namespace App\Finance;
 
 use App\Mail\FinanceNotice;
-use Google\Client as Google_Client;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 
@@ -183,22 +181,12 @@ class Notifier
 
     private function push($token, $title, $body, array $data)
     {
-        $access = Cache::remember('finance_fcm_token', 3000, function () {
-            $client = new Google_Client();
-            $client->setAuthConfig(storage_path('app/firebase/credentials.json'));
-            $client->addScope('https://www.googleapis.com/auth/firebase.messaging');
-            return $client->fetchAccessTokenWithAssertion()['access_token'] ?? '';
-        });
-        $res = Http::withToken($access)->timeout(15)->post(
-            'https://fcm.googleapis.com/v1/projects/' . $this->db->projectId() . '/messages:send',
-            ['message' => [
-                'token' => $token,
-                'notification' => ['title' => $title, 'body' => $body],
-                'data' => $data,
-                'android' => ['priority' => 'high', 'notification' => ['channel_id' => 'high_importance_channel', 'sound' => 'default']],
-                'apns' => ['headers' => ['apns-priority' => '10'], 'payload' => ['aps' => ['sound' => 'default', 'content-available' => 1]]],
-            ]]
-        );
-        return $res->successful();
+        return (new Fcm($this->db->projectId()))->send([
+            'token' => $token,
+            'notification' => ['title' => $title, 'body' => $body],
+            'data' => $data,
+            'android' => ['priority' => 'high', 'notification' => ['channel_id' => 'high_importance_channel', 'sound' => 'default']],
+            'apns' => ['headers' => ['apns-priority' => '10'], 'payload' => ['aps' => ['sound' => 'default', 'content-available' => 1]]],
+        ])['ok'];
     }
 }

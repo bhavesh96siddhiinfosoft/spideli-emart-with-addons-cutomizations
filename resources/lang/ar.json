@@ -1657,5 +1657,9 @@
     "The id of the LinkedIn OpenID Connect provider in Firebase > Authentication > Sign-in method, starting with \"oidc.\".": "معرّف مزود LinkedIn (OpenID Connect) في Firebase > Authentication > Sign-in method، ويبدأ بـ \"oidc.\".",
     "Show \"Sign in with Facebook\"": "إظهار \"تسجيل الدخول عبر Facebook\"",
     "Turn a button on only after the provider is set up in the Firebase console (Authentication > Sign-in method); Facebook also needs the Facebook SDK in the app. Otherwise customers get an error when they press it.": "فعّل الزر فقط بعد إعداد المزود في وحدة تحكم Firebase (Authentication > Sign-in method)؛ ويحتاج Facebook أيضاً إلى Facebook SDK داخل التطبيق. وإلا سيظهر خطأ للعملاء عند الضغط عليه.",
-    "The LinkedIn provider id must start with oidc. (as shown in the Firebase console).": "يجب أن يبدأ معرّف مزود LinkedIn بـ oidc. (كما يظهر في وحدة تحكم Firebase)."
+    "The LinkedIn provider id must start with oidc. (as shown in the Firebase console).": "يجب أن يبدأ معرّف مزود LinkedIn بـ oidc. (كما يظهر في وحدة تحكم Firebase).",
+    "Push relay address (serverPushUrl)": "عنوان مُرحِّل الإشعارات (serverPushUrl)",
+    "Use this panel": "استخدام هذه اللوحة",
+    "Leave it empty until the app developer confirms the apps use the relay: while it is set, the apps and the website send every push through it (no other way). It must be an https:// address. This panel's relay is": "اتركه فارغاً حتى يؤكد مطور التطبيق أن التطبيقات تستخدم المُرحِّل: ما دام محدداً، ترسل التطبيقات والموقع كل إشعار عبره (ولا طريقة أخرى). يجب أن يكون عنوان https://. مُرحِّل هذه اللوحة هو",
+    "The push relay address must be an https:// address, or empty.": "يجب أن يكون عنوان مُرحِّل الإشعارات عنوان https:// أو فارغاً."
 }

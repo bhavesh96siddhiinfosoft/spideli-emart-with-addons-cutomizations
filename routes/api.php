@@ -17,3 +17,10 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+/* Push relay for the customer apps and website (Finance spec 1.6): the caller
+ * is the Firebase ID token; limits per account are in App\Finance\PushRelay. */
+Route::post('/push', [App\Http\Controllers\PushRelayController::class, 'send'])
+    ->withoutMiddleware('throttle:api')
+    ->middleware('throttle:push-relay')
+    ->name('push.relay');
