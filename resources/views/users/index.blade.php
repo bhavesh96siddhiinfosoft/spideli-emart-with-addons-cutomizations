@@ -392,7 +392,7 @@
         var trroute1 = '{{route("users.walletstransaction",":id")}}';
         trroute1 = trroute1.replace(':id', id);
         if (checkDeletePermission) {
-        html.push('<td class="delete-all"><input type="checkbox" id="is_open_' + id + '" class="is_open" dataId="' + id + '"><label class="col-3 control-label"\n' +
+        html.push(val.isDeleted ? '<td class="delete-all"></td>' : '<td class="delete-all"><input type="checkbox" id="is_open_' + id + '" class="is_open" dataId="' + id + '"><label class="col-3 control-label"\n' +
             'for="is_open_' + id + '" ></label></td>');
         }
        /* Approved business accounts carry a tick beside the name, the same
@@ -416,7 +416,11 @@
         } else {
             html.push('');
         }
-        if (val.active) {
+        /* A deleted customer is kept (soft delete, isDeleted): shown as
+         * deleted, with no switch and no delete. */
+        if (val.isDeleted) {
+            html.push('<td><span class="badge badge-secondary">{{ __('Deleted') }}</span></td>');
+        } else if (val.active) {
             html.push('<td><label class="switch"><input type="checkbox" checked id="' + val.id + '" name="isActive"><span class="slider round"></span></label></td>');
         } else {
             html.push('<td><label class="switch"><input type="checkbox" id="' + val.id + '" name="isActive"><span class="slider round"></span></label></td>');
@@ -427,7 +431,7 @@
         actionHtml = actionHtml + '<span class="action-btn">';
         actionHtml = actionHtml+'<a href="' + trroute1 + '" data-toggle="tooltip" data-bs-original-title="{{ trans('lang.wallet_transaction') }}"><i class="mdi mdi-wallet" ></i></a>';
         actionHtml = actionHtml + '<a href="' + user_view + '" data-toggle="tooltip" data-bs-original-title="{{ trans('lang.view') }}"><i class="mdi mdi-eye"></i></a><a href="' + route1 + '" data-toggle="tooltip" data-bs-original-title="{{ trans('lang.edit') }}"><i class="mdi mdi-lead-pencil"></i></a>';
-        if (checkDeletePermission) {
+        if (checkDeletePermission && !val.isDeleted) {
             actionHtml = actionHtml+'<a id="' + val.id + '" class="delete-btn" name="user-delete" href="javascript:void(0)" data-toggle="tooltip" data-bs-original-title="{{ trans('lang.delete') }}"><i class="mdi mdi-delete"></i></a>';
         }
         if(checkChatPermission){
@@ -452,63 +456,27 @@
     $("#is_active").click(function() {
         $("#userTable .is_open").prop('checked', $(this).prop('checked'));
     });
-    $("#deleteAll").click(function() {
+    $("#deleteAll").click(async function() {
         if ($('#userTable .is_open:checked').length) {
             if (confirm("{{trans('lang.selected_delete_alert')}}")) {
                 jQuery("#data-table_processing").show();
-                $('#userTable .is_open:checked').each(async function() {
-                    var dataId = $(this).attr('dataId');
-                    await deleteBusinessDocument(dataId);
-                    await deleteDocumentWithImage('users', dataId, 'profilePictureURL');
-                        const getStoreName = deleteUserData(dataId);
-                        setTimeout(function() {
-                            window.location.reload();
-                        }, 7000);
-                });
+                var ids = $('#userTable .is_open:checked').map(function() { return $(this).attr('dataId'); }).get();
+                var notes = [];
+                for (var i = 0; i < ids.length; i++) {
+                    notes.push(await deleteCustomer(ids[i]));
+                }
+                jQuery("#data-table_processing").hide();
+                alert(notes.filter(Boolean).join('\n\n'));
+                setTimeout(function() {
+                    window.location.reload();
+                }, 3000);
             }
         } else {
             alert("{{trans('lang.select_delete_alert')}}");
         }
     });
-    /* The business registration document lives in Storage, and
-     * businessProfile.documentUrl is NESTED - deleteDocumentWithImage only
-     * reads top-level fields, so it would leave the file behind as an orphan
-     * nobody can reach or clear.
-     *
-     * Called BEFORE the user document is deleted, because that is the only
-     * place the URL is recorded. The businessProfile map itself needs no
-     * separate delete: it is part of the user document and goes with it. */
-    async function deleteBusinessDocument(userId) {
-        try {
-            var snapshot = await database.collection('users').doc(userId).get();
-
-            if (!snapshot.exists) {
-                return;
-            }
-
-            var profile = snapshot.data().businessProfile;
-
-            if (profile && profile.documentUrl) {
-                await deleteImageFromBucket(profile.documentUrl);
-            }
-        } catch (error) {
-            /* A missing or already-deleted file must not stop the customer
-             * being deleted - the user document is what matters. */
-            console.log('business document cleanup skipped:', error);
-        }
-    }
-
-    async function deleteUserData(userId) {
-        await database.collection('wallet').where('user_id', '==', userId).get().then(async function(snapshotsItem) {
-            if (snapshotsItem.docs.length > 0) {
-                snapshotsItem.docs.forEach((temData) => {
-                    var item_data = temData.data();
-                    database.collection('wallet').doc(item_data.id).delete().then(function() {
-                    });
-                });
-            }
-        });
-          //delete user from mysql
+    /* The customer's website login (MySQL), removed through the website's API. */
+    async function deleteWebsiteLogin(userId) {
           await database.collection('settings').doc("Version").get().then(function (snapshot) {
             var settingData = snapshot.data();
             if (settingData && settingData.websiteUrl){
@@ -528,49 +496,80 @@
                 });
             }
         });
-        //delete user from authentication    
-        var dataObject = {
-            "data": {
-                "uid": userId
-            }
-        };
-        var projectId = '<?php echo env('FIREBASE_PROJECT_ID') ?>';
-        jQuery.ajax({
-            url: 'https://us-central1-' + projectId + '.cloudfunctions.net/deleteUser',
-            method: 'POST',
-            contentType: "application/json; charset=utf-8",
-            data: JSON.stringify(dataObject),
-            success: function(data) {
-                console.log('Delete user success:', data.result);
-            },
-            error: function(xhr, status, error) {
-                var responseText = JSON.parse(xhr.responseText);
-                console.log('Delete user from sql error:', error.responseJSON.message);
-            }
+    }
+    /* Server calls (CSRF protected); always resolve with a JSON answer. */
+    function customerAction(url, data) {
+        return new Promise(function(resolve) {
+            jQuery.ajax({
+                url: url, method: 'POST', data: data || {},
+                headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+                success: function(res) { resolve(res); },
+                error: function(xhr) {
+                    if (xhr.status === 403) {
+                        resolve({ ok: false, message: "{{ __('Your role does not allow this.') }}" });
+                    } else {
+                        resolve((xhr.responseJSON && xhr.responseJSON.ok === false) ? xhr.responseJSON
+                            : { ok: false, message: "{{ __('Something went wrong. Nothing was changed.') }}" });
+                    }
+                }
+            });
         });
     }
+
+    /* Deletes one customer and returns a note for the admin (spec 6.3). A
+     * soft delete, so the history is kept: the server marks users/{uid}
+     * isDeleted with isDeletedDate and removes the Firebase sign-in account,
+     * then the website login is removed. Not deleted while something is still
+     * open (wallet money, a payout, a loan, a tontine...): the reasons are shown. */
+    async function deleteCustomer(id) {
+        var check = await customerAction('{{ route("users.delete-check", ":id") }}'.replace(':id', id));
+        if (!check.ok) {
+            return check.message;
+        }
+        if (check.blockers && check.blockers.length) {
+            return "{{ __('Not deleted:') }} " + check.blockers.join(' ');
+        }
+        var res = await customerAction('{{ route("users.soft-delete", ":id") }}'.replace(':id', id));
+        if (res.ok) {
+            await deleteWebsiteLogin(id);
+        }
+        return res.message;
+    }
+
     $(document).on("click", "a[name='user-delete']", async function(e) {
         var id = this.id;
-        jQuery("#data-table_processing").show();
-            await deleteBusinessDocument(id);
-            await deleteDocumentWithImage('users', id, 'profilePictureURL');
-            const getStoreName = deleteUserData(id);
-            setTimeout(function() {
-                window.location.reload();
-            }, 7000);
-    });
-    $(document).on("click", "input[name='isActive']", function(e) {
-        var ischeck = $(this).is(':checked');
-        var id = this.id;
-        if (ischeck) {
-            database.collection('users').doc(id).update({
-                'active': true
-            }).then(function(result) {});
-        } else {
-            database.collection('users').doc(id).update({
-                'active': false
-            }).then(function(result) {});
+        if (!confirm("{{ __('Delete this customer?') }}")) {
+            return;
         }
+        jQuery("#data-table_processing").show();
+        var note = await deleteCustomer(id);
+        jQuery("#data-table_processing").hide();
+        alert(note);
+        setTimeout(function() {
+            window.location.reload();
+        }, 3000);
+    });
+
+    /* Suspend / re-activate on the server: Firebase sign-in follows and the
+     * change is audited. Suspending asks why; a refusal puts the switch back. */
+    $(document).on("click", "input[name='isActive']", async function(e) {
+        var box = $(this);
+        var active = box.is(':checked');
+        var reason = '';
+        if (!active) {
+            reason = prompt("{{ __('Why is this customer suspended? They will no longer be able to sign in.') }}");
+            if (reason === null || $.trim(reason) === '') {
+                box.prop('checked', true);
+                return;
+            }
+        }
+        box.prop('disabled', true);
+        var res = await customerAction('{{ route("users.active", ":id") }}'.replace(':id', this.id), { active: active ? 1 : 0, reason: reason });
+        box.prop('disabled', false);
+        if (!res.ok) {
+            box.prop('checked', !active);
+        }
+        alert(res.message);
     });
 </script>
 @endsection

@@ -10,7 +10,8 @@ use Illuminate\Support\Facades\Http;
  * A customer's Firebase Authentication account, read with the panel's
  * service account (Identity Toolkit accounts:lookup): whether sign-in is
  * disabled, the two-step (second factor) enrolments, the sign-in methods
- * and the last sign-in (spec 6.3). Read only.
+ * and the last sign-in (spec 6.3); and turning sign-in off / on or deleting
+ * the sign-in account when an admin suspends or deletes a customer.
  */
 class AuthAccounts
 {
@@ -59,6 +60,36 @@ class AuthAccounts
             report($e);
             return null;
         }
+    }
+
+    /**
+     * Turns a customer's sign-in off or on (Identity Toolkit accounts:update
+     * disableUser). A disabled account cannot sign in, and its sessions end
+     * when their token next refreshes (within the hour). Returns true, or
+     * 'missing' when there is no sign-in account; throws when Firebase refuses.
+     */
+    public function setDisabled($uid, $disabled)
+    {
+        return $this->admin('accounts:update', ['localId' => (string)$uid, 'disableUser' => (bool)$disabled]);
+    }
+
+    /** Deletes a customer's sign-in account (accounts:delete). True, or 'missing'. */
+    public function delete($uid)
+    {
+        return $this->admin('accounts:delete', ['localId' => (string)$uid]);
+    }
+
+    private function admin($method, array $body)
+    {
+        $res = Http::withToken($this->token())->timeout(15)->post(
+            'https://identitytoolkit.googleapis.com/v1/projects/' . $this->db->projectId() . '/' . $method, $body);
+        if ($res->successful()) {
+            return true;
+        }
+        if (strpos((string)$res->json('error.message'), 'USER_NOT_FOUND') !== false) {
+            return 'missing';
+        }
+        throw new \RuntimeException('Firebase Authentication refused ' . $method . ' (' . $res->status() . ' ' . $res->json('error.message') . ')');
     }
 
     private function token()

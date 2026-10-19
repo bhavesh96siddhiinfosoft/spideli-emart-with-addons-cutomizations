@@ -35,6 +35,13 @@ Route::middleware(['permission:users,users.create'])->group(function () {
 });
 Route::middleware(['permission:users,users.edit'])->group(function () {
     Route::get('/users/edit/{id}', [App\Http\Controllers\UserController::class, 'edit'])->name('users.edit');
+    /* Suspend / re-activate: Firebase sign-in follows, audited (spec 6.3). */
+    Route::post('/users/{id}/active', [App\Http\Controllers\CustomerAccountController::class, 'setActive'])->name('users.active');
+});
+Route::middleware(['permission:users,users.delete'])->group(function () {
+    /* Delete = soft delete: users/{uid} kept with isDeleted + isDeletedDate, sign-in removed (spec 6.3). */
+    Route::post('/users/{id}/delete-check', [App\Http\Controllers\CustomerAccountController::class, 'deleteCheck'])->name('users.delete-check');
+    Route::post('/users/{id}/soft-delete', [App\Http\Controllers\CustomerAccountController::class, 'softDelete'])->name('users.soft-delete');
 });
 Route::middleware(['permission:users,users.view'])->group(function () {
     Route::get('/users/view/{id}', [App\Http\Controllers\UserController::class, 'view'])->name('users.view');

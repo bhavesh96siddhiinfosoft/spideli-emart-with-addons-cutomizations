@@ -116,6 +116,36 @@ class FinanceDeskController extends Controller
 
     /* ========================================================= customers */
 
+    /**
+     * Customers whose first or last name starts with the search (Firestore
+     * has no text search: a prefix range per name field, tried as typed, in
+     * lower case and capitalised). "Awa Te" matches first name Awa* and last
+     * name Te*.
+     */
+    private static function byName(Firestore $db, $q)
+    {
+        $words = preg_split('/\s+/', trim($q));
+        $first = $words[0];
+        $rest = strtolower(trim(implode(' ', array_slice($words, 1))));
+        $found = [];
+        foreach (['firstName', 'lastName'] as $field) {
+            foreach (array_unique([$first, strtolower($first), ucfirst(strtolower($first)), strtoupper($first)]) as $v) {
+                foreach ($db->query('users', [[$field, '>=', $v], [$field, '<', $v . "\u{f8ff}"]], [], 50) as $r) {
+                    $found[$r['id']] = $r;
+                }
+            }
+        }
+        if ($rest !== '') {
+            $typed = strtolower(implode(' ', $words));
+            $found = array_filter($found, function ($r) use ($rest, $typed) {
+                $d = $r['data'];
+                return strpos(strtolower(trim(($d['firstName'] ?? '') . ' ' . ($d['lastName'] ?? ''))), $typed) === 0
+                    || strpos(strtolower((string)($d['lastName'] ?? '')), $rest) === 0;
+            });
+        }
+        return array_values($found);
+    }
+
     public function customers(Request $request)
     {
         $db = $this->db();
@@ -130,14 +160,41 @@ class FinanceDeskController extends Controller
                 $rows = $db->query('users', [['phoneNumber', '==', $p]], [], 20) ?: $db->query('users', [['phoneNumber', '==', '+' . ltrim($p, '+')]], [], 20);
             } else {
                 $u = $db->get('users/' . $q);
-                $rows = $u ? [$u] : [];
+                $rows = $u ? [$u] : self::byName($db, $q);
             }
         } elseif ($filter === 'restricted') {
             $rows = $db->query('users', [['financeRestriction.status', '==', 'restricted']], [], 300);
         } elseif ($filter === 'pending') {
             $rows = $db->query('users', [['kycStatus', 'in', ['submitted', 'under_review', 'additional_info_required']]], [], 300);
+        } elseif ($filter === 'suspended') {
+            $rows = $db->query('users', [['active', '==', false]], [], 500);   // suspended, and deleted ones kept for Finance
+        } elseif ($filter === 'joined') {
+            $rows = [];   // the date range below reads them
         } else {
+            $filter = 'verified';
             $rows = $db->query('users', [['kycStatus', '==', 'approved']], [], 300);
+        }
+
+        /* Joined between two dates (users.createdAt): narrows any list; with
+         * "Joined in these dates" it is the list itself. */
+        $tz = new \DateTimeZone(config('app.timezone'));
+        $from = \DateTimeImmutable::createFromFormat('!Y-m-d', (string)$request->input('from'), $tz) ?: null;
+        $to = \DateTimeImmutable::createFromFormat('!Y-m-d', (string)$request->input('to'), $tz) ?: null;
+        if ($filter === 'joined' && $q === '') {
+            $range = [];
+            if ($from) {
+                $range[] = ['createdAt', '>=', $from];
+            }
+            if ($to) {
+                $range[] = ['createdAt', '<', $to->modify('+1 day')];
+            }
+            $rows = $range ? $db->query('users', $range, [], 500) : [];
+        }
+        if ($from || $to) {
+            $rows = array_values(array_filter($rows, function ($r) use ($from, $to) {
+                $at = $r['data']['createdAt'] ?? null;
+                return $at instanceof \DateTimeInterface && (!$from || $at >= $from) && (!$to || $at < $to->modify('+1 day'));
+            }));
         }
         $rows = array_values(array_filter($rows, function ($r) { return ($r['data']['role'] ?? 'customer') === 'customer'; }));
         $region = (string)$request->input('region');
@@ -151,6 +208,7 @@ class FinanceDeskController extends Controller
         }
         return view('finance.customers.index', [
             'rows' => $rows, 'q' => $q, 'filter' => $filter, 'region' => $region,
+            'from' => $from ? $from->format('Y-m-d') : '', 'to' => $to ? $to->format('Y-m-d') : '',
             'regions' => $regions->visible(false), 'regionNames' => array_map(function ($r) { return $r['name'] ?? ''; }, $regions->all()),
         ]);
     }

@@ -207,6 +207,7 @@ foreach ($countries as $keycountry => $valuecountry) {
     var photo = "";
     var fileName = "";
     var oldImageFile = '';
+    var loadedActive = false;
     var placeholderImage = '';
     var placeholder = database.collection('settings').doc('placeHolderImage');
 
@@ -274,6 +275,13 @@ foreach ($countries as $keycountry => $valuecountry) {
                 if (user.active) {
                     $(".user_active").prop('checked', true);
                 }
+                /* Suspend / re-activate goes through the server (Firebase
+                 * sign-in follows, audited): remember the value loaded. A
+                 * deleted customer cannot be re-activated here. */
+                loadedActive = !!user.active;
+                if (user.isDeleted) {
+                    $(".user_active").prop('disabled', true);
+                }
 
                 var wallet = 0;
 
@@ -311,6 +319,31 @@ foreach ($countries as $keycountry => $valuecountry) {
             }
         });
 
+        /* Suspends / re-activates on the server; tells the admin what happened. */
+        function saveActive(active) {
+            var reason = '';
+            if (!active) {
+                reason = prompt("{{ __('Why is this customer suspended? They will no longer be able to sign in.') }}");
+                if (reason === null || $.trim(reason) === '') {
+                    alert("{{ __('Saved, but the customer is still active: a reason is needed to suspend them.') }}");
+                    return Promise.resolve();
+                }
+            }
+            return new Promise(function (resolve) {
+                jQuery.ajax({
+                    url: '{{ route("users.active", ":id") }}'.replace(':id', id), method: 'POST',
+                    data: { active: active ? 1 : 0, reason: reason },
+                    headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+                    success: function (res) { alert(res.message); resolve(); },
+                    error: function (xhr) {
+                        alert(xhr.status === 403 ? "{{ __('Your role does not allow this.') }}"
+                            : ((xhr.responseJSON && xhr.responseJSON.message) || "{{ __('Something went wrong. Nothing was changed.') }}"));
+                        resolve();
+                    }
+                });
+            });
+        }
+
         $(".edit-form-btn").click(function () {
 
             var userFirstName = $(".user_first_name").val();
@@ -346,11 +379,12 @@ foreach ($countries as $keycountry => $valuecountry) {
                         'email': email,
                         'countryCode': countryCode,
                         'phoneNumber': userPhone,
-                        'isActive': active,
                         'profilePictureURL': IMG,
                         'role': 'customer',
-                        'active': active,
-                    }).then(function (result) {
+                    }).then(async function (result) {
+                        if (active !== loadedActive) {
+                            await saveActive(active);
+                        }
                         window.location.href = '{{ route("users")}}';
                     });
 
