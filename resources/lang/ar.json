@@ -1650,5 +1650,12 @@
     "Remove this customer's two-step verification? They will sign in without the code until they turn it on again.": "إزالة التحقق بخطوتين لهذا العميل؟ سيسجل الدخول بدون الرمز حتى يعيد تفعيله.",
     "How was their identity checked? (kept in the audit log)": "كيف تم التحقق من هويته؟ (يُحفظ في سجل التدقيق)",
     "Reset two-step": "إعادة تعيين التحقق بخطوتين",
-    "Only for a customer who lost their phone, after checking who is asking (for example a video call with their ID).": "فقط لعميل فقد هاتفه، بعد التحقق من هوية الطالب (مثلاً مكالمة فيديو مع بطاقة هويته)."
+    "Only for a customer who lost their phone, after checking who is asking (for example a video call with their ID).": "فقط لعميل فقد هاتفه، بعد التحقق من هوية الطالب (مثلاً مكالمة فيديو مع بطاقة هويته).",
+    "Sign-in providers": "مزودو تسجيل الدخول",
+    "Show \"Sign in with LinkedIn\"": "إظهار \"تسجيل الدخول عبر LinkedIn\"",
+    "LinkedIn provider id (Firebase)": "معرّف مزود LinkedIn (Firebase)",
+    "The id of the LinkedIn OpenID Connect provider in Firebase > Authentication > Sign-in method, starting with \"oidc.\".": "معرّف مزود LinkedIn (OpenID Connect) في Firebase > Authentication > Sign-in method، ويبدأ بـ \"oidc.\".",
+    "Show \"Sign in with Facebook\"": "إظهار \"تسجيل الدخول عبر Facebook\"",
+    "Turn a button on only after the provider is set up in the Firebase console (Authentication > Sign-in method); Facebook also needs the Facebook SDK in the app. Otherwise customers get an error when they press it.": "فعّل الزر فقط بعد إعداد المزود في وحدة تحكم Firebase (Authentication > Sign-in method)؛ ويحتاج Facebook أيضاً إلى Facebook SDK داخل التطبيق. وإلا سيظهر خطأ للعملاء عند الضغط عليه.",
+    "The LinkedIn provider id must start with oidc. (as shown in the Firebase console).": "يجب أن يبدأ معرّف مزود LinkedIn بـ oidc. (كما يظهر في وحدة تحكم Firebase)."
 }

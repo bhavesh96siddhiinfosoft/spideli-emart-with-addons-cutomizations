@@ -384,6 +384,31 @@
                             </div>
                         </div>
                     </fieldset>
+                    {{-- Sign-in providers (Finance spec 2.13): settings/authProviders, read by the apps and the
+                         website even before sign-in to show the LinkedIn / Facebook buttons. --}}
+                    <fieldset>
+                        <legend><i class="mr-3 mdi mdi-account-key"></i>{{ __('Sign-in providers') }}</legend>
+                        <div class="form-group row width-100">
+                            <div class="form-check width-100">
+                                <input type="checkbox" class="form-check-inline" id="auth_linkedin">
+                                <label class="col-5 control-label" for="auth_linkedin">{{ __('Show "Sign in with LinkedIn"') }}</label>
+                            </div>
+                        </div>
+                        <div class="form-group row width-100">
+                            <label class="col-5 control-label">{{ __('LinkedIn provider id (Firebase)') }}</label>
+                            <div class="col-7">
+                                <input type="text" class="form-control" id="auth_linkedin_provider" placeholder="oidc.linkedin">
+                            </div>
+                            <div class="form-text pl-3 text-muted">{{ __('The id of the LinkedIn OpenID Connect provider in Firebase > Authentication > Sign-in method, starting with "oidc.".') }}</div>
+                        </div>
+                        <div class="form-group row width-100">
+                            <div class="form-check width-100">
+                                <input type="checkbox" class="form-check-inline" id="auth_facebook">
+                                <label class="col-5 control-label" for="auth_facebook">{{ __('Show "Sign in with Facebook"') }}</label>
+                                <div class="form-text text-muted">{{ __('Turn a button on only after the provider is set up in the Firebase console (Authentication > Sign-in method); Facebook also needs the Facebook SDK in the app. Otherwise customers get an error when they press it.') }}</div>
+                            </div>
+                        </div>
+                    </fieldset>
                     <fieldset>
                         <legend><i class="mr-3 fa fa-solid fa fa-android"></i>{{ trans('lang.version') }}</legend>
                         <div class="form-group row width-50">
@@ -452,6 +477,7 @@
         var refCurrency = regionCurrencyRef();
         var refEmailSetting = database.collection('settings').doc("emailSetting");
         var refNotificationSetting = database.collection('settings').doc("notification_setting");
+        var refAuthProviders = database.collection('settings').doc("authProviders");
         
         var homepagethemeRef = database.collection('settings').doc("home_page_theme");
         var services = database.collection('sections').where('isActive', '==', true).orderBy('order');
@@ -666,6 +692,13 @@
                 }
             });
 
+            /* Sign-in providers: a missing document = both buttons hidden. */
+            refAuthProviders.get().then(function(snapshot) {
+                var a = snapshot.exists ? snapshot.data() : {};
+                $('#auth_linkedin').prop('checked', a.linkedin === true);
+                $('#auth_facebook').prop('checked', a.facebook === true);
+                $('#auth_linkedin_provider').val(a.linkedinProviderId || 'oidc.linkedin');
+            });
             refNotificationSetting.get().then(async function(snapshots) {
                 var notificationData = snapshots.data();
                 if (notificationData.senderId != '' && notificationData.senderId != null) {
@@ -679,6 +712,9 @@
             });
 
             $(".edit-setting-btn").click(async function() {
+                var authLinkedin = $("#auth_linkedin").is(":checked");
+                var authFacebook = $("#auth_facebook").is(":checked");
+                var authLinkedinProvider = $.trim($("#auth_linkedin_provider").val()) || 'oidc.linkedin';
                 var website_color = $("#website_color").val();
                 var admin_color = $("#admin_color").val();
                 var store_color = $("#store_color").val();
@@ -787,6 +823,11 @@
                     $(".error_top").html("");
                     $(".error_top").append("<p>{{ trans('lang.setting_api_secure_key_error') }}</p>");
                     window.scrollTo(0, 0);
+                } else if (authLinkedin && !/^oidc\.[A-Za-z0-9._-]+$/.test(authLinkedinProvider)) {
+                    $(".error_top").show();
+                    $(".error_top").html("");
+                    $(".error_top").append("<p>{{ __('The LinkedIn provider id must start with oidc. (as shown in the Firebase console).') }}</p>");
+                    window.scrollTo(0, 0);
                 } else {
                     jQuery("#data-table_processing").show();
                     await storeRingtone().then(ringtone => {
@@ -864,6 +905,20 @@
                         'senderId': senderId,
                         'serviceJson': serviceJsonFile,
                     });
+                    /* set + merge: the document does not exist until the first save. Awaited, because
+                     * the page reloads as soon as the e-mail settings below are saved. */
+                    try {
+                        await refAuthProviders.set({
+                            'linkedin': authLinkedin,
+                            'linkedinProviderId': authLinkedinProvider,
+                            'facebook': authFacebook,
+                        }, { merge: true });
+                    } catch (err) {
+                        jQuery("#data-table_processing").hide();
+                        $(".error_top").show().html("<p>" + err + "</p>");
+                        window.scrollTo(0, 0);
+                        return;
+                    }
                     database.collection('settings').doc("emailSetting").update({
                         'fromName': fromName,
                         'host': host,
