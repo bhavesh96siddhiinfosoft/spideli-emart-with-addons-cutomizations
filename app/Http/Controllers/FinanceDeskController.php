@@ -210,6 +210,7 @@ class FinanceDeskController extends Controller
         return view('finance.customers.index', [
             'rows' => $rows, 'q' => $q, 'filter' => $filter, 'region' => $region,
             'from' => $from ? $from->format('Y-m-d') : '', 'to' => $to ? $to->format('Y-m-d') : '',
+            'canEditCustomer' => $this->can('users.edit'),
             'regions' => $regions->visible(false), 'regionNames' => array_map(function ($r) { return $r['name'] ?? ''; }, $regions->all()),
         ]);
     }

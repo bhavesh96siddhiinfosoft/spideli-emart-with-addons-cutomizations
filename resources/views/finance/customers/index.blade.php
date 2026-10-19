@@ -34,7 +34,7 @@
                 @if ($filter === 'joined' && !$from && !$to && $q === '')<p class="finance-help">{{ __('Choose the dates the customers joined between.') }}</p>@endif
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped" id="financeCustomersTable">
-                        <thead><tr><th>{{ __('Customer') }}</th><th>{{ __('Phone') }}</th><th>{{ __('Regions') }}</th><th>{{ __('Verification') }}</th><th>{{ __('Restriction') }}</th><th>{{ __('Status') }}</th><th>{{ __('Joined') }}</th><th></th></tr></thead>
+                        <thead><tr><th>{{ __('Customer') }}</th><th>{{ __('Phone') }}</th><th>{{ __('Regions') }}</th><th>{{ __('Verification') }}</th><th>{{ __('Restriction') }}</th><th>{{ __('Status') }}</th><th>{{ __('Joined') }}</th><th>{{ trans('lang.actions') }}</th></tr></thead>
                         <tbody>
                         @foreach ($rows as $r)
                             @php $d = $r['data']; $restr = $d['financeRestriction'] ?? null; @endphp
@@ -51,7 +51,13 @@
                                     @elseif (($d['active'] ?? true) === false)<span class="finance-badge-no">{{ __('suspended') }}</span>
                                     @else<span class="finance-badge-ok">{{ __('active') }}</span>@endif</td>
                                 <td data-order="{{ ($d['createdAt'] ?? null) instanceof \DateTimeInterface ? $d['createdAt']->getTimestamp() : 0 }}">{{ ($d['createdAt'] ?? null) instanceof \DateTimeInterface ? $d['createdAt']->setTimezone(new DateTimeZone(config('app.timezone')))->format('Y-m-d') : '' }}</td>
-                                <td><a class="btn btn-sm btn-primary" href="{{ route('finance.customers.show', $r['id']) }}">{{ __('Open') }}</a></td>
+                                <td><span class="action-btn">
+                                    <a href="{{ route('finance.customers.show', $r['id']) }}" data-toggle="tooltip" title="{{ trans('lang.view') }}"><i class="mdi mdi-eye"></i></a>
+                                    {{-- The customer's profile form (Customers screen); not for a deleted customer. --}}
+                                    @if ($canEditCustomer && empty($d['isDeleted']))
+                                        <a href="{{ route('users.edit', $r['id']) }}" data-toggle="tooltip" title="{{ trans('lang.edit') }}"><i class="mdi mdi-lead-pencil"></i></a>
+                                    @endif
+                                </span></td>
                             </tr>
                         @endforeach
                         </tbody>
@@ -64,6 +70,6 @@
 @endsection
 @section('scripts')
 <script>
-    $(function () { $('#financeCustomersTable').DataTable({ pageLength: 25, language: typeof datatableLang !== 'undefined' ? datatableLang : {} }); });
+    $(function () { $('#financeCustomersTable').DataTable({ pageLength: 25, columnDefs: [{ orderable: false, targets: -1 }], language: typeof datatableLang !== 'undefined' ? datatableLang : {} }); });
 </script>
 @endsection
