@@ -217,7 +217,7 @@ class Desk
         if (trim((string)$reason) === '') {
             throw new FinanceException('invalid', 'A reason is required (a documented review, spec 6.3).');
         }
-        return $this->db->transaction(function (Transaction $t) use ($uid, $scopes, $reason) {
+        $result = $this->db->transaction(function (Transaction $t) use ($uid, $scopes, $reason) {
             $u = $t->get('users/' . $uid);
             if (!$u) {
                 throw new FinanceException('missing', 'No customer has this id.');
@@ -226,11 +226,13 @@ class Desk
             $t->update('users/' . $uid, ['financeRestriction' => $value]);
             Audit::add($t, 'customer.restrict', 'users', $uid, ['financeRestriction' => $u['data']['financeRestriction'] ?? null], ['financeRestriction' => $value], $reason);
         });
+        (new CreditScores($this->db))->refresh($uid);
+        return $result;
     }
 
     public function lift($uid, $reason)
     {
-        return $this->db->transaction(function (Transaction $t) use ($uid, $reason) {
+        $result = $this->db->transaction(function (Transaction $t) use ($uid, $reason) {
             $u = $t->get('users/' . $uid);
             if (!$u || empty($u['data']['financeRestriction'])) {
                 throw new FinanceException('state_changed', 'This customer is not restricted.');
@@ -238,6 +240,8 @@ class Desk
             $t->update('users/' . $uid, ['financeRestriction' => Value::delete()]);
             Audit::add($t, 'customer.lift_restriction', 'users', $uid, ['financeRestriction' => $u['data']['financeRestriction']], ['financeRestriction' => null], $reason);
         });
+        (new CreditScores($this->db))->refresh($uid);
+        return $result;
     }
 
     /* ========================================================== receipts */

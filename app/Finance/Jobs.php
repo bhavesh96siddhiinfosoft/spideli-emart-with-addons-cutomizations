@@ -70,7 +70,7 @@ class Jobs
     public function daily()
     {
         foreach (['loanSchedules', 'tontineReminders', 'savingsReminders', 'savingsTargets', 'tontineInvitations', 'investmentHoldings',
-            'insuranceQuotes', 'insuranceRenewals', 'insurancePremiums', 'fixedRates'] as $job) {
+            'insuranceQuotes', 'insuranceRenewals', 'insurancePremiums', 'fixedRates', 'creditScores'] as $job) {
             $this->line("[$job]");
             try {
                 $this->$job();
@@ -80,6 +80,12 @@ class Jobs
             }
         }
         return $this->log;
+    }
+
+    /** Every member's credit score, after the day's loan and tontine updates above. */
+    public function creditScores()
+    {
+        $this->line('  ' . (new CreditScores($this->db))->recalculateAll() . ' score(s) written');
     }
 
     public function hourly()

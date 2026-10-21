@@ -296,8 +296,15 @@ class FinanceGroupsController extends Controller
             $counts[$k] = count(Scope::filter($db, $db->query('loan_applications', [['status', 'in', $statuses]], [], 500), 'borrowerId'));
         }
         $rows = self::sortBy(Scope::filter($db, $db->query('loan_applications', [['status', 'in', $tabs[$tab]]], [], 500), 'borrowerId'), 'createdAt', $tab !== 'closed');
+        $borrowers = array_values(array_unique(array_filter(array_map(function ($r) { return $r['data']['borrowerId'] ?? null; }, $rows), 'is_string')));
+        $scores = [];
+        foreach ($borrowers ? $db->getMany(array_map(function ($u) { return 'credit_scores/' . $u; }, $borrowers)) : [] as $doc) {
+            if ($doc) {
+                $scores[$doc['id']] = $doc['data'];
+            }
+        }
         return view('finance.loans.index', [
-            'tab' => $tab, 'rows' => $rows, 'counts' => $counts, 'stuckDays' => (int)config('finance.loan_stuck_days', 14),
+            'tab' => $tab, 'rows' => $rows, 'counts' => $counts, 'stuckDays' => (int)config('finance.loan_stuck_days', 14), 'scores' => $scores,
             'names' => $this->names(array_map(function ($r) { return $r['data']['borrowerId'] ?? null; }, $rows)),
         ]);
     }

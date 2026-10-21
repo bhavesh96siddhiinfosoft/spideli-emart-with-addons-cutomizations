@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Finance\Audit;
 use App\Finance\AuthAccounts;
+use App\Finance\CreditScores;
 use App\Finance\Desk;
 use App\Finance\FinanceException;
 use App\Finance\Firestore;
@@ -291,6 +292,7 @@ class FinanceDeskController extends Controller
             'bills' => $bills,
             'operations' => $operations,
             'auth' => (new AuthAccounts($db))->lookup($uid),
+            'creditScore' => ($cs = $db->get('credit_scores/' . $uid)) ? $cs['data'] : null,
             'audit' => $audit,
             'failed' => array_values(array_unique($failed)),
             'perm' => $perm,
@@ -335,6 +337,18 @@ class FinanceDeskController extends Controller
             return back()->with('error', __('Firebase refused the change. Nothing was changed.'));
         }
         return back()->with('success', __('Two-step verification removed: the customer can sign in without the code and turn it on again in the app.'));
+    }
+
+    /** Recalculates the customer's credit score now (it is also recalculated every night). */
+    public function creditScore($uid)
+    {
+        $db = $this->db();
+        $user = $db->get('users/' . $uid);
+        abort_unless($user && ($user['data']['role'] ?? 'customer') === 'customer', 404);
+        abort_unless($this->scope([$user], 'id') || !Regions::allowedIds(), 404);
+        $r = (new CreditScores($db))->refresh($uid);
+        return $r ? back()->with('success', __('Credit score recalculated:') . ' ' . $r['score'] . ' (' . __($r['band']) . ').')
+                  : back()->with('error', __('The score could not be calculated now. Try again.'));
     }
 
     public function restrict(Request $request, $uid)

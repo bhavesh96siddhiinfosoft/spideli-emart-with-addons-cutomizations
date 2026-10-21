@@ -38,7 +38,9 @@
                             @php $d = $r['data']; $c = $d['currency'] ?? ''; $stuck = \App\Http\Controllers\FinanceGroupsController::stuck($d); @endphp
                             <tr>
                                 <td>{{ $fmt($d['createdAt'] ?? null) }}</td>
-                                <td>{{ $names[$d['borrowerId'] ?? ''] ?? '' }} @if (!empty($d['demo']))<span class="badge badge-secondary">demo</span>@endif</td>
+                                <td>{{ $names[$d['borrowerId'] ?? ''] ?? '' }} @if (!empty($d['demo']))<span class="badge badge-secondary">demo</span>@endif
+                                    @php $sc = $scores[$d['borrowerId'] ?? ''] ?? null; @endphp
+                                    @if ($sc)<div class="finance-help">{{ __('Credit score') }} <span class="finance-amount">{{ $sc['score'] ?? '' }}</span> · <span class="{{ in_array($sc['band'] ?? '', ['Excellent', 'Good'], true) ? 'finance-badge-ok' : 'finance-badge-no' }}">{{ __($sc['band'] ?? '') }}</span></div>@endif</td>
                                 <td>{{ $d['groupName'] ?? '' }}</td>
                                 <td class="finance-amount">{{ Money::format((int)($d['amount'] ?? 0), $c) }}<div class="finance-help">{{ $d['durationMonths'] ?? '' }} {{ __('months') }}</div></td>
                                 <td>

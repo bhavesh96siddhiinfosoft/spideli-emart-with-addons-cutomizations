@@ -1050,6 +1050,7 @@ Route::middleware(['permission:finance-audit,finance.audit'])->group(function ()
 Route::middleware(['permission:finance-customers,finance.customers'])->group(function () {
     Route::get('finance/customers', [App\Http\Controllers\FinanceDeskController::class, 'customers'])->name('finance.customers');
     Route::get('finance/customers/{uid}', [App\Http\Controllers\FinanceDeskController::class, 'customer'])->name('finance.customers.show');
+    Route::post('finance/customers/{uid}/credit-score', [App\Http\Controllers\FinanceDeskController::class, 'creditScore'])->name('finance.customers.credit-score');
 });
 Route::middleware(['permission:finance-customers,finance.customers.restrict'])->group(function () {
     Route::post('finance/customers/{uid}/restrict', [App\Http\Controllers\FinanceDeskController::class, 'restrict'])->name('finance.customers.restrict');

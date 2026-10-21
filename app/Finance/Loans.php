@@ -128,7 +128,7 @@ class Loans
     public function markDefault($loanId, $reason)
     {
         self::needReason($reason);
-        return $this->db->transaction(function (Transaction $t) use ($loanId, $reason) {
+        $loan = $this->db->transaction(function (Transaction $t) use ($loanId, $reason) {
             $l = $this->loan($t, $loanId, ['active', 'overdue']);
             $u = $t->get('users/' . $l['borrowerId']);
             $this->setStatus($t, $l, 'defaulted', ['reason' => $reason], 'loan.default', $reason);
@@ -139,6 +139,8 @@ class Loans
             }
             return $l;
         });
+        (new CreditScores($this->db))->refresh($loan['borrowerId'] ?? '');
+        return $loan;
     }
 
     /* =========================================================== credit score */
@@ -163,75 +165,14 @@ class Loans
     }
 
     /**
-     * A suggested assessment from the borrower's history, in plain words the
-     * borrower can read: identity verification, tontine payments, past loans,
-     * how long they have used Spideli. The admin edits it before saving.
+     * A suggested assessment: the borrower's member credit score (CreditScores),
+     * computed now from their contributions, repayments, lending and identity,
+     * in plain words the borrower can read. The admin edits it before saving.
      */
     public function suggest(array $loan)
     {
-        $uid = $loan['borrowerId'] ?? '';
-        $user = $this->db->get('users/' . $uid);
-        $u = $user ? $user['data'] : [];
-        $score = 600;
-        $factors = [];
-
-        $level = (string)($u['kycLevel'] ?? '');
-        if ($level !== '') {
-            $pts = $level === 'basic' ? 25 : 50;
-            $score += $pts;
-            $factors[] = ['label' => 'Identity verified', 'impact' => 'positive', 'detail' => "Verification level \"$level\"."];
-        } else {
-            $score -= 50;
-            $factors[] = ['label' => 'Identity not verified', 'impact' => 'negative', 'detail' => 'No completed identity verification.'];
-        }
-
-        $paid = count($this->db->query('tontine_contributions', [['userId', '==', $uid]], [], 200));
-        if ($paid > 0) {
-            $score += min(100, $paid * 5);
-            $factors[] = ['label' => 'Tontine contributions', 'impact' => 'positive', 'detail' => "$paid contribution(s) paid."];
-        }
-
-        $past = $this->db->query('loan_applications', [['borrowerId', '==', $uid]], [], 50);
-        $repaid = 0;
-        $bad = 0;
-        foreach ($past as $p) {
-            if ($p['id'] === ($loan['id'] ?? '')) {
-                continue;
-            }
-            $s = $p['data']['status'] ?? '';
-            if ($s === 'repaid') {
-                $repaid++;
-            } elseif (in_array($s, ['defaulted', 'overdue'], true)) {
-                $bad++;
-            }
-        }
-        if ($repaid) {
-            $score += min(100, $repaid * 50);
-            $factors[] = ['label' => 'Loans repaid', 'impact' => 'positive', 'detail' => "$repaid earlier loan(s) fully repaid."];
-        }
-        if ($bad) {
-            $score -= min(250, $bad * 125);
-            $factors[] = ['label' => 'Late or unpaid loans', 'impact' => 'negative', 'detail' => "$bad earlier loan(s) overdue or defaulted."];
-        }
-
-        $since = $u['createdAt'] ?? null;
-        if ($since instanceof \DateTimeInterface) {
-            $months = (int)floor((time() - $since->getTimestamp()) / (30 * 86400));
-            $score += min(50, $months * 2);
-            if ($months < 12) {
-                $factors[] = ['label' => 'Short history', 'impact' => 'negative', 'detail' => 'Less than a year using Spideli.'];
-            } else {
-                $factors[] = ['label' => 'Long-standing customer', 'impact' => 'positive', 'detail' => "Using Spideli for $months months."];
-            }
-        }
-        if (!empty($u['financeRestriction'])) {
-            $score -= 100;
-            $factors[] = ['label' => 'Finance restriction', 'impact' => 'negative', 'detail' => 'The account is currently restricted.'];
-        }
-
-        $score = max(300, min(850, $score));
-        $band = $score >= 750 ? 'Excellent' : ($score >= 670 ? 'Good' : ($score >= 580 ? 'Fair' : 'Poor'));
-        return ['score' => $score, 'band' => $band, 'factors' => $factors];
+        $r = (new CreditScores($this->db))->compute($loan['borrowerId'] ?? '');
+        return ['score' => $r['score'], 'band' => $r['band'], 'factors' => $r['factors']];
     }
 
     /* ================================================================= money */

@@ -48,6 +48,32 @@
                 </div></div>
             </fieldset>
 
+            <fieldset>
+                <legend><i class="mr-3 mdi mdi-speedometer"></i>{{ __('Credit score') }}</legend>
+                <div class="form-group row width-100"><div class="col-7">
+                    @if ($creditScore)
+                        @php $bandClass = in_array($creditScore['band'] ?? '', ['Excellent', 'Good'], true) ? 'finance-badge-ok' : 'finance-badge-no'; @endphp
+                        <div class="mb-2"><span class="h4 mr-2 finance-amount">{{ $creditScore['score'] ?? '' }}</span><span class="{{ $bandClass }}">{{ __($creditScore['band'] ?? '') }}</span>
+                            <span class="finance-help ml-2">{{ __('300 to 850') }} · {{ __('updated') }} {{ $fmtDate($creditScore['updatedAt'] ?? null) }}</span></div>
+                        <table class="table table-bordered table-sm mb-2">
+                            <tbody>
+                            @foreach ((array)($creditScore['factors'] ?? []) as $f)
+                                @php $f = (array)$f; @endphp
+                                <tr><td style="width:36px" class="{{ ($f['impact'] ?? '') === 'negative' ? 'text-danger' : 'text-success' }}">{{ ($f['impact'] ?? '') === 'negative' ? '−' : '+' }}</td>
+                                    <td><strong>{{ __($f['label'] ?? '') }}</strong> <span class="finance-help">{{ $f['detail'] ?? '' }}</span></td></tr>
+                            @endforeach
+                            </tbody>
+                        </table>
+                    @else
+                        <p class="finance-help mb-2">{{ __('Not calculated yet: every member\'s score is calculated each night.') }}</p>
+                    @endif
+                    <form method="POST" action="{{ route('finance.customers.credit-score', $uid) }}">@csrf
+                        <button class="btn btn-sm btn-outline-primary">{{ __('Recalculate now') }}</button>
+                        <span class="finance-help ml-2">{{ __('From their tontine contributions (on time, late, missed), loan repayments, defaults, money lent, identity and account age.') }}</span>
+                    </form>
+                </div></div>
+            </fieldset>
+
             @if ($failed)
                 <div class="alert alert-warning">{{ __('Could not be read from Firebase:') }} {{ implode(', ', $failed) }}. {{ __('Reload the page to try again.') }}</div>
             @endif
