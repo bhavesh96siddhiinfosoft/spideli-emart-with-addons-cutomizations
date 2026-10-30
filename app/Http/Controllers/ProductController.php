@@ -51,6 +51,21 @@ class ProductController extends Controller
         // Prepare addons titles only
         $extras = collect($addons)->pluck('title')->values()->toArray();
 
+        /* Point 68: the counter posts [{name, quantity}] - each add-on at its
+         * own quantity. The prices come from the product (addOnsPrice, before
+         * commission, like every price in this cart), never from the screen. A
+         * request without quantities is an old page: it stays a legacy line. */
+        $lineAddons = null;
+        $postedWithQuantities = collect((array)$addons)->contains(function ($a) {
+            return is_array($a) && array_key_exists('quantity', $a);
+        });
+        if ($postedWithQuantities) {
+            $lineAddons = $this->priceAddonsFromProduct($request->id, $addons);
+            if ($lineAddons === null) {
+                return response()->json(['error' => trans('lang.addons_unavailable')], 422);
+            }
+        }
+
         $cart = session()->get('cart', []);        
         
         $productKey = $request->id;
@@ -107,6 +122,12 @@ class ProductController extends Controller
         );
 
         $cart[$productKey] = $this->applyWholesalePrice($cart[$productKey]);
+
+        /* One line per product (per variant): adding it again replaces its add-ons. */
+        if ($lineAddons !== null) {
+            $cart[$productKey]['addons'] = $lineAddons;
+            $cart[$productKey] = $this->syncAddonCompat($cart[$productKey]);
+        }
 
         $cart['restaurant_id'] = $request->restaurant_id;
         $cart['item'][$cart['restaurant_id']][$productKey] = $cart[$productKey];
@@ -241,6 +262,9 @@ class ProductController extends Controller
                  * line, so the cart never shows a wholesale total for a retail
                  * quantity. */
                 $cart[$index] = $this->applyWholesalePrice($cart[$index]);
+                /* Point 68: the product's quantity never moves an add-on's; only the
+                   compatibility per-unit value follows. */
+                $cart[$index] = $this->syncAddonCompat($cart[$index]);
                 $cart['item'][$cart['restaurant_id']][$index] = $cart[$index];
 
                 session()->put('cart', $cart);
@@ -276,6 +300,111 @@ class ProductController extends Controller
      * Kept identical to the store panel's copy: two panels disagreeing about
      * what a bulk sale costs would be worse than either behaviour alone.
      */
+    /* ---- Point 68: add-ons at their own quantity (ADDON-QUANTITY-SPEC.md) ----
+     * line total = unit x quantity + sum(addon.price x addon.quantity). A line
+     * without `addons` is a legacy line: extras_price once per product unit. */
+    private function lineAddonsTotal(array $line): float
+    {
+        if (isset($line['addons']) && is_array($line['addons'])) {
+            $total = 0.0;
+            foreach ($line['addons'] as $a) {
+                $total += (float) ($a['price'] ?? 0) * (int) ($a['quantity'] ?? 0);
+            }
+            return $total;
+        }
+        return (float) ($line['extras_price'] ?? 0) * (int) ($line['quantity'] ?? 0); // legacy
+    }
+
+    /* extras = the names, extras_price = add-ons total / quantity, so a reader
+       that predates `addons` still totals the line right. */
+    private function syncAddonCompat(array $line): array
+    {
+        if (!isset($line['addons']) || !is_array($line['addons'])) {
+            return $line;
+        }
+        $kept = [];
+        foreach ($line['addons'] as $a) {
+            $name = trim((string) ($a['name'] ?? ''));
+            $quantity = (int) ($a['quantity'] ?? 0);
+            if ($name !== '' && $quantity >= 1) {
+                $kept[] = ['name' => $name, 'price' => (float) ($a['price'] ?? 0), 'quantity' => $quantity];
+            }
+        }
+        $line['addons'] = $kept;
+        $line['extras'] = array_column($kept, 'name');
+        $quantity = (int) ($line['quantity'] ?? 0);
+        $line['extras_price'] = $quantity > 0 ? $this->lineAddonsTotal($line) / $quantity : 0;
+        return $line;
+    }
+
+    /* [{name, quantity}] priced from the product's addOnsTitle / addOnsPrice.
+       Unknown names and quantities below 1 are dropped; null when the product
+       cannot be read. */
+    private function priceAddonsFromProduct($productId, $requested)
+    {
+        $product = \App\Helpers\FirestoreHelper::getDocument('vendor_products/' . $productId);
+        if (!$product) {
+            return null;
+        }
+        $prices = array_values((array) ($product['addOnsPrice'] ?? []));
+        $byName = [];
+        foreach (array_values((array) ($product['addOnsTitle'] ?? [])) as $i => $title) {
+            $key = mb_strtolower(trim((string) $title));
+            if ($key !== '' && !isset($byName[$key])) {
+                $byName[$key] = ['name' => trim((string) $title), 'price' => max(0, (float) ($prices[$i] ?? 0))];
+            }
+        }
+        $out = [];
+        foreach ((array) $requested as $r) {
+            $key = mb_strtolower(trim((string) ($r['name'] ?? ($r['title'] ?? ''))));
+            $quantity = (int) ($r['quantity'] ?? 0);
+            if ($quantity >= 1 && isset($byName[$key])) {
+                $out[$key] = $byName[$key] + ['quantity' => $quantity];
+            }
+        }
+        return array_values($out);
+    }
+
+    /* One add-on's quantity on one line; 0 removes that add-on, never the line. */
+    public function addonUpdate(Request $request)
+    {
+        $cart = session()->get('cart', []);
+        $index = $request->index;
+        $name = mb_strtolower(trim((string) $request->name));
+        $quantity = max(0, (int) $request->quantity);
+
+        if (isset($cart[$index]['addons']) && is_array($cart[$index]['addons'])) {
+            $line = $cart[$index];
+            $addons = [];
+            foreach ($line['addons'] as $a) {
+                if (mb_strtolower(trim((string) ($a['name'] ?? ''))) === $name) {
+                    if ($quantity > 0) {
+                        $a['quantity'] = $quantity;
+                        $addons[] = $a;
+                    }
+                    continue;
+                }
+                $addons[] = $a;
+            }
+            $line['addons'] = $addons;
+            $cart[$index] = $this->syncAddonCompat($line);
+            $cart['item'][$cart['restaurant_id']][$index] = $cart[$index];
+        }
+
+        $cart = $this->calculateTax($cart);
+        session()->put('cart', $cart);
+
+        $commissionSettings = session('commissionSettings', [
+            'enabled' => false,
+            'type' => 'percentage',
+            'value' => 0,
+        ]);
+        return response()->json([
+            'html' => View::make('pos.cart_item')->render(),
+            'total' => View::make('pos.cart_total', compact('commissionSettings'))->render(),
+        ]);
+    }
+
     private function applyWholesalePrice(array $item)
     {
         $retail = $item['retail_base_price'] ?? $item['original_base_price'];
@@ -423,7 +552,7 @@ class ProductController extends Controller
 
         // Item subtotal before discount
         foreach ($cart['item'][$restaurant_id] as $item) {
-            $itemSubtotal += ($item['original_base_price'] + ($item['extras_price'] ?? 0)) * $item['quantity'];
+            $itemSubtotal += $item['original_base_price'] * $item['quantity'] + $this->lineAddonsTotal($item);
         }
         
         // Calculate admin commission
@@ -454,7 +583,7 @@ class ProductController extends Controller
         if ($cart['taxScope'] === 'product') {
             foreach ($cart['item'] as $restaurantItemsKey => $restaurantItems) {
                 foreach ($restaurantItems as $itemKey => $item) {
-                    $itemGross = ($item['original_base_price'] + ($item['extras_price'] ?? 0)) * $item['quantity'];
+                    $itemGross = $item['original_base_price'] * $item['quantity'] + $this->lineAddonsTotal($item);
                     $itemCommissionShare = ($itemSubtotal > 0) ? ($itemGross / $itemSubtotal) * $adminCommissionTotal : 0;
                     $itemDiscount = ($itemSubtotal > 0) ? ($itemGross / $itemSubtotal) * $totalDiscount : 0;
                     /*$itemTaxable = max(0, $itemGross - $itemDiscount);*/

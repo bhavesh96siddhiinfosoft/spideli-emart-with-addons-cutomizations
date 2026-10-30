@@ -1580,10 +1580,37 @@
             $("#add_product_specification_div").show();
             $(".save_product_specification_btn").show();
         }
+        /* Point 68: an order line names its add-on by title, so a title must be
+         * filled in and unique on this product (trimmed, any case), and a price
+         * must be 0 or more (0 = a free add-on). '' when the add-on is fine. */
+        function addonFormProblem(title, price, existingTitles) {
+            var clean = String(title || '').trim();
+            if (clean === '') {
+                return {!! json_encode(trans('lang.addon_title_required')) !!};
+            }
+            var taken = (existingTitles || []).some(function (t) {
+                return String(t || '').trim().toLowerCase() === clean.toLowerCase();
+            });
+            if (taken) {
+                return {!! json_encode(trans('lang.addon_title_duplicate')) !!};
+            }
+            if (String(price).trim() === '' || isNaN(parseFloat(price)) || parseFloat(price) < 0) {
+                return {!! json_encode(trans('lang.addon_price_invalid')) !!};
+            }
+            return '';
+        }
+
         function saveAddOneFunction() {
             var optiontitle = $(".add_ons_title").val();
             var optionPricevalue = $(".add_ons_price").val();
             var optionPrice = $(".add_ons_price").val();
+            /* Point 68: checked before the boxes are cleared, so nothing typed is lost. */
+            var addonProblem = addonFormProblem(optiontitle, $(".add_ons_price").val(), addOnesTitle);
+            if (addonProblem) {
+                alert(addonProblem);
+                return;
+            }
+            optiontitle = String(optiontitle).trim();
             $(".add_ons_price").val('');
             $(".add_ons_title").val('');
             if (optiontitle != '' && optionPricevalue != '') {

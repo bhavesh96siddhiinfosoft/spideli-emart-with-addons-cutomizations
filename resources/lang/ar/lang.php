@@ -2901,5 +2901,10 @@ return [
     'parcel_assign_already' => 'هذا الطرد معروض على هذا السائق بالفعل.',
     'parcel_assign_push_title' => 'طرد جديد لك',
     'parcel_assign_push_message' => 'تم إسناد الطرد :parcel إليك. افتح التطبيق لقبوله.',
+    'addon_each' => 'للواحدة',
+    'addons_unavailable' => 'تعذّر تسعير الإضافات. حاول مرة أخرى.',
+    'addon_title_required' => 'أدخل عنوان الإضافة.',
+    'addon_title_duplicate' => 'يحتوي هذا المنتج بالفعل على إضافة بهذا العنوان.',
+    'addon_price_invalid' => 'أدخل سعر الإضافة: 0 أو أكثر (0 تعني إضافة مجانية).',
 ];
 ?>

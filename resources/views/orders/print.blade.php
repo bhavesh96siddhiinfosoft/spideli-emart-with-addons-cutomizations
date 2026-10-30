@@ -326,6 +326,11 @@
             jQuery("#data-table_processing").hide();
         })
 
+        /* An amount in this order's currency, as the rows below show it. */
+        function orderLineMoney(amount) {
+            amount = parseFloat(amount) || 0;
+            return currencyAtRight ? amount.toFixed(decimal_degits) + '' + currentCurrency : currentCurrency + '' + amount.toFixed(decimal_degits);
+        }
         function buildHTMLProductsList(snapshotsProducts) {
             var html = '';
             var alldata = [];
@@ -338,27 +343,8 @@
 
                 html = html + '<tr>';
 
-                var extra_html = '';
-                if (product.extras != undefined && product.extras != '' && product.extras.length > 0) {
-                    extra_html = extra_html + '<span>';
-                    var extra_count = 1;
-                    try {
-                        product.extras.forEach((extra) => {
-
-                            if (extra_count > 1) {
-                                extra_html = extra_html + ',' + extra;
-                            } else {
-                                extra_html = extra_html + extra;
-                            }
-                            extra_count++;
-                        })
-                    } catch (error) {
-
-                    }
-
-                    extra_html = extra_html + '</span>';
-
-                }
+                /* Point 68: each add-on with its own quantity (see orders/edit). */
+                var extra_html = lineAddonsHtml(product, orderLineMoney, "{{ trans('lang.extras') }}");
 
                 html = html + '<td class="order-product"><div class="order-product-box">';
 
@@ -370,12 +356,7 @@
                 }
 
                 html = html + '</div><div class="orders-tracking"><h6>' + val.name + '</h6><div class="orders-tracking-item-details">';
-                if (extra_count > 1 || product.size) {
-                    html = html + '<strong>{{trans("lang.extras")}} :</strong>';
-                }
-                if (extra_count > 1) {
-                    html = html + '<div class="extra"><span>{{trans("lang.extras")}} :</span><span class="ext-item">' + extra_html + '</span></div>';
-                }
+                html = html + extra_html;
                 if (product.size) {
                     html = html + '<div class="type"><span>{{trans("lang.type")}} :</span><span class="ext-size">' + product.size + '</span></div>';
                 }
@@ -389,14 +370,8 @@
                 price_item = parseFloat(final_price).toFixed(2);
                 
                 totalProductPrice = parseFloat(price_item) * parseInt(val.quantity);
-                var extras_price = 0;
-                if (product.extras != undefined && product.extras != '' && product.extras.length > 0) {
-                    extras_price_item = (parseFloat(val.extras_price) * parseInt(val.quantity)).toFixed(decimal_degits);
-                    if (parseFloat(extras_price_item) != NaN && val.extras_price != undefined) {
-                        extras_price = extras_price_item;
-                    }
-                    totalProductPrice = parseFloat(extras_price) + parseFloat(totalProductPrice);
-                }
+                var extras_price = lineAddonsTotal(val).toFixed(decimal_degits);
+                totalProductPrice = parseFloat(totalProductPrice) + lineAddonsTotal(val);
                 totalProductPrice = parseFloat(totalProductPrice).toFixed(decimal_degits);
 
                 if (currencyAtRight) {
@@ -458,7 +433,7 @@
           for (let i = 0; i < snapshotsProducts.products.length; i++) {
             let product = snapshotsProducts.products[i];
             let basePrice = (product.discountPrice && parseFloat(product.discountPrice) > 0) ? parseFloat(product.discountPrice) : parseFloat(product.price);
-            let itemGross = (basePrice + parseFloat(product.extras_price || 0)) * parseInt(product.quantity);
+            let itemGross = basePrice * parseInt(product.quantity) + lineAddonsTotal(product);   // point 68
             order_subtotal += itemGross;
           }
 
@@ -473,7 +448,7 @@
               let itemCombinedTax = 0;
               snapshotsProducts.products.forEach(product => {
                   let basePrice = (product.discountPrice && parseFloat(product.discountPrice) > 0) ? parseFloat(product.discountPrice) : parseFloat(product.price);
-                  let itemGross = (basePrice + parseFloat(product.extras_price || 0)) * parseInt(product.quantity);
+                  let itemGross = basePrice * parseInt(product.quantity) + lineAddonsTotal(product);   // point 68
                   let itemDiscount = (itemSubtotal > 0) ? (itemGross / itemSubtotal) * total_discount : 0;
                   let itemTaxable = Math.max(0, itemGross - itemDiscount);
                   let itemTaxes = product.taxSetting || [];

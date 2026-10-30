@@ -914,9 +914,8 @@
 
                 (order.products || []).forEach(p => {
                     const price = parseFloat(p.discountPrice ?? p.price);
-                    const extras = parseFloat(p.extras_price || 0);
                     const qty = parseInt(p.quantity || 1);
-                    orderSubtotal += (price + extras) * qty;
+                    orderSubtotal += price * qty + lineAddonsTotal(p);   // point 68
                 });
 
                 return {

@@ -986,7 +986,7 @@
             for (let i = 0; i < snapshotsProducts.products.length; i++) {
                 let product = snapshotsProducts.products[i];
                 let basePrice = (product.discountPrice && parseFloat(product.discountPrice) > 0) ? parseFloat(product.discountPrice) : parseFloat(product.price);
-                let itemGross = (basePrice + parseFloat(product.extras_price || 0)) * parseInt(product.quantity);
+                let itemGross = basePrice * parseInt(product.quantity) + lineAddonsTotal(product);   // point 68
                 order_subtotal += itemGross;
             }
 
@@ -1000,7 +1000,7 @@
                 let itemSubtotal = order_subtotal;
                 snapshotsProducts.products.forEach(product => {
                     let basePrice = (product.discountPrice && parseFloat(product.discountPrice) > 0) ? parseFloat(product.discountPrice) : parseFloat(product.price);
-                    let itemGross = (basePrice + parseFloat(product.extras_price || 0)) * parseInt(product.quantity);
+                    let itemGross = basePrice * parseInt(product.quantity) + lineAddonsTotal(product);   // point 68
                     let itemDiscount = (itemSubtotal > 0) ? (itemGross / itemSubtotal) * total_discount : 0;
                     let itemTaxable = Math.max(0, itemGross - itemDiscount);
                     let itemTaxes = product.taxSetting || [];

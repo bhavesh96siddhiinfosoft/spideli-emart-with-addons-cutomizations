@@ -46,27 +46,46 @@
                             @endif
 
 
-                            {{-- Add-ons --}}
-                            @if(!empty($item['extras']))
-                                <small class="text-muted d-block mt-1">
-                                    <strong>{{ trans('lang.addons_title') }}:</strong>
-                                </small>
-
-                                @foreach($item['extras'] as $extra)
-                                    <small class="text-muted d-block">
-                                        • {{ $extra }}
-                                    </small>
-                                @endforeach
-
-                                @if(($item['extras_price'] ?? 0) > 0)
-                                    <small class="text-success d-block">
-                                        + 
-                                        <span class="cart-price"
-                                            data-price="{{ number_format($item['extras_price'], $item['decimal_degits'] ?? 2, '.', '') }}">
-                                            {{ number_format($item['extras_price'], $item['decimal_degits'] ?? 2) }}
-                                        </span>
-                                    </small>
-                                @endif
+                            {{-- Point 68: each add-on at its own quantity, with its own +/-
+                                 (0 removes that add-on, never the line). A legacy line
+                                 shows its add-ons at the product's quantity. --}}
+                            @php
+                                $lineAddons = (isset($item['addons']) && is_array($item['addons'])) ? $item['addons'] : null;
+                                $legacyNames = $lineAddons === null ? array_values(array_filter(array_map(function ($n) { return trim(str_replace('"', '', (string) $n)); }, (array) ($item['extras'] ?? [])), 'strlen')) : [];
+                                $addonsTotal = $lineAddons !== null
+                                    ? array_sum(array_map(function ($a) { return (float) ($a['price'] ?? 0) * (int) ($a['quantity'] ?? 0); }, $lineAddons))
+                                    : (float) ($item['extras_price'] ?? 0) * (int) ($item['quantity'] ?? 0);
+                                $digits = $item['decimal_degits'] ?? 2;
+                            @endphp
+                            @if(!empty($lineAddons) || !empty($legacyNames))
+                                <div class="line-addons">
+                                    <div class="line-addons-head">
+                                        <span>{{ trans('lang.addons_title') }}</span>
+                                        <span class="cart-price" data-price="{{ number_format($addonsTotal, $digits, '.', '') }}">{{ number_format($addonsTotal, $digits) }}</span>
+                                    </div>
+                                    @if(!empty($lineAddons))
+                                        @foreach($lineAddons as $addon)
+                                            <div class="line-addon">
+                                                <span class="line-addon-qty">&times;{{ (int) $addon['quantity'] }}</span>
+                                                <span class="line-addon-name">{{ $addon['name'] }}
+                                                    <small>{{ (int) $addon['quantity'] }} &times; <span class="cart-price" data-price="{{ number_format((float) $addon['price'], $digits, '.', '') }}">{{ number_format((float) $addon['price'], $digits) }}</span></small>
+                                                </span>
+                                                <span class="line-addon-sub text-nowrap">
+                                                    <button type="button" class="btn btn-xs btn-secondary pos-line-addon-step" data-step="-1" data-index="{{ $index }}" data-name="{{ $addon['name'] }}" data-qty="{{ (int) $addon['quantity'] }}">-</button>
+                                                    <span class="cart-price" data-price="{{ number_format((float) $addon['price'] * (int) $addon['quantity'], $digits, '.', '') }}">{{ number_format((float) $addon['price'] * (int) $addon['quantity'], $digits) }}</span>
+                                                    <button type="button" class="btn btn-xs btn-secondary pos-line-addon-step" data-step="1" data-index="{{ $index }}" data-name="{{ $addon['name'] }}" data-qty="{{ (int) $addon['quantity'] }}">+</button>
+                                                </span>
+                                            </div>
+                                        @endforeach
+                                    @else
+                                        @foreach($legacyNames as $legacyName)
+                                            <div class="line-addon">
+                                                <span class="line-addon-qty">&times;{{ (int) ($item['quantity'] ?? 0) }}</span>
+                                                <span class="line-addon-name">{{ $legacyName }}</span>
+                                            </div>
+                                        @endforeach
+                                    @endif
+                                </div>
                             @endif
 
                             @if(!empty($item['taxLabel']))

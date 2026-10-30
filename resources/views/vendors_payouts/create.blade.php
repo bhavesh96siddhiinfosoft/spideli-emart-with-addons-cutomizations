@@ -208,11 +208,7 @@
 
                         if (product.price && product.quantity != 0) {
 
-                            if (product.extras_price != undefined) {
-
-                                extras_price = parseFloat(product.extras_price) * parseInt(product.quantity);
-
-                            }
+                            extras_price = lineAddonsTotal(product);   // point 68: each add-on at its own quantity
 
                             var productTotal = (parseFloat(product.price) * parseFloat(product.quantity)) + parseFloat(extras_price);
 

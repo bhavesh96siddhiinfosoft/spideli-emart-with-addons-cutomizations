@@ -512,7 +512,7 @@
                         basePrice = parseFloat(product.discountPrice);
                     }
                     let quantity = parseInt(product.quantity || 1);
-                    let extrasPrice = parseFloat(product.extras_price || 0) * quantity;
+                    let extrasPrice = lineAddonsTotal(product);   // point 68: each add-on at its own quantity
                     total_price += (basePrice * quantity) + extrasPrice;
                 });
 
@@ -572,7 +572,7 @@
                             basePrice = parseFloat(product.discountPrice);
                         }
                         let quantity = parseInt(product.quantity || 1);
-                        let extrasPrice = parseFloat(product.extras_price || 0) * quantity;
+                        let extrasPrice = lineAddonsTotal(product);   // point 68: each add-on at its own quantity
                         price += (basePrice * quantity) + extrasPrice;
                     });
                 }

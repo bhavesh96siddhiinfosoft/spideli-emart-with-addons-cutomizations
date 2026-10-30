@@ -3091,5 +3091,10 @@ return [
     'parcel_assign_already' => 'This driver is already offered this parcel.',
     'parcel_assign_push_title' => 'New parcel for you',
     'parcel_assign_push_message' => 'Parcel :parcel was assigned to you. Open the app to accept it.',
+    'addon_each' => 'each',
+    'addons_unavailable' => 'The add-ons could not be priced. Please try again.',
+    'addon_title_required' => 'Enter the add-on\'s title.',
+    'addon_title_duplicate' => 'This product already has an add-on with this title.',
+    'addon_price_invalid' => 'Enter the add-on\'s price: 0 or more (0 is a free add-on).',
 ];
 ?>

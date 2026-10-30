@@ -1756,6 +1756,113 @@
         }
 
 
+        /* ---- Add-ons at their own quantity (client point 68) -------------
+         *
+         * Every add-on on an order line has its own quantity, independent of
+         * the product's: 2 Organic Eggs, 3 Cold Pack, 1 Insulated Bag.
+         *   line total = unit x quantity + sum(addon.price x addon.quantity)
+         * Contract: ADDON-QUANTITY-SPEC.md (30 Oct 2026), section 3. These
+         * are byte-identical in the website footer and the admin and store
+         * layouts, so a basket totals the same wherever it is opened.
+         *
+         * A line WITHOUT `addons` is a legacy line: its add-ons are the names
+         * in `extras`, charged `extras_price` once per product unit. A line
+         * WITH it still carries extras / extras_price (= add-ons total /
+         * quantity) for readers that predate it - never compute from those.
+         * ------------------------------------------------------------------ */
+        function lineAddonsTotal(line) {
+            if (line && Array.isArray(line.addons)) {
+                return line.addons.reduce(function (sum, a) {
+                    return sum + (parseFloat(a && a.price) || 0) * (parseInt(a && a.quantity, 10) || 0);
+                }, 0);
+            }
+            return (parseFloat(line && line.extras_price) || 0) * (parseInt(line && line.quantity, 10) || 0); // legacy
+        }
+
+        /* The add-ons to list on a line. A legacy line charged each once per
+         * product unit, so each shows at the product's quantity and only the
+         * group total is priced. */
+        function lineAddonRows(line) {
+            if (line && Array.isArray(line.addons)) {
+                return line.addons
+                    .filter(function (a) { return a && String(a.name || '').trim() !== '' && (parseInt(a.quantity, 10) || 0) > 0; })
+                    .map(function (a) { return { name: String(a.name).trim(), quantity: parseInt(a.quantity, 10), unit: parseFloat(a.price) || 0, priced: true }; });
+            }
+            var extras = line && line.extras;
+            if (typeof extras === 'string') {
+                extras = extras.split(',');
+            }
+            return (Array.isArray(extras) ? extras : [])
+                .map(function (n) { return String(n).replace(/"/g, '').trim(); })
+                .filter(function (n) { return n !== ''; })
+                .map(function (n) { return { name: n, quantity: parseInt(line.quantity, 10) || 0, unit: null, priced: false }; });
+        }
+
+        function lineTotal(line) {
+            var unit = (parseFloat(line.discountPrice) || 0) > 0 ? parseFloat(line.discountPrice) : (parseFloat(line.price) || 0);
+            return unit * (parseInt(line.quantity, 10) || 0) + lineAddonsTotal(line);
+        }
+
+        /* For a screen that CREATES an order line (website checkout, POS). */
+        function writeAddons(line, addons) {
+            var kept = (addons || []).filter(function (a) { return a && String(a.name || '').trim() !== '' && (parseInt(a.quantity, 10) || 0) > 0; });
+            var total = kept.reduce(function (s, a) { return s + (parseFloat(a.price) || 0) * parseInt(a.quantity, 10); }, 0);
+            var quantity = parseInt(line.quantity, 10) || 0;
+            line.addons = kept.map(function (a) { return { name: String(a.name).trim(), price: String(a.price), quantity: parseInt(a.quantity, 10) }; });
+            line.extras = line.addons.map(function (a) { return a.name; });
+            line.extras_price = quantity > 0 ? String(total / quantity) : "0";
+            return line;
+        }
+
+        function lineAddonEscape(text) {
+            return String(text).replace(/[&<>"']/g, function (c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+            });
+        }
+
+        /* The add-on block under a product: each add-on with its own quantity
+         * first (x3), its name, quantity x unit and subtotal, then the total.
+         * `money` formats an amount in the order's currency. '' when none. */
+        function lineAddonsHtml(line, money, title) {
+            var rows = lineAddonRows(line);
+            if (!rows.length) {
+                return '';
+            }
+            var html = '<div class="line-addons">';
+            html += '<div class="line-addons-head"><span>' + lineAddonEscape(title || 'Addons') + '</span><span>' + money(lineAddonsTotal(line)) + '</span></div>';
+            rows.forEach(function (r) {
+                html += '<div class="line-addon"><span class="line-addon-qty">&times;' + r.quantity + '</span>';
+                html += '<span class="line-addon-name">' + lineAddonEscape(r.name);
+                if (r.priced) {
+                    html += '<small>' + r.quantity + ' &times; ' + money(r.unit) + '</small>';
+                }
+                html += '</span><span class="line-addon-sub">' + (r.priced ? money(r.unit * r.quantity) : '') + '</span></div>';
+            });
+            return html + '</div>';
+        }
+
+        /* "Cold Pack x 3; Insulated Bag x 1" - for exports and short lists. */
+        function lineAddonsText(line) {
+            return lineAddonRows(line).map(function (r) { return r.name + ' x ' + r.quantity; }).join('; ');
+        }
+
+        (function () {
+            if (document.getElementById('line-addons-style')) {
+                return;
+            }
+            var css = '.line-addons{margin:4px 0 2px;font-size:12px;line-height:1.35}'
+                + '.line-addons-head{display:flex;justify-content:space-between;font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:11px;opacity:.8}'
+                + '.line-addon{display:flex;align-items:flex-start;gap:6px;padding:2px 0}'
+                + '.line-addon-qty{flex:0 0 auto;font-weight:700;border:1px solid currentColor;border-radius:10px;padding:0 6px;font-size:11px}'
+                + '.line-addon-name{flex:1 1 auto;min-width:0}'
+                + '.line-addon-name small{display:block;opacity:.7}'
+                + '.line-addon-sub{flex:0 0 auto;white-space:nowrap}';
+            var style = document.createElement('style');
+            style.id = 'line-addons-style';
+            style.appendChild(document.createTextNode(css));
+            (document.head || document.documentElement).appendChild(style);
+        })();
+
         /* ---- Addresses: never print the word "null" ----------------------
          *
          * Bug report 02 point 18: *"123 Yaounde St, null, Tsinga"*.

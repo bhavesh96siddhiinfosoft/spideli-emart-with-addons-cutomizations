@@ -961,6 +961,7 @@ Route::middleware(['permission:pos,pos.order'])->group(function () {
 Route::any('add-to-cart', [App\Http\Controllers\ProductController::class, 'addToCart'])->name('add-to-cart');
 Route::any('cart-remove/{index}', [App\Http\Controllers\ProductController::class, 'remove'])->name('cart.remove');
 Route::any('cart-update', [App\Http\Controllers\ProductController::class, 'update'])->name('cart.update');
+Route::any('cart-addon-update', [App\Http\Controllers\ProductController::class, 'addonUpdate'])->name('cart.addon-update');
 Route::post('/clear-cart', function () {
     session()->forget('cart');
     return response()->json(['success' => true]);
