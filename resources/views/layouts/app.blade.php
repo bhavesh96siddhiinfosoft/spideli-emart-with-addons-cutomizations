@@ -1838,6 +1838,141 @@
             return out.join(', ');
         }
 
+        /* ---- Point 83: giving a prepaid order back to the customer's wallet ----
+         *
+         * Client point 83: the wallet was not refunded when a shop rejected an
+         * order. The store panel's reject refund used `orderPaytableAmount`, which
+         * was declared 0 and never set, so it refunded 0 - and only if the push
+         * notification request succeeded. The cancel refunds guessed the amount
+         * from the store's credit, or left the coupon out. One rule now, in the
+         * admin and store panels alike (byte-identical copies):
+         *
+         *   - cash on delivery: nothing was paid, nothing is refunded;
+         *   - the amount is what the customer paid: the order's own wallet debit
+         *     ("Order Amount debited") when there is one, otherwise the order's
+         *     total worked out from the order itself (spideliOrderPaidTotal);
+         *   - ONCE: not when the apps or a panel already refunded this order, and
+         *     the row's fixed id `refund_{orderId}` stops a second click;
+         *   - the balance is read and written in one transaction - a few
+         *     customers hold `wallet_amount` as text, which an increment would
+         *     overwrite.
+         *
+         * Returns the amount refunded, 0 when nothing was due. */
+        function spideliOrderPaidTotal(order) {
+            function num(v) {
+                var n = parseFloat(v);
+                return isNaN(n) ? 0 : n;
+            }
+            function taxesOn(list, base, fixedTimes) {
+                var total = 0;
+                (Array.isArray(list) ? list : []).forEach(function (tax) {
+                    if (tax && (tax.enable === true || tax.enable === 'true')) {
+                        total += tax.type === 'percentage' ? num(tax.tax) / 100 * base : num(tax.tax) * (fixedTimes || 1);
+                    }
+                });
+                return total;
+            }
+            function itemGross(product) {
+                var price = num(product.discountPrice) > 0 ? num(product.discountPrice) : num(product.price);
+                return (price + num(product.extras_price)) * num(product.quantity);
+            }
+
+            var products = Array.isArray(order.products) ? order.products : [];
+            var subtotal = 0;
+            products.forEach(function (product) { subtotal += itemGross(product); });
+
+            var discount = num(order.discount) + num(order.specialDiscount && order.specialDiscount.special_discount);
+            var tax = 0;
+            if (order.taxScope === 'product') {
+                products.forEach(function (product) {
+                    var gross = itemGross(product);
+                    var share = subtotal > 0 ? gross / subtotal * discount : 0;
+                    tax += taxesOn(product.taxSetting, Math.max(0, gross - share), num(product.quantity));
+                });
+            } else {
+                /* 'order', and older orders saved before taxScope existed */
+                tax += taxesOn(order.taxSetting, Math.max(0, subtotal - discount));
+            }
+
+            var packaging = (order.packagingChargeEnable === true || order.packagingChargeEnable === 'true')
+                ? num(order.vendor && order.vendor.packagingCharge) : 0;
+            var delivery = num(order.deliveryCharge);
+            var platform = num(order.platformFee);
+            tax += taxesOn(order.driverDeliveryTax, delivery) + taxesOn(order.platformTax, platform)
+                + (packaging ? taxesOn(order.packagingTax, packaging) : 0);
+
+            return Math.round((subtotal - discount + delivery + num(order.tip_amount) + packaging + platform + tax) * 100) / 100;
+        }
+
+        async function spideliRefundOrderToWallet(order) {
+            if (!order || !order.id) {
+                return 0;
+            }
+            var method = String(order.payment_method || '').toLowerCase();
+            if (method === '' || method === 'cod') {
+                return 0;
+            }
+            var customerId = order.authorID || (order.author && order.author.id) || '';
+            if (!customerId) {
+                return 0;
+            }
+
+            var rows = await database.collection('wallet').where('order_id', '==', order.id).get();
+            var paidFromWallet = 0;
+            var alreadyRefunded = false;
+            rows.forEach(function (doc) {
+                var row = doc.data() || {};
+                if (row.user_id !== customerId) {
+                    return;
+                }
+                var note = String(row.note || '');
+                /* A refund row of 0 (the old reject bug) is not a refund. */
+                if (row.isTopUp === true && (parseFloat(row.amount) || 0) > 0 && /refund|cancelled order payment/i.test(note)) {
+                    alreadyRefunded = true;
+                }
+                if (note === 'Order Amount debited') {
+                    paidFromWallet += parseFloat(row.amount) || 0;
+                }
+            });
+            if (alreadyRefunded) {
+                return 0;
+            }
+
+            var amount = Math.round((paidFromWallet > 0 ? paidFromWallet : spideliOrderPaidTotal(order)) * 100) / 100;
+            if (!(amount > 0)) {
+                return 0;
+            }
+
+            var refundRef = database.collection('wallet').doc('refund_' + order.id);
+            var userRef = database.collection('users').doc(customerId);
+            return database.runTransaction(async function (transaction) {
+                var existing = await transaction.get(refundRef);
+                if (existing.exists) {
+                    return 0;
+                }
+                var user = await transaction.get(userRef);
+                if (!user.exists) {
+                    return 0;
+                }
+                var balance = parseFloat((user.data() || {}).wallet_amount);
+                balance = isNaN(balance) ? 0 : balance;
+                transaction.set(refundRef, {
+                    'amount': amount,
+                    'date': firebase.firestore.FieldValue.serverTimestamp(),
+                    'id': refundRef.id,
+                    'isTopUp': true,
+                    'order_id': order.id,
+                    'payment_method': 'Wallet',
+                    'payment_status': 'success',
+                    'transactionUser': 'customer',
+                    'user_id': customerId,
+                    'note': 'Order amount refunded'
+                });
+                transaction.update(userRef, { 'wallet_amount': Math.round((balance + amount) * 100) / 100 });
+                return amount;
+            });
+        }
+
 
         /* ---- Showing a store's location, instead of three unrelated boxes ----
          *
