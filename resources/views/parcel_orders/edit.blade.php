@@ -200,6 +200,13 @@
                                         <div class="form-text text-muted small">{{ trans('lang.parcel_mark_collected_help') }}</div>
                                     </div>
 
+                                    <div id="parcel_action_assign" class="mb-2 border-top pt-2" style="display:none;">
+                                        <label class="small font-weight-bold mb-1" for="parcel_assign_driver">{{ trans('lang.parcel_assign_driver') }}</label>
+                                        <select class="form-control form-control-sm mb-2" id="parcel_assign_driver"></select>
+                                        <button type="button" class="btn btn-primary btn-sm" id="parcel_assign_btn"><i class="fa fa-user-plus mr-1"></i>{{ trans('lang.parcel_assign') }}</button>
+                                        <div class="form-text text-muted small" id="parcel_assign_help"></div>
+                                    </div>
+
                                     <div id="parcel_action_cancel" class="mb-2 border-top pt-2" style="display:none;">
                                         <label class="small font-weight-bold mb-1" for="parcel_cancel_reason">{{ trans('lang.parcel_cancel_reason') }}</label>
                                         <textarea class="form-control form-control-sm mb-2" id="parcel_cancel_reason" rows="2"></textarea>
@@ -468,7 +475,8 @@
 
         if (order.assignedBy) {
             parcelFlowRow("{{ trans('lang.parcel_flow_assigned_by') }}",
-                (await parcelFlowName(order.assignedBy)) + (order.assignedAt ? ' - ' + parcelFlowDate(order.assignedAt) : ''));
+                (order.assignedBy === 'admin' ? "{{ trans('lang.parcel_cancel_by_admin') }}" : await parcelFlowName(order.assignedBy))
+                + (order.assignedAt ? ' - ' + parcelFlowDate(order.assignedAt) : ''));
         }
         parcelFlowRow("{{ trans('lang.parcel_flow_offered_at') }}", parcelFlowDate(order.dispatchedAt));
 
@@ -548,6 +556,188 @@
         return o.status === 'Quote Requested';
     }
 
+    /* Point 89: the admin offers the parcel to a driver by hand - the same
+     * write a company owner's app makes when it assigns one of its drivers
+     * (read from live parcels, 30 Oct):
+     *   status "Driver Pending", driverId = driverID = the driver,
+     *   assignedBy, assignedAt, sendToDriver false,
+     *   and the parcel id added to the driver's users.orderRequestData,
+     *   which is what the driver app listens to.
+     * The driver then accepts or rejects in the app as usual. Possible until
+     * a driver has accepted - the same states as cancelling, minus a quote
+     * request, which has no price yet.
+     * Who can be chosen: drivers who deliver parcels and whose account is
+     * active - for a company's parcel, that company's drivers and its owner;
+     * for a Spideli parcel, Spideli's own drivers of the parcel's region.
+     * Online drivers first, then the nearest to the sender. */
+    var PARCEL_ASSIGNABLE = ['Order Placed', 'Driver Pending', 'Driver Rejected'];
+    var parcelAssignableDrivers = [];
+
+    function parcelCanAssign(o) {
+        return PARCEL_ASSIGNABLE.indexOf(o.status) !== -1;
+    }
+
+    function parcelLatLng(v) {
+        if (!v) {
+            return null;
+        }
+        var lat = parseFloat(v.latitude !== undefined ? v.latitude : v._lat);
+        var lng = parseFloat(v.longitude !== undefined ? v.longitude : v._long);
+        return isNaN(lat) || isNaN(lng) ? null : { lat: lat, lng: lng };
+    }
+
+    function parcelKmBetween(a, b) {
+        if (!a || !b) {
+            return null;
+        }
+        var r = Math.PI / 180;
+        var h = Math.pow(Math.sin((b.lat - a.lat) * r / 2), 2)
+            + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.pow(Math.sin((b.lng - a.lng) * r / 2), 2);
+        return 6371 * 2 * Math.asin(Math.sqrt(h));
+    }
+
+    function parcelEligibleDrivers(o, users) {
+        var ownerId = o.carrierOwnerId || o.companyOwnerId || '';
+        var from = parcelLatLng(o.senderLatLong);
+        var declined = {};
+        (Array.isArray(o.rejectedByDrivers) ? o.rejectedByDrivers : []).forEach(function (d) { declined[d] = true; });
+        (Array.isArray(o.driverRejections) ? o.driverRejections : []).forEach(function (r) { if (r && r.driverId) { declined[r.driverId] = true; } });
+
+        return users.filter(function (u) {
+            if (u.role !== 'driver' || u.active === false || u.isDeleted === true) {
+                return false;
+            }
+            if ((Array.isArray(u.serviceTypes) ? u.serviceTypes : []).indexOf('parcel_delivery') === -1) {
+                return false;
+            }
+            if (ownerId) {
+                return u.ownerId === ownerId || u.id === ownerId;
+            }
+            return !u.ownerId && !u.carrierId && (!o.regionId || u.regionId === o.regionId);
+        }).map(function (u) {
+            return {
+                id: u.id,
+                name: ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || u.email || u.id,
+                online: u.isActive === true,
+                verified: u.isDocumentVerify === true,
+                declined: declined[u.id] === true,
+                km: parcelKmBetween(from, parcelLatLng(u.location))
+            };
+        }).sort(function (a, b) {
+            if (a.online !== b.online) {
+                return a.online ? -1 : 1;
+            }
+            if (a.km === null || b.km === null) {
+                return a.km === null ? (b.km === null ? a.name.localeCompare(b.name) : 1) : -1;
+            }
+            return a.km - b.km;
+        });
+    }
+
+    function parcelDriverLabel(d, currentId) {
+        var bits = [d.online ? "{{ trans('lang.parcel_assign_online') }}" : "{{ trans('lang.parcel_assign_offline') }}"];
+        if (d.km !== null) {
+            bits.push(d.km.toFixed(1) + ' km');
+        }
+        if (!d.verified) {
+            bits.push("{{ trans('lang.parcel_assign_not_verified') }}");
+        }
+        if (d.declined) {
+            bits.push("{{ trans('lang.parcel_assign_declined') }}");
+        }
+        if (d.id === currentId) {
+            bits.push("{{ trans('lang.parcel_assign_current') }}");
+        }
+        return d.name + ' - ' + bits.join(', ');
+    }
+
+    async function parcelFillAssignableDrivers(o) {
+        var $select = $('#parcel_assign_driver');
+        $select.empty().prop('disabled', true);
+        $('#parcel_assign_btn').prop('disabled', true);
+        try {
+            var snap = await database.collection('users').where('role', '==', 'driver').get();
+            parcelAssignableDrivers = parcelEligibleDrivers(o, snap.docs.map(function (d) {
+                return Object.assign({ id: d.id }, d.data());
+            }));
+        } catch (err) {
+            console.error('drivers could not be read', err);
+            parcelAssignableDrivers = [];
+        }
+        var current = o.status === 'Driver Pending' ? (o.driverId || '') : '';
+        if (!parcelAssignableDrivers.length) {
+            $('#parcel_assign_help').text("{{ trans('lang.parcel_assign_none') }}");
+            return;
+        }
+        $select.append($('<option>').val('').text("{{ trans('lang.parcel_assign_choose') }}"));
+        parcelAssignableDrivers.forEach(function (d) {
+            $select.append($('<option>').val(d.id).text(parcelDriverLabel(d, current)));
+        });
+        $select.prop('disabled', false);
+        $('#parcel_assign_btn').prop('disabled', false);
+        $('#parcel_assign_help').text(o.carrierOwnerId || o.companyOwnerId
+            ? "{{ trans('lang.parcel_assign_help_company') }}" : "{{ trans('lang.parcel_assign_help_spideli') }}");
+    }
+
+    $(document).on('click', '#parcel_assign_btn', async function () {
+        var driverId = $('#parcel_assign_driver').val();
+        var driver = parcelAssignableDrivers.find(function (d) { return d.id === driverId; });
+        if (!driver) {
+            parcelActionFailed({ message: "{{ trans('lang.parcel_assign_choose') }}" });
+            return;
+        }
+        var $b = $(this).prop('disabled', true);
+        var docRef = database.collection('parcel_orders').doc(id);
+        var before = null;
+        try {
+            await database.runTransaction(async function (tx) {
+                var snap = await tx.get(docRef);
+                if (!snap.exists) {
+                    throw new Error("{{ trans('lang.parcel_action_changed') }}");
+                }
+                var o = snap.data();
+                if (!parcelCanAssign(o)) {
+                    throw new Error("{{ trans('lang.parcel_action_changed') }}");
+                }
+                if (o.status === 'Driver Pending' && o.driverId === driverId) {
+                    throw new Error("{{ trans('lang.parcel_assign_already') }}");
+                }
+                /* The driver offered before loses the offer. */
+                if (o.status === 'Driver Pending' && o.driverId && o.driverId !== driverId) {
+                    tx.update(database.collection('users').doc(o.driverId), {
+                        orderRequestData: firebase.firestore.FieldValue.arrayRemove(id)
+                    });
+                }
+                tx.update(database.collection('users').doc(driverId), {
+                    orderRequestData: firebase.firestore.FieldValue.arrayUnion(id)
+                });
+                tx.update(docRef, {
+                    status: 'Driver Pending',
+                    driverId: driverId,
+                    driverID: driverId,
+                    sendToDriver: false,
+                    assignedBy: 'admin',
+                    assignedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    trackingEvents: firebase.firestore.FieldValue.arrayUnion({
+                        status: 'Driver Assigned', at: firebase.firestore.Timestamp.now(), by: 'admin', role: 'admin'
+                    })
+                });
+                before = o;
+            });
+        } catch (err) {
+            parcelActionFailed(err);
+            $b.prop('disabled', false);
+            return;
+        }
+
+        /* Best effort - the offer is already saved, and the driver app shows it
+           from orderRequestData either way. */
+        var label = before.trackingNumber || id;
+        parcelPush(await parcelTokenOf(driverId), "{{ trans('lang.parcel_assign_push_title') }}",
+            "{{ trans('lang.parcel_assign_push_message') }}".replace(':parcel', label));
+        setTimeout(function () { window.location.reload(); }, 800);
+    });
+
     /* Cancel - the states the app developer's flow lets the customer or the
      * admin cancel from (2.3): before a driver has accepted. */
     var PARCEL_CANCELLABLE = ['Quote Requested', 'Order Placed', 'Driver Pending', 'Driver Rejected'];
@@ -606,6 +796,11 @@
                 });
             }
         }
+        var assign = parcelCanAssign(order);
+        $('#parcel_action_assign').toggle(assign);
+        if (assign) {
+            parcelFillAssignableDrivers(order);
+        }
         var origin = parcelCanMarkOrigin(order), collect = parcelCanMarkCollected(order), quote = parcelCanQuote(order);
         $('#parcel_action_origin').toggle(origin);
         $('#parcel_action_collect').toggle(collect);
@@ -615,7 +810,7 @@
             $('#parcel_quote_currency').text(currentCurrency ? '(' + currentCurrency + ')' : '');
         }
         $('.parcel-action-error').hide();
-        $('#parcel_actions').toggle(origin || collect || quote || cancel);
+        $('#parcel_actions').toggle(origin || collect || quote || cancel || assign);
     }
 
     /* Re-reads the parcel in a transaction, so a step a driver recorded a
