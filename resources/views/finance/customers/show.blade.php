@@ -140,6 +140,12 @@
 
             <fieldset>
                 <legend><i class="mr-3 mdi mdi-wallet"></i>{{ __('Wallets') }}</legend>
+                @if ($canAdjust)
+                    {{-- Point 93: money into this customer's wallet, e.g. for testing. --}}
+                    <div class="form-group row width-100 mb-2"><div class="col-7">
+                        <a class="btn btn-sm btn-primary" href="{{ route('finance.adjust.create', ['user' => $uid, 'region' => $adjustRegion, 'direction' => 'credit', 'from' => 'customer']) }}"><i class="mdi mdi-plus-circle mr-1"></i>{{ __('Add money') }}</a>
+                    </div></div>
+                @endif
                 <div class="form-group row width-100"><div class="col-7">
                     <table class="table table-bordered mb-0">
                         <thead><tr><th>{{ __('Account') }}</th><th>{{ __('Balance') }}</th><th>{{ __('Status') }}</th></tr></thead>

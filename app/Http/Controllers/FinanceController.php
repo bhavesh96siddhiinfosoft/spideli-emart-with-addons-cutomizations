@@ -636,6 +636,10 @@ class FinanceController extends Controller
         } catch (\Throwable $e) {
             return back()->withInput()->with('error', $this->failure($e));
         }
+        /* Opened from the customer's page (point 93): back there, where the new balance shows. */
+        if ($request->input('from') === 'customer') {
+            return redirect()->route('finance.customers.show', $uid)->with('success', __('Adjustment posted:') . ' ' . $written['reference']);
+        }
         return redirect()->route('finance.ledger.show', $written['txId'])->with('success', __('Adjustment posted:') . ' ' . $written['reference']);
     }
 

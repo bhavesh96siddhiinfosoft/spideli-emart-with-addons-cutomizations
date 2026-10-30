@@ -301,6 +301,11 @@ class FinanceDeskController extends Controller
             'canResetTwoStep' => $this->can('finance.customers.two-step'),
             'tickets' => $this->can('finance.tickets') ? $db->query('support_tickets', [['userId', '==', $uid]], [], 100) : null,
             'canTicket' => $this->can('finance.tickets.manage'),
+            /* Point 93: "Add money" opens the manual adjustment for this customer,
+               in their first Finance region - the same posting, audit and
+               second-admin rule as Finance > Ledger. */
+            'canAdjust' => $this->can('finance.ledger.adjust'),
+            'adjustRegion' => $regions->filterIds((array)($user['data']['regionIds'] ?? []))[0] ?? '',
         ]);
     }
 

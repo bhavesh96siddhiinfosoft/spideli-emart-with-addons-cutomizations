@@ -10,6 +10,10 @@
                 @else
                 <form method="POST" action="{{ route('finance.adjust.store') }}" onsubmit="return confirm('{{ __('Post this adjustment?') }}')">
                     @csrf
+                    {{-- Opened from a customer's page (point 93): go back there afterwards. --}}
+                    @if (old('from', request('from')) === 'customer')
+                        <input type="hidden" name="from" value="customer">
+                    @endif
                     <div class="row vendor_payout_create">
                         <div class="vendor_payout_create-inner">
                             <fieldset>
@@ -23,7 +27,7 @@
                                     <div class="col-7">
                                         <select name="region" id="adj-region" class="form-control finance-select2" required>
                                             @foreach ($regions as $id => $r)
-                                                <option value="{{ $id }}" data-currency="{{ $currencySymbols[$r['currency']] ?? $r['currency'] }}" {{ old('region', $_COOKIE['region_id'] ?? '') === $id ? 'selected' : '' }}>{{ $r['name'] }} ({{ $r['currency'] }})</option>
+                                                <option value="{{ $id }}" data-currency="{{ $currencySymbols[$r['currency']] ?? $r['currency'] }}" {{ old('region', request('region', $_COOKIE['region_id'] ?? '')) === $id ? 'selected' : '' }}>{{ $r['name'] }} ({{ $r['currency'] }})</option>
                                             @endforeach
                                         </select>
                                         <div class="form-text text-muted">{{ __('The amount is in the region\'s currency, and the customer must belong to the region.') }}</div>
@@ -33,7 +37,7 @@
                                 <div class="form-group row width-50">
                                     <label class="col-3 control-label" for="adj-user">{{ __('Customer') }}<span class="required-field"></span></label>
                                     <div class="col-7">
-                                        <input type="text" id="adj-user" name="user" class="form-control" value="{{ old('user') }}" required placeholder="{{ __('id, e-mail or phone') }}">
+                                        <input type="text" id="adj-user" name="user" class="form-control" value="{{ old('user', request('user')) }}" required placeholder="{{ __('id, e-mail or phone') }}">
                                     </div>
                                 </div>
 
@@ -41,11 +45,11 @@
                                     <label class="col-3 control-label">{{ __('Direction') }}<span class="required-field"></span></label>
                                     <div class="col-7">
                                         <div class="form-check">
-                                            <input type="radio" id="adj-credit" name="direction" value="credit" {{ old('direction', 'credit') === 'credit' ? 'checked' : '' }}>
+                                            <input type="radio" id="adj-credit" name="direction" value="credit" {{ old('direction', request('direction', 'credit')) === 'credit' ? 'checked' : '' }}>
                                             <label class="control-label" for="adj-credit">{{ __('Into the wallet (platform → wallet)') }}</label>
                                         </div>
                                         <div class="form-check">
-                                            <input type="radio" id="adj-debit" name="direction" value="debit" {{ old('direction') === 'debit' ? 'checked' : '' }}>
+                                            <input type="radio" id="adj-debit" name="direction" value="debit" {{ old('direction', request('direction')) === 'debit' ? 'checked' : '' }}>
                                             <label class="control-label" for="adj-debit">{{ __('Out of the wallet (wallet → platform)') }}</label>
                                         </div>
                                     </div>
@@ -73,7 +77,7 @@
                     </div>
                     <div class="form-group col-12 text-center btm-btn">
                         <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> {{ __('Post adjustment') }}</button>
-                        <a href="{{ route('finance.ledger') }}" class="btn btn-default"><i class="fa fa-undo"></i>{{ trans('lang.cancel') }}</a>
+                        <a href="{{ (old('from', request('from')) === 'customer' && old('user', request('user'))) ? route('finance.customers.show', old('user', request('user'))) : route('finance.ledger') }}" class="btn btn-default"><i class="fa fa-undo"></i>{{ trans('lang.cancel') }}</a>
                     </div>
                 </form>
                 @endif
