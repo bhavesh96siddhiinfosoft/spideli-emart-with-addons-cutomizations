@@ -1455,7 +1455,7 @@
      * list in one transaction (addExtraCharge, layouts/app), never replacing
      * the one before. Amount above 0 (a comma is a decimal point). */
     $('#extra-charge-btn').on('click', function () {
-        var amount = extraChargeAmount($('#extra_charge_amount').val());
+        var amount = extraChargeAmount(String($('#extra_charge_amount').val()).trim().replace(',', '.'));
         var extraChargeDesc = $('#extra_charge_desc').val();
         if (!(amount > 0)) {
             $('#add_extra_charge_err').html('{{trans("lang.add_extra_charge_err")}}');
@@ -1467,7 +1467,7 @@
             callAjax('Extra Charges');
         }).catch(function (error) {
             $btn.prop('disabled', false);
-            $('#add_extra_charge_err').html(error.message || String(error));
+            $('#add_extra_charge_err').html(error.code === 'not-ongoing' ? {!! json_encode(trans('lang.extra_charge_not_ongoing')) !!} : (error.message || String(error)));
         });
     });
     $('#add-otp-btn').on('click', function () {
@@ -1479,7 +1479,6 @@
         if (otp == otpToVerify) {
             database.collection('provider_orders').doc(id).update({
                 'status': 'Order Completed',
-                'extraPaymentStatus': true ,
                 'paymentStatus':true
             }).then(async function (result) {
                 callAjax('Order Completed');

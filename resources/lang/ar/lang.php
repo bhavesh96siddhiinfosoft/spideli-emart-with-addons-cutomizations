@@ -2913,5 +2913,6 @@ return [
     'extra_charge_pending' => 'قيد الانتظار',
     'extra_charges_total' => 'إجمالي الرسوم الإضافية',
     'extra_charges_to_pay' => 'المتبقي للدفع',
+    'extra_charge_not_ongoing' => 'لا يمكن إضافة رسوم إضافية إلا أثناء تنفيذ الحجز.',
 ];
 ?>

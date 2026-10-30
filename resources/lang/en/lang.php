@@ -3103,5 +3103,6 @@ return [
     'extra_charge_pending' => 'Pending',
     'extra_charges_total' => 'Total extra charges',
     'extra_charges_to_pay' => 'Still to pay',
+    'extra_charge_not_ongoing' => 'Extra charges can be added only while the booking is ongoing.',
 ];
 ?>

@@ -1877,8 +1877,11 @@
          * extraPaymentStatus is true), else none. extraCharges is never cleared,
          * so it may still hold a value next to a list - never add it then.
          * ------------------------------------------------------------------ */
+        /* As the apps read a stored amount: a number, or a numeric string. A
+         * comma is a decimal point only in what someone types (the add form
+         * replaces it before calling addExtraCharge), never when reading. */
         function extraChargeAmount(v) {
-            var n = typeof v === 'number' ? v : Number(String(v == null ? '' : v).trim().replace(',', '.'));
+            var n = typeof v === 'number' ? v : Number(String(v == null ? '' : v).trim());
             return isFinite(n) ? n : 0;
         }
 
@@ -1988,16 +1991,23 @@
             }).join('; ');
         }
 
-        /* Adds a charge (spec section 4): in one transaction, an older booking's
-         * single charge becomes the list's first entry, the new one is appended
-         * unpaid, and nothing but extraChargesList / extraPaymentStatus is
-         * written. A Timestamp, not serverTimestamp(), because it is in an array. */
+        /* Adds a charge (spec section 4): only while the booking is Order
+         * Ongoing (else an Error with code 'not-ongoing'); in one transaction, an
+         * older booking's single charge becomes the list's first entry, the new
+         * one is appended unpaid, and nothing but extraChargesList /
+         * extraPaymentStatus is written. A Timestamp, not serverTimestamp(),
+         * because it is in an array. */
         function addExtraCharge(bookingId, amount, description) {
             var ref = database.collection('provider_orders').doc(bookingId);
             return database.runTransaction(function (tx) {
                 return tx.get(ref).then(function (snap) {
                     if (!snap.exists) {
                         throw new Error('booking not found');
+                    }
+                    if (snap.data().status !== 'Order Ongoing') {
+                        var notOngoing = new Error('booking is not ongoing');
+                        notOngoing.code = 'not-ongoing';
+                        throw notOngoing;
                     }
                     var charges = extraChargesOf(snap.data());
                     charges.push({
