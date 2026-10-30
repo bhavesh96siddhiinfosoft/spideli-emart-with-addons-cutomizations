@@ -278,6 +278,9 @@ class Firestore
      */
     public function write($mode, $path, array $data)
     {
+        if ($mode === 'delete') {
+            return ['delete' => $this->name($path)];
+        }
         $transforms = [];
         if ($mode === 'update' || $mode === 'merge') {
             $fields = [];

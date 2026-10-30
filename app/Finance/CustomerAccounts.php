@@ -154,25 +154,23 @@ class CustomerAccounts
     public function softDelete($uid, $reason)
     {
         $u = $this->customer($uid);
-        if (!empty($u['isDeleted'])) {
-            throw new FinanceException('deleted', 'This customer was already deleted.');
-        }
         $check = $this->deleteCheck($uid);
         if ($check['blockers']) {
             throw new FinanceException('blocked', 'This customer cannot be deleted yet: ' . implode(' ', $check['blockers']));
         }
         $this->auth->delete($uid);
 
-        $after = ['isDeleted' => true, 'isDeletedDate' => Value::serverTimestamp(), 'active' => false, 'fcmToken' => ''];
-        if (array_key_exists('isActive', $u)) {
-            $after['isActive'] = false;
-        }
+        /* 30 Oct (point 84): a HARD delete, at the user's request - users/{uid}
+         * is removed, not marked isDeleted. Their orders and wallet rows stay.
+         * The audit entry keeps who it was and who deleted them. An older
+         * profile already marked isDeleted is removed the same way. */
         $this->db->batch([
-            $this->db->write('update', 'users/' . $uid, $after),
+            $this->db->write('delete', 'users/' . $uid, []),
             Audit::write($this->db, 'customer.delete', 'users', $uid,
-                array_intersect_key($u, ['active' => 1, 'isActive' => 1]), ['isDeleted' => true, 'active' => false, 'signInDeleted' => true],
+                array_intersect_key($u, ['email' => 1, 'phoneNumber' => 1, 'firstName' => 1, 'lastName' => 1, 'active' => 1]),
+                ['profileDeleted' => true, 'signInDeleted' => true],
                 trim((string)$reason) ?: 'Deleted from Customers'),
         ]);
-        return 'Customer deleted: they can no longer sign in, and their profile and history are kept (marked deleted).';
+        return 'Customer deleted: their sign-in and profile are removed, and the same email can register again.';
     }
 }

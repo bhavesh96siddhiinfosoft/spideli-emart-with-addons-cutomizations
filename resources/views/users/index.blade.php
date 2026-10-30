@@ -431,7 +431,9 @@
         actionHtml = actionHtml + '<span class="action-btn">';
         actionHtml = actionHtml+'<a href="' + trroute1 + '" data-toggle="tooltip" data-bs-original-title="{{ trans('lang.wallet_transaction') }}"><i class="mdi mdi-wallet" ></i></a>';
         actionHtml = actionHtml + '<a href="' + user_view + '" data-toggle="tooltip" data-bs-original-title="{{ trans('lang.view') }}"><i class="mdi mdi-eye"></i></a><a href="' + route1 + '" data-toggle="tooltip" data-bs-original-title="{{ trans('lang.edit') }}"><i class="mdi mdi-lead-pencil"></i></a>';
-        if (checkDeletePermission && !val.isDeleted) {
+        /* Deleted customers are removed now (hard delete, 30 Oct); a profile
+         * left marked isDeleted from before can still be removed. */
+        if (checkDeletePermission) {
             actionHtml = actionHtml+'<a id="' + val.id + '" class="delete-btn" name="user-delete" href="javascript:void(0)" data-toggle="tooltip" data-bs-original-title="{{ trans('lang.delete') }}"><i class="mdi mdi-delete"></i></a>';
         }
         if(checkChatPermission){
