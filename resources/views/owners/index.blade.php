@@ -696,7 +696,8 @@ async function deleteUserData(userId,vendorId) {
     var dataObject = {"data": {"uid": userId}};
     var projectId = '<?php echo env('FIREBASE_PROJECT_ID') ?>';
     jQuery.ajax({
-        url: 'https://us-central1-' + projectId + '.cloudfunctions.net/deleteUser',
+        url: "{{ route('firebase-auth.delete') }}",   // point 84: the Cloud Function answered 403
+                headers: { 'X-CSRF-TOKEN': "{{ csrf_token() }}" },
         method: 'POST',
         contentType: "application/json; charset=utf-8",
         data: JSON.stringify(dataObject),

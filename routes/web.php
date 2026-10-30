@@ -38,6 +38,9 @@ Route::middleware(['permission:users,users.edit'])->group(function () {
     /* Suspend / re-activate: Firebase sign-in follows, audited (spec 6.3). */
     Route::post('/users/{id}/active', [App\Http\Controllers\CustomerAccountController::class, 'setActive'])->name('users.active');
 });
+/* Point 84: removes a Firebase sign-in when a driver, store, owner, provider,
+ * worker, employee or fleet driver is deleted (the Cloud Function answered 403). */
+Route::post('/firebase-auth/delete', [App\Http\Controllers\FirebaseAuthController::class, 'delete'])->name('firebase-auth.delete');
 Route::middleware(['permission:users,users.delete'])->group(function () {
     /* Delete = soft delete: users/{uid} kept with isDeleted + isDeletedDate, sign-in removed (spec 6.3). */
     Route::post('/users/{id}/delete-check', [App\Http\Controllers\CustomerAccountController::class, 'deleteCheck'])->name('users.delete-check');
