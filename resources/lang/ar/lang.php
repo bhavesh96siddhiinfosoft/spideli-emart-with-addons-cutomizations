@@ -1000,6 +1000,7 @@ return [
     'banner_position' => 'موضع البانر',
     'top' => 'أعلى',
     'middle' => 'وسط',
+    'bottom' => 'أسفل',
     'position_1' => 'صورة البانر للموضع 1',
     'position_2' => 'صورة البانر للموضع 2',
     'privacy_policy' => 'سياسة الخصوصية',

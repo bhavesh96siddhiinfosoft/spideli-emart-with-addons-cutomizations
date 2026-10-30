@@ -85,6 +85,8 @@
                             <select name="position" id="position" class="form-control">
                                 <option value="top">{{trans('lang.top')}}</option>
                                 <option value="middle">{{trans('lang.middle')}}</option>
+                                {{-- Point 86: a banner at the bottom of the app's home screen. --}}
+                                <option value="bottom">{{trans('lang.bottom')}}</option>
                             </select>
                         </div>
                     </div>

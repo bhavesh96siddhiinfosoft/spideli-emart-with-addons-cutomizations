@@ -999,6 +999,7 @@ return [
     'banner_position' => 'Banner Position',
     'top' => 'Top',
     'middle' => 'Middle',
+    'bottom' => 'Bottom',
     'position_1' => 'Banner image for position 1',
     'position_2' => 'Banner image for position 2',
     'privacy_policy' => 'Privacy Policy',
