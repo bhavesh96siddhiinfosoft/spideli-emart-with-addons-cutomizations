@@ -3098,5 +3098,10 @@ return [
     'addon_title_duplicate' => 'This product already has an add-on with this title.',
     'addon_price_invalid' => 'Enter the add-on\'s price: 0 or more (0 is a free add-on).',
     'banner_regions_help' => 'Leave empty to show this banner in every region.',
+    'extra_charge_default' => 'Extra charge',
+    'extra_charge_paid' => 'Paid',
+    'extra_charge_pending' => 'Pending',
+    'extra_charges_total' => 'Total extra charges',
+    'extra_charges_to_pay' => 'Still to pay',
 ];
 ?>

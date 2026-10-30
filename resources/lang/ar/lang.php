@@ -2908,5 +2908,10 @@ return [
     'addon_title_duplicate' => 'يحتوي هذا المنتج بالفعل على إضافة بهذا العنوان.',
     'addon_price_invalid' => 'أدخل سعر الإضافة: 0 أو أكثر (0 تعني إضافة مجانية).',
     'banner_regions_help' => 'اتركه فارغًا لعرض هذا البانر في كل الأقاليم.',
+    'extra_charge_default' => 'رسوم إضافية',
+    'extra_charge_paid' => 'مدفوعة',
+    'extra_charge_pending' => 'قيد الانتظار',
+    'extra_charges_total' => 'إجمالي الرسوم الإضافية',
+    'extra_charges_to_pay' => 'المتبقي للدفع',
 ];
 ?>

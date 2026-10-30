@@ -311,6 +311,15 @@
             jQuery("#data-table_processing").hide();
         })
 
+    /* Point 81: the words for the extra-charge rows (extraChargesHtml, layouts/app). */
+    var extraChargeLabels = {
+        charge: {!! json_encode(trans('lang.extra_charge_default')) !!},
+        paid: {!! json_encode(trans('lang.extra_charge_paid')) !!},
+        pending: {!! json_encode(trans('lang.extra_charge_pending')) !!},
+        total: {!! json_encode(trans('lang.extra_charges_total')) !!},
+        toPay: {!! json_encode(trans('lang.extra_charges_to_pay')) !!},
+        showTime: true
+    };
         function buildHTMLProductstotal(snapshotsProducts) {
 
             let html = '';
@@ -322,7 +331,7 @@
             let discount = parseFloat(snapshotsProducts.discount || 0);
             let couponCode = snapshotsProducts.couponCode;
             let notes = snapshotsProducts.notes;
-            let extraCharges = parseFloat(snapshotsProducts.extraCharges || 0);
+            let extraCharges = extraChargesTotal(snapshotsProducts);   // point 81: every charge
             let platformFee = parseFloat(snapshotsProducts.platformFee || 0);
 
             let formattedplatformFee = currencyAtRight
@@ -410,10 +419,10 @@
             $('.table-subtotal tr:eq(3)').after(taxHtml);
 
             // Extra charges
-            let extraDisplay = currencyAtRight
-                ? extraCharges.toFixed(decimal_degits) + currentCurrency
-                : currentCurrency + extraCharges.toFixed(decimal_degits);
-            $('.extra_charges').text(extraDisplay);
+            /* Point 81: each charge, paid or pending, and the total. */
+            $('.extra_charges').html(extraCharges > 0
+                ? extraChargesHtml(snapshotsProducts, function (a) { return formatCurrency(a, currencyData); }, extraChargeLabels)
+                : formatCurrency(0, currencyData));
 
             // FINAL TOTAL
             let order_total = total_item_price + extraCharges + platformFee + total_tax_amount;

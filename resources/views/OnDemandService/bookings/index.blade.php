@@ -938,7 +938,7 @@
             let totalPrice = 0;
             let subtotal = 0;
             let totalDiscount = parseFloat(snapshotsProducts.discount || 0);
-            let extraCharges = parseFloat(snapshotsProducts.extraCharges || 0);
+            let extraCharges = extraChargesTotal(snapshotsProducts);   // point 81: every charge
             let platformFee = parseFloat(snapshotsProducts.platformFee || 0);
 
             // Base subtotal (price × quantity)

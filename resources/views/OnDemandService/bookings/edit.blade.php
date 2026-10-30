@@ -1062,9 +1062,7 @@
                 $('.edit-form-btn').hide();
 
             }
-            if(order.extraCharges!=''){
-                    $("#extra_charge_div").hide();
-                }
+            /* Point 81: no longer hidden once a booking has a charge - more can be added. */
             var price = 0;
 
             if (order.provider.photos && order.provider.photos.length) {
@@ -1194,6 +1192,16 @@
         }
         return h;
     }
+
+    /* Point 81: the words for the extra-charge rows (extraChargesHtml, layouts/app). */
+    var extraChargeLabels = {
+        charge: {!! json_encode(trans('lang.extra_charge_default')) !!},
+        paid: {!! json_encode(trans('lang.extra_charge_paid')) !!},
+        pending: {!! json_encode(trans('lang.extra_charge_pending')) !!},
+        total: {!! json_encode(trans('lang.extra_charges_total')) !!},
+        toPay: {!! json_encode(trans('lang.extra_charges_to_pay')) !!},
+        showTime: true
+    };
 
     async function callWalletTransaction(status) {
         var orderStatus = status;
@@ -1443,23 +1451,24 @@
             $('#worker_list_div').hide();
         }
     });
+    /* Point 81: as many charges as the job needs - appended to the booking's
+     * list in one transaction (addExtraCharge, layouts/app), never replacing
+     * the one before. Amount above 0 (a comma is a decimal point). */
     $('#extra-charge-btn').on('click', function () {
-        extraCharges = $('#extra_charge_amount').val(); // do not add var keyword before extraCharges it was defined globally
+        var amount = extraChargeAmount($('#extra_charge_amount').val());
         var extraChargeDesc = $('#extra_charge_desc').val();
-        if (extraCharges == '') {
+        if (!(amount > 0)) {
             $('#add_extra_charge_err').html('{{trans("lang.add_extra_charge_err")}}');
             return false;
         }
-
+        var $btn = $(this).prop('disabled', true);
         extraChargePaymentStatus = false; // do not add var keyword before extraChargePaymentStatus it was defined globally
-
-        database.collection('provider_orders').doc(id).update({
-            'extraCharges': extraCharges,
-            'extraPaymentStatus': extraChargePaymentStatus,
-            'extraChargesDescription': extraChargeDesc
-        }).then(function (result) {
+        addExtraCharge(id, amount, extraChargeDesc).then(function () {
             callAjax('Extra Charges');
-        })
+        }).catch(function (error) {
+            $btn.prop('disabled', false);
+            $('#add_extra_charge_err').html(error.message || String(error));
+        });
     });
     $('#add-otp-btn').on('click', function () {
         otp = $('#otp').val();
@@ -1582,12 +1591,15 @@
                     alert('{{trans("lang.stop_the_timer")}}');
                 }
             } else {
-                if (extraCharges != '' && extraCharges != null && extraChargePaymentStatus == false) {
-                    alert('{{trans("lang.extra_charges_payment_pending")}}');
-                    return false;
-                } else {
-                    $('#addOtpModal').modal('show');
-                }
+                /* Point 81: any charge still unpaid holds the completion - read
+                   fresh, a worker may have just added one. */
+                database.collection('provider_orders').doc(id).get().then(function (fresh) {
+                    if (unpaidExtraChargesTotal(fresh.data()) > 0) {
+                        alert('{{trans("lang.extra_charges_payment_pending")}}');
+                    } else {
+                        $('#addOtpModal').modal('show');
+                    }
+                });
             }
         }
 
@@ -1698,7 +1710,7 @@
         let adminCommissionType = snapshotsProducts.adminCommissionType || 'fixed';
         let couponCode = snapshotsProducts.couponCode;
         let notes = snapshotsProducts.notes || '';
-        let extraCharges = parseFloat(snapshotsProducts.extraCharges || 0);
+        let extraCharges = extraChargesTotal(snapshotsProducts);   // point 81: every charge
         let platformFee = parseFloat(snapshotsProducts.platformFee || 0);
 
         // Base subtotal
@@ -1788,10 +1800,9 @@
 
         // Extra charges
         if (extraCharges > 0) {
-            let extraDisplay = currencyAtRight
-                ? extraCharges.toFixed(decimal_degits) + currentCurrency
-                : currentCurrency + extraCharges.toFixed(decimal_degits);
-            html += `<tr><td class="label">{{trans("lang.extra_charges")}}</td><td style="color:green">+${extraDisplay}</td></tr>`;
+            /* Point 81: one row per charge (paid or pending, when added), then the total. */
+            html += '<tr><td class="label">{{trans("lang.extra_charges")}}</td><td>'
+                + extraChargesHtml(snapshotsProducts, function (a) { return formatCurrency(a, currencyData); }, extraChargeLabels) + '</td></tr>';
         }
 
         // FINAL TOTAL
