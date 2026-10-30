@@ -155,6 +155,24 @@
 
                     </div>
 
+                    {{-- Point 82: the regions this banner is shown in - the same
+                         Chosen control as Section > Available in Regions. Empty
+                         means every region, so existing banners are unchanged. --}}
+                    <div class="form-group row width-100">
+
+                        <label class="col-3 control-label">{{ trans('lang.select_region') }}</label>
+
+                        <div class="col-7">
+
+                            <select id="region_assignment" class="form-control chosen-select" multiple="multiple">
+                            </select>
+
+                            <div class="form-text text-muted">{{ trans('lang.banner_regions_help') }}</div>
+
+                        </div>
+
+                    </div>
+
                     <div class="form-group row width-50">
 
                         <label class="col-3 control-label">{{trans('lang.app_banner')}}</label>
@@ -329,6 +347,7 @@
         ref.get().then(async function (snapshots) {
 
             var menuItems = snapshots.docs[0].data();
+            loadRegionAssignment(menuItems);   // point 82: its regionIds
             $(".title").val(menuItems.title);
             $(".set_order").val(menuItems.set_order);
 
@@ -608,6 +627,7 @@
                     'id': id,
                     'set_order': set_order,
                     'is_publish': is_publish,
+                    'regionIds': getRegionAssignment(),   // point 82; [] = every region
                     'sectionId': section,
                     'position': position ? position : 'top',
                     'redirect_type': redirect_type ? redirect_type : '',
