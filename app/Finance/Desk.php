@@ -145,11 +145,17 @@ class Desk
             if ($missing) {
                 throw new FinanceException('kyc_documents_missing', 'Not every requirement is met by accepted documents: ' . implode('; ', $missing) . '.');
             }
+            /* Client point 99: approving a lower level never lowers the
+             * customer's level (a "basic" approved after "business" left them
+             * at basic, and the app asked them to verify again). */
+            $user = $t->get('users/' . $a['userId']);
+            $current = (string)($user['data']['kycLevel'] ?? '');
+            $level = self::kycRank($a['level'] ?? '') >= self::kycRank($current) ? $a['level'] : $current;
             $t->update('kyc_applications/' . $appId, ['status' => 'approved', 'updatedAt' => Value::serverTimestamp()]);
-            $t->update('users/' . $a['userId'], ['kycLevel' => $a['level'], 'kycStatus' => 'approved']);
+            $t->update('users/' . $a['userId'], ['kycLevel' => $level, 'kycStatus' => 'approved']);
             $this->review($t, $a, 'approve');
-            Audit::add($t, 'kyc.approve', 'kyc_applications', $appId, ['status' => 'under_review'],
-                ['status' => 'approved', 'kycLevel' => $a['level']]);
+            Audit::add($t, 'kyc.approve', 'kyc_applications', $appId, ['status' => 'under_review', 'kycLevel' => $current],
+                ['status' => 'approved', 'kycLevel' => $level]);
             return $a;
         });
     }
@@ -159,6 +165,16 @@ class Desk
      * one of its document types has every side (documentTypes[type].sides)
      * accepted. Returns readable descriptions of the unmet ones.
      */
+    /**
+     * How far a verification level goes, as the credit score counts it:
+     * none 0, basic 1, any other level (full, business) 2.
+     */
+    public static function kycRank($level)
+    {
+        $level = (string)$level;
+        return $level === '' ? 0 : ($level === 'basic' ? 1 : 2);
+    }
+
     public static function kycMissing(array $kyc, $level, array $docs)
     {
         $groups = $kyc['levels'][$level]['requiredDocuments'] ?? null;
