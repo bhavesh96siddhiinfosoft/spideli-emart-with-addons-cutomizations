@@ -218,6 +218,12 @@
 
     $(".edit-setting-btn").click(function () {
         var regionId = getActiveRegionId();
+        /* Point 95: "All Regions" edits the global charge, which an admin
+         * bound to regions may not change. They pick one of theirs first. */
+        if (regionId == '' && isRegionBound()) {
+            alert({!! json_encode(trans('lang.choose_region_to_edit')) !!});
+            return false;
+        }
         var payload = {
             'vendor_can_modify': $("#vendor_can_modify").is(":checked"),
             'delivery_charges_per_km': parseInt($("#delivery_charges_per_km").val()),

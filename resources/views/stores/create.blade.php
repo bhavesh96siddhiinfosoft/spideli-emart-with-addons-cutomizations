@@ -950,9 +950,7 @@
                 /* Only zones serving the region being worked in can be
                  * picked, so a store can never be placed outside it. A zone
                  * may serve several regions, so its whole list is checked. */
-                var active = getActiveRegionId();
-
-                if (active && zoneRegionIds(data).indexOf(active) === -1) {
+                if (!anyRegionInScope(zoneRegionIds(data))) {   // point 95
                     return;
                 }
                 var area = [];
@@ -1174,7 +1172,7 @@
              * region as the zone it serves. Falls back to the region being
              * worked in when the zone carries none yet. */
             var zoneRegion = $('#zone option:selected').data('region');
-            var storeRegionId = zoneRegion ? zoneRegion : getActiveRegionId();
+            var storeRegionId = zoneRegion ? zoneRegion : withRegion({}).regionId || '';   // point 95
             var isInZone = false;
             if (zoneId && zoneArea) {
                 isInZone = checkLocationInZone(zoneArea, longitude, latitude);

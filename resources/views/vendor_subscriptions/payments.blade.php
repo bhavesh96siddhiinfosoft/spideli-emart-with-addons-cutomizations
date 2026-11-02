@@ -157,11 +157,7 @@
     }
 
     function inActiveRegion(record) {
-        var active = getActiveRegionId();
-        if (!active) {
-            return true;
-        }
-        return record.regionId === active;
+        return regionIdInScope(record.regionId);   // point 95: all of a bound admin's regions
     }
 
     function formatPrice(value) {

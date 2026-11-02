@@ -264,9 +264,7 @@ foreach ($countries as $keycountry => $valuecountry) {
                  * so a driver can never be placed outside it. A zone may serve
                  * several regions, so its whole list is checked. */
                 var zoneRegions = zoneRegionIds(data);
-                var active = getActiveRegionId();
-
-                if (active && zoneRegions.indexOf(active) === -1) {
+                if (!anyRegionInScope(zoneRegions)) {   // point 95
                     return;
                 }
                 $('#zone').append($("<option></option>")
@@ -515,7 +513,7 @@ foreach ($countries as $keycountry => $valuecountry) {
          * the region being worked in wins, and a zone serving exactly one
          * region still decides by itself. */
         var zoneRegion = $('#zone option:selected').data('region');
-        var driverRegionId = zoneRegion ? zoneRegion : getActiveRegionId();
+        var driverRegionId = zoneRegion ? zoneRegion : withRegion({}).regionId || '';   // point 95
 
         var latitude = parseFloat($(".user_latitude").val());
         var longitude = parseFloat($(".user_longitude").val());

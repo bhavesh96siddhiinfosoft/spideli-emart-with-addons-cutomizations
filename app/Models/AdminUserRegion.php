@@ -72,13 +72,34 @@ class AdminUserRegion extends Model
     }
 
     /**
-     * The super admin is never bound to a region and therefore sees everything.
+     * The name of the role whose admins are never bound to a region, as the
+     * Roles screen names it.
+     *
+     * @var string
+     */
+    const SUPER_ADMIN_ROLE = 'Super Administrator';
+
+    /**
+     * The super admin is never bound to a region and therefore sees everything:
+     * the first admin, and (client point 95, 2 Nov 2026) every admin given the
+     * Super Administrator role, whatever regions were picked for them.
      *
      * @param  int  $userId
      * @return bool
      */
     public static function isSuperAdmin($userId)
     {
-        return $userId == self::SUPER_ADMIN_ID;
+        static $known = [];
+        if ($userId == self::SUPER_ADMIN_ID) {
+            return true;
+        }
+        if (!array_key_exists($userId, $known)) {
+            $known[$userId] = \DB::table('users')
+                ->join('role', 'role.id', '=', 'users.role_id')
+                ->where('users.id', $userId)
+                ->where('role.role_name', self::SUPER_ADMIN_ROLE)
+                ->exists();
+        }
+        return $known[$userId];
     }
 }

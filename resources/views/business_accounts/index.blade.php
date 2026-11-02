@@ -235,9 +235,9 @@
         jQuery("#data-table_processing").hide();
     }
 
-    /* getActiveRegionId() empty means "All Regions" and everything passes. */
+    /* No region in scope (an unbound admin on "All Regions") passes everything. */
     function inRegionOrUnplaced(user) {
-        if (!getActiveRegionId()) {
+        if (activeRegionIds().length === 0) {
             return true;
         }
 

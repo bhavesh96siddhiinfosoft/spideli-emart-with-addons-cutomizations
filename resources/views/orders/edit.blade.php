@@ -845,9 +845,7 @@
                         var data = listval.data();
                         /* Only zones serving the active region are offered. A
                          * zone may serve several, so its whole list is checked. */
-                        var active = getActiveRegionId();
-
-                        if (active && zoneRegionIds(data).indexOf(active) === -1) {
+                        if (!anyRegionInScope(zoneRegionIds(data))) {   // point 95
                             return;
                         }
                         $('#zone').append($("<option></option>")

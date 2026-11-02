@@ -224,8 +224,8 @@
         var activeRegionId = '{{ $admin_active_region }}';
         var activeRegionData = null;
 
-        /* An admin assigned to one or more regions cannot step outside them,
-         * and so is never offered the "All Regions" view. */
+        /* An admin assigned to one or more regions cannot step outside them.
+         * Their "All Regions" view is all of their own regions (point 95). */
         function isRegionBound() {
             return allowedRegionIds.length > 0;
         }
@@ -241,8 +241,35 @@
             return activeRegionId || '';
         }
 
+        /* ---- "All Regions" for every admin (client point 95, 2 Nov 2026) ----
+         * The regions in scope right now: the region picked in the header; or,
+         * on "All Regions", none at all for an admin with no region limit
+         * ([] = no filter), and all of their own regions for an admin bound to
+         * some. Every region filter below goes through this, so a bound admin
+         * on "All Regions" still never sees outside their regions. */
+        function activeRegionIds() {
+            var regionId = getActiveRegionId();
+            if (regionId) {
+                return [regionId];
+            }
+            return isRegionBound() ? allowedRegionIds.slice() : [];
+        }
+
+        function regionIdInScope(regionId) {
+            var ids = activeRegionIds();
+            return ids.length === 0 || ids.indexOf(regionId) !== -1;
+        }
+
+        function anyRegionInScope(list) {
+            var ids = activeRegionIds();
+            if (ids.length === 0) {
+                return true;
+            }
+            return Array.isArray(list) && list.some(function (id) { return ids.indexOf(id) !== -1; });
+        }
+
         function hasRegionScope() {
-            return getActiveRegionId() !== '';
+            return activeRegionIds().length > 0;
         }
 
         /* Apply the active region filter to a Firestore collection/query.
@@ -323,12 +350,18 @@
             return true;
         }
 
+        /* Several regions use 'in' (Firestore: at most 30 combinations per
+         * query with any other 'in', so up to 5 regions next to a 6-status
+         * filter). 'in' uses the same indexes as '=='. */
         function regionScoped(query, field) {
-            var regionId = getActiveRegionId();
-            if (!regionId) {
+            var ids = activeRegionIds();
+            if (ids.length === 0) {
                 return query;
             }
-            return query.where(field || REGION_FIELD, '==', regionId);
+            if (ids.length === 1) {
+                return query.where(field || REGION_FIELD, '==', ids[0]);
+            }
+            return query.where(field || REGION_FIELD, 'in', ids);
         }
 
         /* Stamp the active region onto a payload before writing it.
@@ -336,7 +369,9 @@
         function withRegion(data, field) {
             data = data || {};
             var key = field || REGION_FIELD;
-            var regionId = getActiveRegionId();
+            /* On "All Regions", an admin bound to exactly one region still
+             * stamps it; one bound to several picks it on the form. */
+            var regionId = getActiveRegionId() || (allowedRegionIds.length === 1 ? allowedRegionIds[0] : '');
             if (regionId && (data[key] === undefined || data[key] === null || data[key] === '')) {
                 data[key] = regionId;
             }
@@ -354,25 +389,26 @@
         var REGION_FIELD_MANY = 'regionIds';
 
         function regionScopedAny(query, field) {
-            var regionId = getActiveRegionId();
-            if (!regionId) {
+            var ids = activeRegionIds();
+            if (ids.length === 0) {
                 return query;
             }
-            return query.where(field || REGION_FIELD_MANY, 'array-contains', regionId);
+            if (ids.length === 1) {
+                return query.where(field || REGION_FIELD_MANY, 'array-contains', ids[0]);
+            }
+            return query.where(field || REGION_FIELD_MANY, 'array-contains-any', ids);
         }
 
         /* Guard for a record fetched outside a scoped query, for the same
          * many-regions shape. */
         function isInAnyActiveRegion(data, field) {
-            var regionId = getActiveRegionId();
-            if (!regionId) {
+            if (activeRegionIds().length === 0) {
                 return true;
             }
             if (!data) {
                 return false;
             }
-            var list = data[field || REGION_FIELD_MANY];
-            return Array.isArray(list) && list.indexOf(regionId) !== -1;
+            return anyRegionInScope(data[field || REGION_FIELD_MANY]);
         }
 
         /* Narrows an already-fetched snapshot to the active region and returns
@@ -389,7 +425,7 @@
          */
         function regionDocs(snapshot, field) {
             var docs = (snapshot && snapshot.docs) ? snapshot.docs : [];
-            if (!getActiveRegionId()) {
+            if (activeRegionIds().length === 0) {
                 return docs;
             }
             return docs.filter(function (doc) {
@@ -400,14 +436,13 @@
         /* Client-side guard for documents fetched outside a scoped query
          * (e.g. a direct doc().get() on an edit screen). */
         function isInActiveRegion(data, field) {
-            var regionId = getActiveRegionId();
-            if (!regionId) {
+            if (activeRegionIds().length === 0) {
                 return true;
             }
             if (!data) {
                 return false;
             }
-            return data[field || REGION_FIELD] === regionId;
+            return regionIdInScope(data[field || REGION_FIELD]);
         }
 
         async function getActiveRegion() {
@@ -796,9 +831,6 @@
             if (regionId != '' && !isRegionAllowed(regionId)) {
                 return false;
             }
-            if (regionId == '' && isRegionBound()) {
-                return false;
-            }
             setCookie(REGION_COOKIE, regionId, 1);
             activeRegionId = regionId;
             activeRegionData = null;
@@ -848,15 +880,12 @@
         })
         
         /* Populate the header region switcher and react to changes. A bound
-         * admin only ever sees the regions they are assigned to, and loses the
-         * "All Regions" entry. */
+         * admin only ever sees the regions they are assigned to; their "All
+         * Regions" entry is all of those together (point 95). */
         async function loadRegionSwitcher() {
             var $dropdown = $('#region_dropdown');
             if (!$dropdown.length) {
                 return;
-            }
-            if (isRegionBound()) {
-                $dropdown.find('option[value=""]').remove();
             }
             var regions = await getPublishedRegions();
             regions.forEach(function (region) {

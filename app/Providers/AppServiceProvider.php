@@ -100,9 +100,11 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * The region the admin is currently working in. The value held in the
-     * cookie is only honoured when the admin is actually allowed to use it, so
-     * editing the cookie by hand cannot widen the admin's access.
+     * The region the admin is currently working in, or '' for "All Regions".
+     * The value held in the cookie is only honoured when the admin is actually
+     * allowed to use it, so editing the cookie by hand cannot widen the
+     * admin's access. For an admin bound to regions, "All Regions" means all
+     * of THEIR regions: the browser helpers (activeRegionIds) filter by them.
      *
      * @return string
      */
@@ -119,6 +121,6 @@ class AppServiceProvider extends ServiceProvider
             return $selected;
         }
 
-        return $allowed[0];
+        return '';
     }
 }

@@ -140,12 +140,8 @@
 
     /* Empty regionIds means the carrier operates everywhere. */
     function carrierInActiveRegion(carrier) {
-        var active = getActiveRegionId();
-        if (!active) {
-            return true;
-        }
         var list = carrier.regionIds || [];
-        return list.length === 0 || list.indexOf(active) !== -1;
+        return list.length === 0 || anyRegionInScope(list);   // point 95: all of a bound admin's regions
     }
 
     function buildRow(val) {

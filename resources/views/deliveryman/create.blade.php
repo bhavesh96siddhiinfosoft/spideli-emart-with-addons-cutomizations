@@ -231,7 +231,7 @@ foreach ($countries as $keycountry => $valuecountry) {
         /* A deliveryman belongs to a store, so they inherit that store's
          * region rather than being placed independently. */
         var storeRegion = vendorId ? vendorData.regionId : $('#store option:selected').data('region');
-        var driverRegionId = storeRegion ? storeRegion : getActiveRegionId();
+        var driverRegionId = storeRegion ? storeRegion : withRegion({}).regionId || '';   // point 95
                 
         if (userFirstName == '') {
             $(".error_top").show();

@@ -231,9 +231,8 @@ $service_type = @$_COOKIE['service_type'];
         </div>
         <div class="region-options">
             <select class="form-control text-dark" id="region_dropdown">
-                @if (empty($admin_user_regions))
+                {{-- Point 95: every admin can view "All Regions"; for an admin bound to regions it is all of theirs. --}}
                 <option value="">{{ trans('lang.all_regions') }}</option>
-                @endif
             </select>
         </div>
     </div>
