@@ -626,6 +626,7 @@
 
         var basePrice = 0;
         var orderBasePrice = 0;
+        var pscBase = 0;   // point 87: the earnings base the commission is taken on
         var orderTaxAmount = 0;
         var total_tax_amount = 0;
         var orderTaxAmountVendor = 0;
@@ -1456,6 +1457,9 @@
                                 database.collection('users').doc(vendorAuthor).update({
                                     'wallet_amount': parseFloat(newVendorWallet)
                                 }).then(async function(result) {
+                                    /* Point 87: after the credit, so the two wallet writes never cross. */
+                                    await takeProductServiceCommission({ collection: 'vendor_orders', orderId: id, base: pscBase,
+                                        userId: vendorAuthor, transactionUser: 'vendor', wallets: ['users/' + vendorAuthor] });
                                     callAjax(orderStatus);
                                 })
                             } else {
@@ -2134,6 +2138,7 @@
             }
 
             orderBasePrice = (basePrice - total_discount ) + (packagingChargeEnable ? packagingCharge : 0);
+            pscBase = Math.max(0, basePrice - total_discount);   // point 87: no packaging, tax or delivery
             orderRefundPrice = order_subtotal + deliveryCharge + tip_amount + (packagingChargeEnable ? packagingCharge : 0) + platformFee + orderTaxAmountCustomer;
 
             if (currencyAtRight) {
@@ -2143,6 +2148,7 @@
             }
             html = html + '<tr><td class="label"><small>{{ trans('lang.admin_commission') }} ' + adminCommHtml +
                 '</small> </td><td style="color:red"><small>( ' + adminCommission_val + ' )</small></td></tr>';
+            html = html + productServiceCommissionRow(snapshotsProducts, {!! json_encode(trans('lang.psc_title')) !!}, function (a) { return currencyAtRight ? parseFloat(a).toFixed(decimal_degits) + currentCurrency : currentCurrency + parseFloat(a).toFixed(decimal_degits); });   // point 87
             if (notes) {
                 html = html + '<tr><td class="label">{{ trans('lang.notes') }}</td><td class="adminCommission_val">' +
                     notes + '</td></tr>';

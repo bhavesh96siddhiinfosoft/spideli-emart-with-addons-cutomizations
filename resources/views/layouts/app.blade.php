@@ -2128,6 +2128,104 @@
             });
         }
 
+        /* ---- Admin Product & Service Commission, taken (client point 87) ------
+         *
+         * A second commission, paid by the store or provider out of their
+         * earnings; the customer's price does not change. Byte-identical in the
+         * website footer and the admin, store and provider layouts. Spec:
+         * APP-SPEC-ADMIN-PRODUCT-SERVICE-COMMISSION.md.
+         *
+         * Placing an order records the RULE that applies (master switch, then
+         * the store's / provider's own setting, then the section's):
+         *   productServiceCommissionType   "percentage" | "fixed" | null
+         *   productServiceCommissionValue  the rate, or the fixed value
+         * The screen that credits the earnings works out the AMOUNT on the base
+         * it credits - the store's / provider's own price after discounts, no
+         * tax, delivery, packaging or customer-paid commission - and takes it:
+         *   productServiceCommission       the amount, on the order
+         *   a wallet row "Admin Product & Service Commission Deducted"
+         * ------------------------------------------------------------------ */
+        function productServiceCommissionAmount(order, base, quantity) {
+            var value = parseFloat(order && order.productServiceCommissionValue) || 0;
+            base = Math.max(0, parseFloat(base) || 0);
+            if (!order || !order.productServiceCommissionType || !(value > 0) || !(base > 0)) {
+                return 0;
+            }
+            if (quantity == null) {
+                quantity = Array.isArray(order.products)
+                    ? order.products.reduce(function (t, p) { return t + (parseFloat(p && p.quantity) || 0); }, 0)
+                    : (parseFloat(order.quantity) || 1);
+            }
+            var amount = order.productServiceCommissionType === 'fixed' ? value * quantity : base * value / 100;
+            return Math.min(Math.round(amount * 100) / 100, base);
+        }
+
+        /* Takes it once, in a transaction: re-reads the order (never charges an
+         * order already charged), writes the amount and the wallet row, and
+         * lowers each `wallets` document's wallet_amount by it. Resolves to the
+         * amount taken (0 when none applies); never rejects, so it cannot
+         * block the status change it follows.
+         *   opts: { collection, orderId, base, quantity?, userId,
+         *           transactionUser: "vendor" | "provider", serviceType?, wallets? } */
+        function takeProductServiceCommission(opts) {
+            var db = firebase.firestore();
+            var orderRef = db.collection(opts.collection).doc(opts.orderId);
+            var walletRefs = (opts.wallets || []).map(function (path) { return db.doc(path); });
+            return db.runTransaction(function (tx) {
+                return Promise.all([tx.get(orderRef)].concat(walletRefs.map(function (r) { return tx.get(r); }))).then(function (snaps) {
+                    var order = snaps[0].exists ? snaps[0].data() : null;
+                    if (!order || (parseFloat(order.productServiceCommission) || 0) > 0) {
+                        return 0;
+                    }
+                    var amount = productServiceCommissionAmount(order, opts.base, opts.quantity);
+                    if (!(amount > 0)) {
+                        return 0;
+                    }
+                    var wId = db.collection('temp').doc().id;
+                    var row = {
+                        'amount': amount,
+                        'date': firebase.firestore.FieldValue.serverTimestamp(),
+                        'id': wId,
+                        'isTopUp': false,
+                        'note': 'Admin Product & Service Commission Deducted',
+                        'order_id': opts.orderId,
+                        'payment_method': 'Wallet',
+                        'payment_status': 'success',
+                        'transactionUser': opts.transactionUser,
+                        'user_id': opts.userId
+                    };
+                    if (opts.serviceType) {
+                        row.serviceType = opts.serviceType;
+                    }
+                    tx.set(db.collection('wallet').doc(wId), row);
+                    tx.update(orderRef, { 'productServiceCommission': amount });
+                    walletRefs.forEach(function (ref, i) {
+                        var snap = snaps[i + 1];
+                        if (snap.exists) {
+                            var balance = parseFloat(snap.data().wallet_amount) || 0;
+                            tx.update(ref, { 'wallet_amount': Number((balance - amount).toFixed(2)) });
+                        }
+                    });
+                    return amount;
+                });
+            }).catch(function (err) {
+                console.error('Admin Product & Service Commission not taken', err);
+                return 0;
+            });
+        }
+
+        /* A row for an order's totals: the rule, and the amount once taken. */
+        function productServiceCommissionRow(order, label, money) {
+            var value = parseFloat(order && order.productServiceCommissionValue) || 0;
+            if (!order || !order.productServiceCommissionType || !(value > 0)) {
+                return '';
+            }
+            var rate = order.productServiceCommissionType === 'fixed' ? money(value) + ' x' : value + '%';
+            var taken = parseFloat(order.productServiceCommission) || 0;
+            return '<tr><td class="label"><small>' + label + ' (' + rate + ')</small></td>'
+                + '<td style="color:red"><small>' + (taken > 0 ? '( ' + money(taken) + ' )' : '-') + '</small></td></tr>';
+        }
+
         /* ---- Addresses: never print the word "null" ----------------------
          *
          * Bug report 02 point 18: *"123 Yaounde St, null, Tsinga"*.
