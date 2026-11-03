@@ -3105,5 +3105,16 @@ return [
     'extra_charges_to_pay' => 'Still to pay',
     'extra_charge_not_ongoing' => 'Extra charges can be added only while the booking is ongoing.',
     'choose_region_to_edit' => 'Choisissez d\'abord une de vos régions en haut : « Toutes les régions » modifie les réglages de toutes les régions.',
+    'psc_title' => 'Commission admin sur produits et services',
+    'psc_note' => 'Prélevée sur les gains du magasin ou du prestataire. Le prix du client ne change pas.',
+    'psc_note_section' => 'Prélevée sur les gains des magasins et prestataires de cette section ; le prix du client ne change pas. Le réglage propre d\'un magasin ou prestataire remplace celui-ci.',
+    'psc_note_store' => 'Prélevée sur les gains de ce magasin ; le prix du client ne change pas. Activée, elle remplace celle de la section.',
+    'psc_note_provider' => 'Prélevée sur les gains de ce prestataire ; le prix du client ne change pas. Activée, elle remplace celle de la section.',
+    'psc_enable' => 'Activer la commission admin sur produits et services',
+    'psc_percentage' => 'Pourcentage (du prix après remises)',
+    'psc_fixed' => 'Fixe (pour chaque produit / service commandé)',
+    'psc_error' => 'Commission admin sur produits et services : saisissez une valeur supérieure à 0 (un pourcentage au plus 100).',
+    'psc_master_enable' => 'Activer la commission admin sur produits et services',
+    'psc_master_help' => 'Désactivée : aucune commission admin sur produits et services n\'est prélevée, quels que soient les réglages des sections, magasins et prestataires. Elle ne change pas la commission admin ci-dessus.',
 ];
 ?>

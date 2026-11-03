@@ -3105,5 +3105,16 @@ return [
     'extra_charges_to_pay' => 'Still to pay',
     'extra_charge_not_ongoing' => 'Extra charges can be added only while the booking is ongoing.',
     'choose_region_to_edit' => 'Choose one of your regions in the header first: "All Regions" changes the settings of every region.',
+    'psc_title' => 'Admin Product & Service Commission',
+    'psc_note' => 'Taken from the store\'s or provider\'s earnings. The customer\'s price does not change.',
+    'psc_note_section' => 'Taken from the earnings of this section\'s stores and providers; the customer\'s price does not change. A store\'s or provider\'s own setting replaces this one.',
+    'psc_note_store' => 'Taken from this store\'s earnings; the customer\'s price does not change. When switched on, it replaces the section\'s.',
+    'psc_note_provider' => 'Taken from this provider\'s earnings; the customer\'s price does not change. When switched on, it replaces the section\'s.',
+    'psc_enable' => 'Enable Admin Product & Service Commission',
+    'psc_percentage' => 'Percentage (of the price after discounts)',
+    'psc_fixed' => 'Fixed (for each product / service ordered)',
+    'psc_error' => 'Admin Product & Service Commission: enter a value above 0 (a percentage no more than 100).',
+    'psc_master_enable' => 'Enable Admin Product & Service Commission',
+    'psc_master_help' => 'Off: no Admin Product & Service Commission is taken anywhere, whatever the sections, stores and providers say. It does not affect the Admin Commission above.',
 ];
 ?>

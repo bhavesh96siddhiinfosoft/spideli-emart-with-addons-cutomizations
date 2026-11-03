@@ -115,6 +115,8 @@
                                 </div>
                         </fieldset>
 
+                        @include('partials.product_service_commission', ['note' => trans('lang.psc_note_provider')])
+
 
                         <fieldset>
                             <legend>{{trans('lang.active')}}</legend>
@@ -260,6 +262,7 @@
            
             $(".user_phone").val(user.phoneNumber);
             $(".user_phone").attr('disabled',true);
+            pscFill(user.productServiceCommission);   // point 87
             if (user.adminCommission) { 
                 $("#commission_type").val(user.adminCommission.type);
                 $(".commission_fix").val(user.adminCommission.commission);
@@ -380,6 +383,9 @@
             $(".error_top").append("<p>{{trans('lang.enter_owners_phone')}}</p>");
             window.scrollTo(0, 0);
 
+        } else if (!pscRead()) {   // point 87
+            $(".error_top").show().html("").append("<p>{{ trans('lang.psc_error') }}</p>");
+            window.scrollTo(0, 0);
         } else {
             var bankName = $("#bankName").val();
             var branchName = $("#branchName").val();
@@ -409,6 +415,7 @@
                     'isActive': active,
                     'userBankDetails': userBankDetails,
                     'adminCommission':adminCommission,
+                    'productServiceCommission': pscRead(),
                     'subscriptionExpiryDate': subscriptionPlanExpiryDate,
                    
 

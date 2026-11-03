@@ -304,6 +304,41 @@
             return globalAdminCommissionPromise;
         }
 
+        /* ---- Admin Product & Service Commission (client point 87, 3 Nov 2026) --
+         * A second commission, taken from the store's / provider's earnings;
+         * the customer's price does not change, and adminCommission is not
+         * touched. Stored as productServiceCommission { enable, type:
+         * "percentage" | "fixed", commission } on sections, vendors and users
+         * (providers). The box is partials/product_service_commission. */
+        function pscToggle() {
+            $('#psc_fields').toggle($('#psc_enable').is(':checked'));
+        }
+
+        function pscFill(value) {
+            value = value || {};
+            var on = value.enable === true;
+            $('#psc_enable').prop('checked', on);
+            $('#psc_type').val(value.type === 'fixed' ? 'fixed' : 'percentage');
+            $('#psc_value').val(on ? value.commission : '');
+            pscToggle();
+        }
+
+        /* The value to save, or null when it is invalid: switched on but not
+         * above 0, or a percentage above 100. */
+        function pscRead() {
+            if (!$('#psc_enable').is(':checked')) {
+                return { enable: false, type: null, commission: 0 };
+            }
+            var type = $('#psc_type').val() === 'fixed' ? 'fixed' : 'percentage';
+            var value = parseFloat($('#psc_value').val());
+            if (!(value > 0) || (type === 'percentage' && value > 100)) {
+                return null;
+            }
+            return { enable: true, type: type, commission: value };
+        }
+
+        $(document).on('change', '#psc_enable', pscToggle);
+
         function driverInSection(driver, sectionId, sectionType) {
             if (!driver || driver.isOwner === true) {
                 return false;

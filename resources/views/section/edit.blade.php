@@ -213,6 +213,7 @@
                             </div>
                         </div>
                     </fieldset>
+                    @include('partials.product_service_commission', ['note' => trans('lang.psc_note_section')])
                     <fieldset>
                         <legend><i class="mr-3 mdi mdi-cash-100"></i>{{ trans('lang.platform_fee_setting') }}</legend>
                         <div class="form-group row width-100">
@@ -370,6 +371,7 @@
                     if (section.hasOwnProperty('nearByRadius')) {
                         $("#vendor_nearby_radius").val(section.nearByRadius);
                     }
+                    pscFill(section.productServiceCommission);   // point 87
                     if (section.hasOwnProperty('adminCommision') && section.adminCommision != null && section.adminCommision.enable == true) {
                         $("#enable_commission").prop('checked', true);
                         $("#show_admin_commision_type_value").show();
@@ -540,6 +542,9 @@
                     $(".error_top").html("");
                     $(".error_top").append("<p>{{ trans('lang.commission_fix_error') }}</p>");
                     window.scrollTo(0, 0);
+                } else if (!pscRead()) {   // point 87
+                    $(".error_top").show().html("").append("<p>{{ trans('lang.psc_error') }}</p>");
+                    window.scrollTo(0, 0);
                 } else if (
                     (service_type === "Multivendor Delivery Service" ||
                     service_type === "On Demand Service" ||
@@ -567,6 +572,7 @@
                         'cab_service_template': htmlTemplate,
                         'referralAmount': referralAmount,
                         'adminCommision': adminCommision,
+                        'productServiceCommission': pscRead(),
                         'nearByRadius': vendor_nearby_radius,
                         'theme': app_homepage_theme,
                         'platformFee': platformFee,

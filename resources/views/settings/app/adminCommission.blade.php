@@ -45,6 +45,18 @@
 
               </fieldset>
 
+              {{-- Point 87: the master switch of the Admin Product & Service
+                   Commission, separate from "Enable Admin Commission" above.
+                   Stored in settings/AdminProductServiceCommission. --}}
+              <fieldset>
+                <legend>{{ trans('lang.psc_title') }}</legend>
+                    <div class="form-check width-100">
+                      <input type="checkbox" class="form-check-inline" id="enable_product_service_commission">
+                        <label class="col-8 control-label" for="enable_product_service_commission">{{ trans('lang.psc_master_enable') }}</label>
+                      <div class="form-text text-muted pl-4">{{ trans('lang.psc_master_help') }}</div>
+                    </div>
+              </fieldset>
+
               <fieldset>
                 <legend>{{trans('lang.delivery_commission')}}</legend>
 
@@ -106,6 +118,7 @@
     var ref = database.collection('settings').doc("AdminCommission");
     var ref_deliverycharge = database.collection('settings').doc("DeliveryCharge");
     var ref_parcel_pricing = database.collection('settings').doc("ParcelPricing");
+    var ref_product_service_commission = database.collection('settings').doc("AdminProductServiceCommission");
 
     var photo = "";
     $(document).ready(function(){
@@ -131,6 +144,10 @@
             $("#delivery_commission_value").val(adminCommissionSettings.deliveryCommissionValue);
             $("#delivery_commission_type").val(adminCommissionSettings.deliveryCommissionType || 'Percent');
         })
+        /* Point 87: a missing document = off. */
+        ref_product_service_commission.get().then(function (snap) {
+            $("#enable_product_service_commission").prop('checked', !!(snap.exists && snap.data().isEnabled === true));
+        });
         /* Missing document = off, which is what the apps assume. */
         ref_parcel_pricing.get().then(function (snap) {
             $("#parcel_commission_as_extra").prop('checked', !!(snap.exists && snap.data().commissionAsExtra === true));
@@ -162,6 +179,10 @@
                    settings may be added to it later. */
                 return ref_parcel_pricing.set({
                     'commissionAsExtra': $("#parcel_commission_as_extra").is(":checked")
+                }, { merge: true });
+            }).then(function () {
+                return ref_product_service_commission.set({
+                    'isEnabled': $("#enable_product_service_commission").is(":checked")
                 }, { merge: true });
             }).then(function(result) {
                       window.location.href = '{{ url("settings/app/adminCommission")}}';

@@ -164,6 +164,8 @@
                                     </div>
                                 </fieldset>
 
+                                @include('partials.product_service_commission', ['note' => trans('lang.psc_note_store')])
+
                                 <fieldset>
                                     <legend>{{ trans('lang.gallery') }}</legend>
 
@@ -1030,6 +1032,7 @@
                 $(".vendor_name").val(vendor.title);
 
                 $(".vendor_address").val(vendor.location);
+                pscFill(vendor.productServiceCommission);   // point 87
                 if (vendor.adminCommission) {
                     $("#commission_type").val(vendor.adminCommission.type);
                     $(".commission_fix").val(vendor.adminCommission.commission);
@@ -1729,6 +1732,9 @@
                     $(".error_top").html("");
                     $(".error_top").append("<p>{{ trans('lang.packagingCharge_error') }}</p>");
                     window.scrollTo(0, 0);
+                } else if (!pscRead()) {   // point 87
+                    $(".error_top").show().html("").append("<p>{{ trans('lang.psc_error') }}</p>");
+                    window.scrollTo(0, 0);
                 } else {
                     jQuery("#data-table_processing").show();
 
@@ -1759,6 +1765,7 @@
                                     'specialDiscount': specialDiscount,
                                     'workingHours': workingHours,
                                     'adminCommission': adminCommission,
+                                    'productServiceCommission': pscRead(),
                                     'isSelfDelivery': enable_self_delivery,
                                     'zoneId': zoneId,
                                     'regionId': storeRegionId,
