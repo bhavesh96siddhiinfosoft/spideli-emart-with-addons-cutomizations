@@ -330,9 +330,17 @@
                             const paginatedRecords = filteredRecords.slice(start, start + length);
 
                             await Promise.all(paginatedRecords.map(async (childData) => {
-                                childData.totalOrders = await orderDetails(childData.id, childData.serviceTypes);
-                                var getData = await buildHTML(childData);
-                                records.push(getData);
+                                /* Point 106: a driver without serviceTypes (older drivers keep one
+                                   serviceType) made orderDetails() throw, and one such row emptied
+                                   the whole page ("No Record Found" under a count of 15). Each row
+                                   is now built on its own: a row that still fails is skipped. */
+                                try {
+                                    childData.totalOrders = await orderDetails(childData.id, childData.serviceTypes || (childData.serviceType ? [childData.serviceType] : []));
+                                    var getData = await buildHTML(childData);
+                                    records.push(getData);
+                                } catch (err) {
+                                    console.error('Driver row skipped', childData.id, err);
+                                }
                             }));
                              $(function () {
                                 $('[data-toggle="tooltip"]').tooltip();
@@ -573,6 +581,7 @@
 
             async function orderDetails(driverId, serviceTypes) {
                 let totalOrders = 0;
+                serviceTypes = Array.isArray(serviceTypes) ? serviceTypes : [];   // point 106
                 if (serviceTypes.includes("cab-service") && sectionType == "cab-service") {
                     const ordersSnapshot = await database.collection('rides').where('driverId', '==', driverId).get();
                     totalOrders += ordersSnapshot.docs.length;
