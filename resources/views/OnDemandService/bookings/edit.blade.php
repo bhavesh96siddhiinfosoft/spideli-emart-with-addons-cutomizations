@@ -277,6 +277,7 @@
                                 </div>
                             </div>
                         </div>
+                        @include('OnDemandService.bookings.partials.tasks')
                         <div class="order_detail-review mt-4">
 
                             <div class="rental-review ">
@@ -1075,6 +1076,7 @@
 
 
                 var providerServiceDetail = await getProviderServiceDetail(order.provider.id);
+                initAdminTasks(order, providerServiceDetail || {});   // point 88, read only
 
 
                     var rating = 0;
@@ -1595,6 +1597,8 @@
                 database.collection('provider_orders').doc(id).get().then(function (fresh) {
                     if (unpaidExtraChargesTotal(fresh.data()) > 0) {
                         alert('{{trans("lang.extra_charges_payment_pending")}}');
+                    } else if ((parseFloat(fresh.data().tasksTotal) || 0) - (parseFloat(fresh.data().tasksPaid) || 0) > 0.004) {
+                        alert({!! json_encode(trans('lang.tasks_payment_pending')) !!});   // point 88
                     } else {
                         $('#addOtpModal').modal('show');
                     }
@@ -1973,5 +1977,6 @@
     }
 
 </script>
+@include('OnDemandService.bookings.partials.tasks_script')
 
 @endsection
