@@ -463,9 +463,11 @@
 
         } else if (redirect_type == "product") {
             redirect_id = $('#productId').val();
-            if (redirect_id == "") {
-                checkFlag = false;
-                checkFlagRedirection = "product";
+            /* Product is optional (5 Nov): with none chosen the banner is saved
+             * with no link, so the apps never open an empty product. */
+            if (redirect_id == "" || redirect_id === null) {
+                redirect_type = "";
+                redirect_id = "";
             }
 
         } else if (redirect_type == "external_link") {
@@ -508,11 +510,6 @@
               $(".error_top").show();
             $(".error_top").html("");
             $(".error_top").append("<p>{{trans('lang.set_store_error')}}</p>");
-            window.scrollTo(0, 0);
-        } else if(productId == '' && product_rd == true) {
-              $(".error_top").show();
-            $(".error_top").html("");
-            $(".error_top").append("<p>{{trans('lang.set_product_error')}}</p>");
             window.scrollTo(0, 0);
         } else if(ext == '' && ext_rd == true) {
               $(".error_top").show();
