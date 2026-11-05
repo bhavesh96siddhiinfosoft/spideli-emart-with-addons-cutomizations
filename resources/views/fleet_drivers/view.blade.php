@@ -155,6 +155,8 @@
         </div>
         <!-- Bank detail -->
         <div class="restaurant_info-section">
+            {{-- Point 104: level, progress and bonuses received. --}}
+            @include('driver_bonuses.partials.driver_card')
         </div>
         <div class="form-group col-12 text-center btm-btn">
             <a href="{!! route('drivers') !!}" class="btn btn-default"><i class="fa fa-undo"></i>{{trans('lang.cancel')}}</a>
@@ -222,6 +224,7 @@
 </div>
 @endsection
 @section('scripts')
+@include('driver_bonuses.partials.driver_card_scripts')
     <script type="text/javascript">
         var id = "{{$id}}";  
         var serviceType = getCookie('service_type');    
@@ -291,6 +294,8 @@
                         window.location.href = '{{ route('fleet.drivers') }}';
                         return;
                     }
+
+                    loadDriverBonusCard(id, dirver);   // point 104
 
                     if (dirver.isDocumentVerify === true) {
                         $('.verified-icon-heading').show();
