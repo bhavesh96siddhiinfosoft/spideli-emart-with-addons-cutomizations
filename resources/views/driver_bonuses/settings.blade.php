@@ -81,6 +81,10 @@
             + '<div class="table-responsive"><table class="table table-bordered bonus-levels"><thead><tr><th>{{ trans('lang.driver_level') }}</th>'
             + '<th>{{ trans('lang.driver_level_min_trips') }}</th><th>{{ trans('lang.driver_level_min_rating') }}</th>'
             + '<th>{{ trans('lang.driver_level_max_cancellation') }}</th><th>{{ trans('lang.driver_level_boost') }}</th></tr></thead><tbody>'
+            /* Bronze: every driver's starting level - no thresholds, only its boost. */
+            + '<tr><th>' + {!! json_encode(trans('lang.driver_level_bronze')) !!} + '</th>'
+            + '<td colspan="3" class="text-muted">' + {!! json_encode(trans('lang.driver_level_bronze_note')) !!} + '</td>'
+            + '<td><input type="number" min="0" max="100" step="any" class="form-control" id="bronze_boost_' + id + '"></td></tr>'
             + levelRow('silver', {!! json_encode(trans('lang.driver_level_silver')) !!})
             + levelRow('gold', {!! json_encode(trans('lang.driver_level_gold')) !!})
             + '</tbody></table></div>'
@@ -96,6 +100,7 @@
         $('#enabled_' + id).prop('checked', s.enabled === true);
         $('#max_week_' + id).val(show(s.maxPerWeek));
         $('#max_month_' + id).val(show(s.maxPerMonth));
+        $('#bronze_boost_' + id).val(show(s.levels && s.levels.bronze ? s.levels.bronze.bonusBoost : null));
         ['silver', 'gold'].forEach(function (level) {
             var l = (s.levels && s.levels[level]) || {};
             $('#' + level + '_trips_' + id).val(show(l.minTrips));
@@ -126,7 +131,8 @@
             'maxPerMonth': readNumber('#max_month_' + id, 0, null, false),
             'levels': {}
         };
-        var bad = Number.isNaN(out.maxPerWeek) || Number.isNaN(out.maxPerMonth);
+        out.levels.bronze = {'bonusBoost': readNumber('#bronze_boost_' + id, 0, 100, false)};
+        var bad = Number.isNaN(out.maxPerWeek) || Number.isNaN(out.maxPerMonth) || Number.isNaN(out.levels.bronze.bonusBoost);
         ['silver', 'gold'].forEach(function (level) {
             var l = {
                 'minTrips': readNumber('#' + level + '_trips_' + id, 0, null, true),

@@ -3241,6 +3241,7 @@ return [
     'driver_levels_help' => 'Every driver starts Bronze. On the 1st of each month, a driver who met the thresholds in the previous month becomes Silver or Gold; one who did not goes down. Blank = not required. The bonus boost is added to every bonus the driver earns.',
     'driver_level' => 'Level',
     'driver_level_bronze' => 'Bronze',
+    'driver_level_bronze_note' => 'Every driver - the starting level. No requirement.',
     'driver_level_silver' => 'Silver',
     'driver_level_gold' => 'Gold',
     'driver_level_min_trips' => 'Completed trips in the month',
