@@ -3274,5 +3274,7 @@ return [
     'driver_bonus_reason_rating' => 'Rating below the minimum',
     'driver_bonus_reason_cancellation' => 'Too many cancellations',
     'driver_bonus_reason_level' => 'Level too low for this rule',
+    'driver_bonus_paid_to_company' => 'Paid to the company',
+    'driver_bonus_reason_company_missing' => 'The driver’s company account was not found: nothing paid',
 ];
 ?>

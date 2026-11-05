@@ -81,7 +81,8 @@
     var REASON = {
         rating: {!! json_encode(trans('lang.driver_bonus_reason_rating')) !!},
         cancellation: {!! json_encode(trans('lang.driver_bonus_reason_cancellation')) !!},
-        level: {!! json_encode(trans('lang.driver_bonus_reason_level')) !!}
+        level: {!! json_encode(trans('lang.driver_bonus_reason_level')) !!},
+        company_missing: {!! json_encode(trans('lang.driver_bonus_reason_company_missing')) !!}
     };
     var LEVEL = {
         bronze: {!! json_encode(trans('lang.driver_level_bronze')) !!},
@@ -141,6 +142,9 @@
             var st = STATUS[r.status] || ['badge-secondary', r.status || ''];
             var done = (r.trips || 0) + ' {{ trans('lang.driver_bonus_trips_short') }} · ' + money(r.value, currency);
             var note = r.reason && REASON[r.reason] ? '<br><small class="text-muted">' + esc(REASON[r.reason]) + '</small>' : '';
+            if (r.paidToCompany && Number(r.bonus) > 0) {
+                note += '<br><small class="text-muted">' + esc({!! json_encode(trans('lang.driver_bonus_paid_to_company')) !!}) + '</small>';
+            }
             html += '<tr>'
                 + '<td>' + esc(name) + '</td>'
                 + '<td>' + esc(r.ruleName) + '</td>'

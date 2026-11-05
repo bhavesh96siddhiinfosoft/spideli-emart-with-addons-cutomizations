@@ -3276,5 +3276,7 @@ Format accepté : MP3',
     'driver_bonus_reason_rating' => 'Note inférieure au minimum',
     'driver_bonus_reason_cancellation' => 'Trop d’annulations',
     'driver_bonus_reason_level' => 'Niveau trop bas pour cette règle',
+    'driver_bonus_paid_to_company' => 'Versé à la société',
+    'driver_bonus_reason_company_missing' => 'Le compte de la société du chauffeur est introuvable : rien n’a été versé',
 ];
 ?>

@@ -152,6 +152,18 @@ class Calculator
         return ($count > 0 && $sum !== null) ? round($sum / $count, 2) : null;
     }
 
+    /** A store's own delivery man (the store / admin "Delivery man" screens set vendorID). Client, 5 Nov: no bonus. */
+    public static function isStoreDriver(array $driver)
+    {
+        return trim((string)($driver['vendorID'] ?? '')) !== '';
+    }
+
+    /** The company owner a driver works for (users.ownerId), or ''. Client, 5 Nov: the company gets the bonus. */
+    public static function companyOwnerId(array $driver)
+    {
+        return trim((string)($driver['ownerId'] ?? ''));
+    }
+
     public static function level(array $driver)
     {
         $l = (string)($driver['driverLevel'] ?? '');

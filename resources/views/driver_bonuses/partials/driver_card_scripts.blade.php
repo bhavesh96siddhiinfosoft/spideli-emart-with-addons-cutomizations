@@ -17,7 +17,8 @@
         var REASON = {
             rating: {!! json_encode(trans('lang.driver_bonus_reason_rating')) !!},
             cancellation: {!! json_encode(trans('lang.driver_bonus_reason_cancellation')) !!},
-            level: {!! json_encode(trans('lang.driver_bonus_reason_level')) !!}
+            level: {!! json_encode(trans('lang.driver_bonus_reason_level')) !!},
+            company_missing: {!! json_encode(trans('lang.driver_bonus_reason_company_missing')) !!}
         };
         function esc(v) {
             return $('<div></div>').text(v === undefined || v === null ? '' : v).html();
@@ -83,7 +84,8 @@
                 var total = paid.reduce(function (s, r) { return s + Number(r.bonus || 0); }, 0);
                 $('#driver_bonus_total').text({!! json_encode(trans('lang.driver_bonus_total')) !!}.replace(':amount', money(total)));
                 var rows = paid.slice(0, 10).map(function (r) {
-                    return '<tr><td>' + esc(r.periodKey) + '</td><td>' + esc(r.ruleName) + '</td><td><strong>' + esc(money(r.bonus)) + '</strong></td><td>' + esc(STATUS[r.status] || r.status) + '</td></tr>';
+                    return '<tr><td>' + esc(r.periodKey) + '</td><td>' + esc(r.ruleName) + '</td><td><strong>' + esc(money(r.bonus)) + '</strong></td><td>' + esc(STATUS[r.status] || r.status)
+                        + (r.paidToCompany ? '<br><small class="text-muted">' + esc({!! json_encode(trans('lang.driver_bonus_paid_to_company')) !!}) + '</small>' : '') + '</td></tr>';
                 }).join('');
                 $('#driver_bonus_received').removeClass('text-muted').html(
                     '<table class="table table-bordered driver-bonus-received-table mb-0"><thead><tr>'

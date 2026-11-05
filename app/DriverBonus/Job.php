@@ -98,8 +98,11 @@ class Job
             return ($r['publish'] ?? false) === true;
         }));
 
+        /* Client, 5 Nov (question 10): Spideli and company drivers only. A
+         * store's own delivery man (users.vendorID, set by the store / admin
+         * "Delivery man" screens) is paid by the store and is left out. */
         $drivers = array_values(array_filter($this->allDrivers(), function ($d) use ($regionId) {
-            return (string)($d['regionId'] ?? '') === $regionId;
+            return (string)($d['regionId'] ?? '') === $regionId && !Calculator::isStoreDriver($d);
         }));
 
         $trips = [];
@@ -184,6 +187,16 @@ class Job
                 return null;   // the driver's account is gone: nothing to credit
             }
             $u = $user['data'];
+            /* Client, 5 Nov (question 6): a company driver's bonus goes to the
+             * company - the owner's wallet (users.ownerId). */
+            $ownerId = Calculator::companyOwnerId($u);
+            $payee = null;
+            if ($ownerId !== '') {
+                $owner = $read('users/' . $ownerId);
+                $payee = $owner ? ['id' => $ownerId, 'data' => $owner['data']] : false;
+            } else {
+                $payee = ['id' => $driverId, 'data' => $u];
+            }
             $paidRows = $t ? $t->query('driver_bonus_results', [['driverId', '==', $driverId]])
                            : $this->db->query('driver_bonus_results', [['driverId', '==', $driverId]]);
             $alreadyPaid = 0.0;
@@ -197,6 +210,14 @@ class Job
             $level = Calculator::level($u);
             $rating = Calculator::rating($u);
             $res = Calculator::evaluate($rule, $stats, $rating, $level, $levels, $alreadyPaid, $max, $decimals);
+            if ($payee === false && $res['bonus'] > 0) {
+                // the company's account is gone: nothing is paid, and the admin sees why
+                $res['status'] = 'not_eligible';
+                $res['reason'] = 'company_missing';
+                $res['bonus'] = 0;
+            }
+            $res['paidTo'] = ($payee && $res['bonus'] > 0) ? $payee['id'] : null;
+            $res['paidToCompany'] = $ownerId !== '';
 
             $walletId = $res['bonus'] > 0 ? Audit::newId() : null;
             $doc = [
@@ -211,14 +232,17 @@ class Job
                 if ($res['bonus'] > 0) {
                     /* Read in this transaction and written as a number: an
                      * increment would overwrite a balance saved as text. */
-                    $balance = Calculator::num($u['wallet_amount'] ?? null) ?? 0.0;
-                    $t->update('users/' . $driverId, ['wallet_amount' => round($balance + $res['bonus'], 2)]);
+                    $balance = Calculator::num($payee['data']['wallet_amount'] ?? null) ?? 0.0;
+                    $t->update('users/' . $payee['id'], ['wallet_amount' => round($balance + $res['bonus'], 2)]);
+                    $driverName = trim(($u['firstName'] ?? '') . ' ' . ($u['lastName'] ?? ''));
                     $t->create('wallet/' . $walletId, [
-                        'id' => $walletId, 'user_id' => $driverId, 'amount' => (float)$res['bonus'],
+                        'id' => $walletId, 'user_id' => $payee['id'], 'amount' => (float)$res['bonus'],
                         'date' => Value::serverTimestamp(), 'isTopUp' => true, 'order_id' => '',
                         'payment_method' => 'Bonus', 'payment_status' => 'success',
                         'transactionUser' => 'driver', 'serviceType' => '', 'regionId' => $regionId,
-                        'note' => 'Bonus: ' . ($rule['name'] ?? '') . ' (' . $key . ')',
+                        'note' => 'Bonus: ' . ($rule['name'] ?? '') . ' (' . $key . ')'
+                            . ($ownerId !== '' ? ' - driver ' . ($driverName !== '' ? $driverName : $driverId) : ''),
+                        'driverId' => $driverId,
                     ]);
                 }
             }
@@ -233,10 +257,11 @@ class Job
         $this->line(sprintf('  %s %s | %s | %d trips, value %s | %s%s%s',
             $this->dryRun ? 'WOULD' : 'DONE', $key, $name, $res['trips'], $res['value'],
             $res['status'], $res['reason'] ? ' (' . $res['reason'] . ')' : '',
-            $res['bonus'] > 0 ? ' -> bonus ' . $res['bonus'] . ' ' . $symbol : ''));
+            $res['bonus'] > 0 ? ' -> bonus ' . $res['bonus'] . ' ' . $symbol . ($res['paidToCompany'] ? ' to the company' : '') : ''));
 
-        if (!$this->dryRun && $res['bonus'] > 0) {
-            $this->push($driverId, $res['bonus'], $symbol, (string)($rule['name'] ?? ''), $key);
+        // the push goes to whoever received the money: the driver, or the company owner
+        if (!$this->dryRun && $res['bonus'] > 0 && $res['paidTo']) {
+            $this->push($res['paidTo'], $res['bonus'], $symbol, (string)($rule['name'] ?? ''), $key);
         }
     }
 

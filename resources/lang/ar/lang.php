@@ -3084,5 +3084,7 @@ return [
     'driver_bonus_reason_rating' => 'التقييم أقل من الحد الأدنى',
     'driver_bonus_reason_cancellation' => 'إلغاءات كثيرة',
     'driver_bonus_reason_level' => 'المستوى أقل من المطلوب لهذه القاعدة',
+    'driver_bonus_paid_to_company' => 'دُفعت للشركة',
+    'driver_bonus_reason_company_missing' => 'لم يُعثر على حساب شركة السائق: لم يُدفع شيء',
 ];
 ?>
