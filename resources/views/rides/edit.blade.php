@@ -58,6 +58,8 @@
                                                     id="rideType"></span></label>
                                     </div>
 
+                                    @include('partials.traffic_pricing_detail')
+
                                     <div class="form-group row width-100 ">
                                         <label class="col-3 control-label">{{trans('lang.status')}}:</label>
                                         <div class="col-7">
@@ -373,6 +375,7 @@
         ref.get().then(async function (snapshots) {
 
             var ride = snapshots.docs[0].data();
+            renderTrafficPricing('#div_traffic_pricing', ride.trafficPricing);   // point 103
 
             /* A ride outside the region the admin is working in must not be
              * reachable by editing the url, the same guard the vendor and

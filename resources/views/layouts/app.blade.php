@@ -653,6 +653,70 @@
             return bad ? null : out;
         }
 
+        /* Point 103: one line explaining how traffic set an order's price,
+         * from the order's own trafficPricing block (written by the website
+         * and the apps, docs/APP-SPEC-TRAFFIC-PRICING.md section 5). The row
+         * stays hidden for orders without it. Amounts use the page's
+         * currentCurrency / currencyAtRight / decimal_degits; the page loads
+         * them on its own, so this waits briefly for them. */
+        function renderTrafficPricing(rowSelector, tp, attempt) {
+            var $row = $(rowSelector);
+            if (!tp || typeof tp !== 'object') {
+                $row.hide();
+                return;
+            }
+            attempt = attempt || 0;
+            var symbol = (typeof currentCurrency !== 'undefined' && currentCurrency) ? currentCurrency : '';
+            if (symbol === '' && attempt < 10) {
+                setTimeout(function () { renderTrafficPricing(rowSelector, tp, attempt + 1); }, 300);
+            }
+            var digits = (typeof decimal_degits !== 'undefined' && decimal_degits) ? parseInt(decimal_degits, 10) : 0;
+            var right = (typeof currencyAtRight !== 'undefined') && currencyAtRight;
+            function num(v) {
+                var n = parseFloat(v);
+                return isNaN(n) ? null : n;
+            }
+            function short(v) {
+                return String(Math.round(v * 100) / 100);
+            }
+            function money(v) {
+                var text = v.toFixed(digits);
+                return right ? text + symbol : symbol + text;
+            }
+            var parts = [];
+            var km = num(tp.distanceKm), perKm = num(tp.perKm);
+            if (km !== null) {
+                parts.push("{{ trans('lang.traffic_detail_distance') }}".replace(':km', short(km)).replace(':rate', perKm !== null ? money(perKm) : '-'));
+            }
+            var perMinute = num(tp.perMinute), est = num(tp.estimatedMinutes), actual = num(tp.actualMinutes);
+            if (perMinute !== null && perMinute > 0) {
+                parts.push(est !== null
+                    ? "{{ trans('lang.traffic_detail_time') }}".replace(':minutes', short(est)).replace(':rate', money(perMinute))
+                    : "{{ trans('lang.traffic_detail_no_time') }}");
+            }
+            if (actual !== null) {
+                parts.push("{{ trans('lang.traffic_detail_actual') }}".replace(':minutes', short(actual)));
+            }
+            var multiplier = num(tp.multiplier);
+            if (multiplier !== null && multiplier > 1) {
+                parts.push((tp.multiplierReason === 'busy_zone' ? "{{ trans('lang.traffic_detail_busy_zone') }}" : "{{ trans('lang.traffic_detail_busy_hour') }}")
+                    .replace(':multiplier', short(multiplier)));
+            }
+            var cap = num(tp.capPercent);
+            if (cap !== null) {
+                parts.push("{{ trans('lang.traffic_detail_cap') }}".replace(':percent', short(cap)));
+            }
+            var estimate = num(tp.estimate), finalPrice = num(tp.final);
+            if (estimate !== null) {
+                parts.push("{{ trans('lang.traffic_detail_estimate') }}".replace(':amount', money(estimate)));
+            }
+            if (finalPrice !== null && finalPrice !== estimate) {
+                parts.push("{{ trans('lang.traffic_detail_final') }}".replace(':amount', money(finalPrice)));
+            }
+            $row.find('.traffic-pricing-text').text(parts.join(' · '));
+            $row.toggle(parts.length > 0);
+        }
+
         async function getPublishedRegions(respectPermission) {
             var snapshots = await database.collection('regions').get();
 

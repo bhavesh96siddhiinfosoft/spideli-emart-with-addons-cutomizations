@@ -99,6 +99,8 @@
                                                         <label class="col-12 control-label"><strong>{{ trans('lang.order_type') }}
                                                                 :</strong> <span id="order_type"></span></label>
                                                     </div>
+
+                                    @include('partials.traffic_pricing_detail')
                                                     <div class="form-group row widt-100 gendetail-col schedule_date"></div>
                                                     <div class="form-group row widt-100 gendetail-col prepare_time"></div>
 
@@ -840,6 +842,7 @@
                 getUserReview(vendorOrder);
                 var order = snapshots.docs[0].data();
                 packagingChargeEnable = order.packagingChargeEnable;
+                renderTrafficPricing('#div_traffic_pricing', order.trafficPricing);   // point 103
                 orderCustomerId = order.authorID;
                 database.collection('zone').where('publish', '==', true)/* .where('sectionId', '==', order.vendor.section_id) */.orderBy('name', 'asc').get().then(async function(snapshots) {
                     snapshots.docs.forEach((listval) => {

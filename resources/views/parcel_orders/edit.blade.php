@@ -66,6 +66,8 @@
                                         </div>
                                     </div>
 
+                                    @include('partials.traffic_pricing_detail')
+
                                     <div class="form-group row widt-100 gendetail-col">
                                         <label class="col-12 control-label"><strong>{{trans('lang.date_created')}}
                                                 : </strong><span id="createdAt"></span></label>
@@ -1301,6 +1303,7 @@
             var productsListHTML = buildHTMLParcelList(order);
             var productstotalHTML = buildParcelTotal(order);
             renderParcelPricingDetails(order);
+            renderTrafficPricing('#div_traffic_pricing', order.trafficPricing);   // point 103
 
             if (productsListHTML != '') {
                 append_procucts_list.innerHTML = productsListHTML;

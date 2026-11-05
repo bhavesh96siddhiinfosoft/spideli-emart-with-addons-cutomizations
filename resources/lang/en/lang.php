@@ -3165,5 +3165,15 @@ return [
     'traffic_error_cap' => 'Traffic pricing: the cap must be a percentage of 0 or more, or blank.',
     'traffic_error_hour' => 'Busy hours: each line needs at least one day, a start and an end time that differ, and a multiplier from 1 to 10.',
     'traffic_error_zone' => 'Busy zones: each line needs a zone (once only) and a multiplier from 1 to 10.',
+    'traffic_detail_title' => 'Traffic pricing',
+    'traffic_detail_distance' => ':km km × :rate',
+    'traffic_detail_time' => ':minutes min × :rate',
+    'traffic_detail_no_time' => 'no trip time from Google',
+    'traffic_detail_actual' => 'actual :minutes min',
+    'traffic_detail_busy_hour' => 'busy hour ×:multiplier',
+    'traffic_detail_busy_zone' => 'busy zone ×:multiplier',
+    'traffic_detail_cap' => 'cap +:percent%',
+    'traffic_detail_estimate' => 'estimate :amount',
+    'traffic_detail_final' => 'final :amount',
 ];
 ?>

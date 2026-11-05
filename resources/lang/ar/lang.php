@@ -2975,5 +2975,15 @@ return [
     'traffic_error_cap' => 'التسعير حسب الزحام: الحد يجب أن يكون نسبة 0 أو أكثر، أو فارغًا.',
     'traffic_error_hour' => 'ساعات الذروة: كل سطر يحتاج يومًا واحدًا على الأقل، ووقت بداية ونهاية مختلفين، ومضاعفًا من 1 إلى 10.',
     'traffic_error_zone' => 'أماكن الذروة: كل سطر يحتاج منطقة (مرة واحدة) ومضاعفًا من 1 إلى 10.',
+    'traffic_detail_title' => 'التسعير حسب حركة المرور',
+    'traffic_detail_distance' => ':km كم × :rate',
+    'traffic_detail_time' => ':minutes دقيقة × :rate',
+    'traffic_detail_no_time' => 'لا توجد مدة رحلة من Google',
+    'traffic_detail_actual' => 'المدة الفعلية :minutes دقيقة',
+    'traffic_detail_busy_hour' => 'وقت الذروة ×:multiplier',
+    'traffic_detail_busy_zone' => 'منطقة مزدحمة ×:multiplier',
+    'traffic_detail_cap' => 'الحد الأقصى +:percent%',
+    'traffic_detail_estimate' => 'التقدير :amount',
+    'traffic_detail_final' => 'النهائي :amount',
 ];
 ?>

@@ -3165,5 +3165,15 @@ return [
     'traffic_error_cap' => 'Tarification selon le trafic : le plafond doit être un pourcentage de 0 ou plus, ou vide.',
     'traffic_error_hour' => 'Heures chargées : chaque ligne demande au moins un jour, une heure de début et de fin différentes, et un multiplicateur de 1 à 10.',
     'traffic_error_zone' => 'Zones chargées : chaque ligne demande une zone (une seule fois) et un multiplicateur de 1 à 10.',
+    'traffic_detail_title' => 'Tarif selon le trafic',
+    'traffic_detail_distance' => ':km km × :rate',
+    'traffic_detail_time' => ':minutes min × :rate',
+    'traffic_detail_no_time' => 'pas de durée de trajet de Google',
+    'traffic_detail_actual' => 'durée réelle :minutes min',
+    'traffic_detail_busy_hour' => 'heure de pointe ×:multiplier',
+    'traffic_detail_busy_zone' => 'zone chargée ×:multiplier',
+    'traffic_detail_cap' => 'plafond +:percent %',
+    'traffic_detail_estimate' => 'estimation :amount',
+    'traffic_detail_final' => 'final :amount',
 ];
 ?>
