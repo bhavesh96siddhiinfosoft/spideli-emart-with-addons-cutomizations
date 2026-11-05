@@ -23,6 +23,9 @@ class Kernel extends ConsoleKernel
         // Spideli Finance (Phase C): loans, tontines, savings - demo records are skipped.
         $schedule->command('finance:daily')->dailyAt('06:00')->withoutOverlapping();
         $schedule->command('finance:close-votes')->hourly()->withoutOverlapping();
+        // Point 104: driver bonuses and levels - twice a day, so a region in another time zone has its
+        // finished week / month closed within about 12 hours. Only regions switched on in Bonus settings.
+        $schedule->command('drivers:bonuses')->twiceDaily(3, 15)->withoutOverlapping();
     }
     /**
      * Register the commands for the application.
