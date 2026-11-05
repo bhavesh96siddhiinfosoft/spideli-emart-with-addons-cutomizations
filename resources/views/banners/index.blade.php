@@ -179,7 +179,13 @@
             } else {
                 html = html + '<td><img alt="" width="100%" style="width:70px;height:70px;" src="' + placeholderImage + '" alt="image"><a class="left_space" href="'+route1+'">'+val.title+'</a></td>';
             }
-            html=html+'<td>'+val.position+'</td>';
+            /* The position's name, not its stored value (bottom_up, ...). */
+            var positionNames = {
+                top: {!! json_encode(trans('lang.top')) !!}, middle: {!! json_encode(trans('lang.middle')) !!}, bottom: {!! json_encode(trans('lang.bottom')) !!},
+                bottom_up: {!! json_encode(trans('lang.banner_position_bottom_up')) !!}, bottom_right: {!! json_encode(trans('lang.banner_position_bottom_right')) !!},
+                bottom_left: {!! json_encode(trans('lang.banner_position_bottom_left')) !!}, bottom_down: {!! json_encode(trans('lang.banner_position_bottom_down')) !!}
+            };
+            html=html+'<td>'+$('<div></div>').text(positionNames[val.position] || val.position || positionNames.top).html()+'</td>';
             var sectionName = ';'
             if(val.sectionId != null && val.sectionId != ""){
                 sectionName = await getSectionName(val.sectionId);

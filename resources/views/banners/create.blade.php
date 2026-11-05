@@ -87,6 +87,11 @@
                                 <option value="middle">{{trans('lang.middle')}}</option>
                                 {{-- Point 86: a banner at the bottom of the app's home screen. --}}
                                 <option value="bottom">{{trans('lang.bottom')}}</option>
+                                {{-- 5 Nov: more places on the app's home screen. --}}
+                                <option value="bottom_up">{{trans('lang.banner_position_bottom_up')}}</option>
+                                <option value="bottom_right">{{trans('lang.banner_position_bottom_right')}}</option>
+                                <option value="bottom_left">{{trans('lang.banner_position_bottom_left')}}</option>
+                                <option value="bottom_down">{{trans('lang.banner_position_bottom_down')}}</option>
                             </select>
                         </div>
                     </div>
