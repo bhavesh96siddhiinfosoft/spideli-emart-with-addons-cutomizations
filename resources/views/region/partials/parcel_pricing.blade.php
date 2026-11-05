@@ -17,6 +17,8 @@
         ['parcel_point_collection_charge', 'region_parcel_point_collection_charge', 'any'],
         ['parcel_intercity_fixed_tax',     'region_parcel_intercity_fixed_tax',     'any'],
         ['parcel_intercountry_fixed_tax', 'region_parcel_intercountry_fixed_tax', 'any'],
+        /* Point 103: a price per minute of the trip, added to the carriage. */
+        ['parcel_per_minute_charge',      'region_parcel_per_minute_charge',      'any'],
     ];
 @endphp
 <fieldset id="region_parcel_pricing">

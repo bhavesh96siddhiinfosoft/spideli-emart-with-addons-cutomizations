@@ -236,7 +236,10 @@
         { key: 'homePickupCharge',      parcel: true, label: "{{ trans('lang.region_parcel_home_pickup_charge') }}", help: '' },
         { key: 'pointDropoffCharge',    parcel: true, label: "{{ trans('lang.region_parcel_point_dropoff_charge') }}", help: '' },
         { key: 'homeDeliveryCharge',    parcel: true, label: "{{ trans('lang.region_parcel_home_delivery_charge') }}", help: '' },
-        { key: 'pointCollectionCharge', parcel: true, label: "{{ trans('lang.region_parcel_point_collection_charge') }}", help: '' }
+        { key: 'pointCollectionCharge', parcel: true, label: "{{ trans('lang.region_parcel_point_collection_charge') }}", help: '' },
+        /* Point 103: a price per minute of the trip; blank = the region's default. */
+        { key: 'perMinuteCharge',       parcel: true, label: "{{ trans('lang.region_parcel_per_minute_charge') }}",
+          help: "{{ trans('lang.region_parcel_per_minute_charge_help') }}" }
     ];
 
     /* Each region's own defaults, so an empty box can say what it falls back

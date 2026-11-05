@@ -92,6 +92,12 @@
 								<input type="number" class="form-control" id="minimum_delivery_charges_within_km">
 							</div>
 						</div>
+						{{-- Point 103: a price per minute of the trip, per region (vehicle_type.pricePerMinute). --}}
+						<div class="form-group row width-100">
+							<label class="col-4 control-label">{{ trans('lang.price_per_minute') }}</label>
+							<div class="col-7"><div class="form-text text-muted">{{ trans('lang.price_per_minute_vehicle_help') }}</div></div>
+						</div>
+						<div id="vehicle_price_per_minute"></div>
 					</fieldset>
 				</div>
 			</div>
@@ -109,10 +115,19 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script type="text/javascript">
 	var database = firebase.firestore();
+	var vehiclePricePerMinute = {};   // point 103: the saved price per minute, by region
 	var photo = "";
 	var fileName = "";
 	
+	regionNumbersRender('vehicle_price_per_minute', {});   // point 103
+
 	$(".save-setting-btn").click(function () {
+		var pricePerMinute = regionNumbersRead('vehicle_price_per_minute', vehiclePricePerMinute);   // point 103
+		if (pricePerMinute === null) {
+			$(".error_top").show().html("").append("<p>{{ trans('lang.price_per_minute_error') }}</p>");
+			window.scrollTo(0, 0);
+			return false;
+		}
 		var name = $(".name").val();
 		var capacity = $('.capacity').val();
 		var short_description = $('.short_description').val();
@@ -160,7 +175,7 @@
 				database.collection('vehicle_type').doc(id).set({
 					'id': id, 'name': name, 'capacity': capacity,
 					'sectionId': section, 'short_description': short_description, 'description': description, 'supported_vehicle': supported_vehicle, 'vehicle_icon': IMG, 'isActive': active,
-					'delivery_charges_per_km': delivery_charges_per_km, 'minimum_delivery_charges': minimum_delivery_charges, 'minimum_delivery_charges_within_km': minimum_delivery_charges_within_km
+					'delivery_charges_per_km': delivery_charges_per_km, 'minimum_delivery_charges': minimum_delivery_charges, 'minimum_delivery_charges_within_km': minimum_delivery_charges_within_km, 'pricePerMinute': pricePerMinute
 				}).then(function (result) {
 					jQuery("#data-table_processing").hide();
 					window.location.href = '{{ route("vehicleType") }}';

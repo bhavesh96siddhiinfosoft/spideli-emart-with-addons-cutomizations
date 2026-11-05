@@ -221,6 +221,12 @@
 
 						</div>
 
+						{{-- Point 103: a price per minute of the trip, per region (vehicle_type.pricePerMinute). --}}
+						<div class="form-group row width-100">
+							<label class="col-4 control-label">{{ trans('lang.price_per_minute') }}</label>
+							<div class="col-7"><div class="form-text text-muted">{{ trans('lang.price_per_minute_vehicle_help') }}</div></div>
+						</div>
+						<div id="vehicle_price_per_minute"></div>
 					</fieldset>
 
 				</div>
@@ -272,6 +278,7 @@
 
 
 	var database = firebase.firestore();
+	var vehiclePricePerMinute = {};   // point 103: the saved price per minute, by region
 
 	var photo = "";
 
@@ -358,6 +365,9 @@
 
 
 
+			vehiclePricePerMinute = vehicleType.pricePerMinute || {};   // point 103
+			regionNumbersRender('vehicle_price_per_minute', vehiclePricePerMinute);
+
 			if (vehicleType.delivery_charges_per_km) {
 
 				$("#delivery_charges_per_km").val(vehicleType.delivery_charges_per_km);
@@ -389,6 +399,12 @@
 
 
 	$(".edit-setting-btn").click(function () {
+		var pricePerMinute = regionNumbersRead('vehicle_price_per_minute', vehiclePricePerMinute);   // point 103
+		if (pricePerMinute === null) {
+			$(".error_top").show().html("").append("<p>{{ trans('lang.price_per_minute_error') }}</p>");
+			window.scrollTo(0, 0);
+			return false;
+		}
 
 
 
@@ -489,7 +505,7 @@
 
 					'id': id, 'name': name, 'capacity': capacity, 'sectionId': section, 'short_description': short_description, 'description': description, 'supported_vehicle': supported_vehicle, 'vehicle_icon': photo, 'isActive': active,
 
-					'delivery_charges_per_km': delivery_charges_per_km, 'minimum_delivery_charges': minimum_delivery_charges, 'minimum_delivery_charges_within_km': minimum_delivery_charges_within_km
+					'delivery_charges_per_km': delivery_charges_per_km, 'minimum_delivery_charges': minimum_delivery_charges, 'minimum_delivery_charges_within_km': minimum_delivery_charges_within_km, 'pricePerMinute': pricePerMinute
 
 				}).then(function (result) {
 

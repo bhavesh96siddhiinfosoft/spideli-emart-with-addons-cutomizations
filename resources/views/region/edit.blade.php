@@ -111,6 +111,7 @@
                         </fieldset>
 
                         @include('region.partials.parcel_pricing')
+                        @include('region.partials.traffic_pricing')
                     </div>
                 </div>
                 <div class="form-group col-12 text-center btm-btn">
@@ -128,6 +129,7 @@
 @endsection
 @section('scripts')
 @include('region.partials.parcel_pricing_scripts')
+@include('region.partials.traffic_pricing_scripts')
 @include('region.partials.finance_seed')
 <script>var financeWasEnabled = false;</script>
 <script type="text/javascript">
@@ -205,6 +207,7 @@
         $('#currency_id').val(region.currencyId || '');
         $('#parcel_sms_fee').val(region.parcelSmsFee !== undefined ? region.parcelSmsFee : 0);
         fillRegionParcelPricing(region.parcelPricing);
+        fillRegionTrafficPricing(region.trafficPricing);   // point 103
 
         originalZoneIds = region.zoneIds || [];
         $('#zone_ids').val(originalZoneIds);
@@ -277,6 +280,11 @@
         if (parcelPricing === null) {
             return false;
         }
+        /* Point 103: null means a value is wrong; the error is shown under the section. */
+        var trafficPricing = regionTrafficPricingForSave();
+        if (trafficPricing === null) {
+            return false;
+        }
 
         jQuery("#overlay").show();
 
@@ -303,6 +311,7 @@
             'currencyId': currencyId || '',
             'parcelSmsFee': parcelSmsFee,
             'parcelPricing': parcelPricing,
+            'trafficPricing': trafficPricing,
             'zoneIds': zoneIds,
             'publish': publish,
             'financeEnabled': financeEnabled,

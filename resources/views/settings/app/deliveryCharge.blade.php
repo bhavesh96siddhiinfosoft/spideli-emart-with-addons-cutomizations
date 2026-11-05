@@ -37,6 +37,14 @@
                                 <input type="number" class="form-control" id="delivery_charges_per_km">
                             </div>
                         </div>
+                        {{-- Point 103: a price per minute of the trip. --}}
+                        <div class="form-group row width-100">
+                            <label class="col-4 control-label">{{ trans('lang.price_per_minute')}}</label>
+                            <div class="col-7">
+                                <input type="number" step="any" min="0" class="form-control" id="per_minute_charge">
+                                <div class="form-text text-muted">{{ trans('lang.price_per_minute_delivery_help')}}</div>
+                            </div>
+                        </div>
                         <div class="form-group row width-100">
                             <label class="col-4 control-label">{{ trans('lang.minimum_delivery_charges')}}</label>
                             <div class="col-7">
@@ -67,6 +75,7 @@
                         <tr>
                             <th>{{ trans('lang.region_name')}}</th>
                             <th>{{ trans('lang.delivery_charges_per')}}</th>
+                            <th>{{ trans('lang.price_per_minute')}}</th>
                             <th>{{ trans('lang.minimum_delivery_charges')}}</th>
                             <th>{{ trans('lang.minimum_delivery_charges_within')}}</th>
                             <th>{{ trans('lang.status')}}</th>
@@ -165,6 +174,7 @@
 
         $("#vendor_can_modify").prop('checked', values.vendor_can_modify ? true : false);
         $("#delivery_charges_per_km").val(values.delivery_charges_per_km);
+        $("#per_minute_charge").val(values.per_minute_charge !== undefined && values.per_minute_charge !== null ? values.per_minute_charge : '');
         $("#minimum_delivery_charges").val(values.minimum_delivery_charges);
         $("#minimum_delivery_charges_within_km").val(values.minimum_delivery_charges_within_km);
 
@@ -174,7 +184,7 @@
     /* Ticking "use the global charge" leaves nothing to edit for this region. */
     function toggleFields() {
         var disabled = getActiveRegionId() != '' && $('#use_global').is(':checked');
-        $('#vendor_can_modify, #delivery_charges_per_km, #minimum_delivery_charges, #minimum_delivery_charges_within_km')
+        $('#vendor_can_modify, #delivery_charges_per_km, #per_minute_charge, #minimum_delivery_charges, #minimum_delivery_charges_within_km')
             .prop('disabled', disabled);
     }
 
@@ -182,6 +192,7 @@
         if ($(this).is(':checked')) {
             $("#vendor_can_modify").prop('checked', deliveryChargeSettings.vendor_can_modify ? true : false);
             $("#delivery_charges_per_km").val(deliveryChargeSettings.delivery_charges_per_km);
+            $("#per_minute_charge").val(deliveryChargeSettings.per_minute_charge !== undefined ? deliveryChargeSettings.per_minute_charge : '');
             $("#minimum_delivery_charges").val(deliveryChargeSettings.minimum_delivery_charges);
             $("#minimum_delivery_charges_within_km").val(deliveryChargeSettings.minimum_delivery_charges_within_km);
         }
@@ -206,6 +217,7 @@
             html += '<tr>';
             html += '<td>' + region.name + '</td>';
             html += '<td>' + (v.delivery_charges_per_km !== undefined ? v.delivery_charges_per_km : '') + '</td>';
+            html += '<td>' + (v.per_minute_charge !== undefined ? v.per_minute_charge : '') + '</td>';
             html += '<td>' + (v.minimum_delivery_charges !== undefined ? v.minimum_delivery_charges : '') + '</td>';
             html += '<td>' + (v.minimum_delivery_charges_within_km !== undefined ? v.minimum_delivery_charges_within_km : '') + '</td>';
             html += '<td>' + (o ? "{{ trans('lang.delivery_charge_own') }}" : "{{ trans('lang.delivery_charge_inherited') }}") + '</td>';
@@ -227,6 +239,7 @@
         var payload = {
             'vendor_can_modify': $("#vendor_can_modify").is(":checked"),
             'delivery_charges_per_km': parseInt($("#delivery_charges_per_km").val()),
+            'per_minute_charge': Math.max(0, parseFloat($("#per_minute_charge").val()) || 0),   // point 103
             'minimum_delivery_charges': parseInt($("#minimum_delivery_charges").val()),
             'minimum_delivery_charges_within_km': parseInt($("#minimum_delivery_charges_within_km").val())
         };

@@ -17,7 +17,8 @@
         {id: 'parcel_home_delivery_charge',    key: 'homeDeliveryCharge',    suggested: 0},
         {id: 'parcel_point_collection_charge', key: 'pointCollectionCharge', suggested: 0},
         {id: 'parcel_intercity_fixed_tax',     key: 'intercityFixedTax',     suggested: 5000},
-        {id: 'parcel_intercountry_fixed_tax',  key: 'intercountryFixedTax', suggested: 5000}
+        {id: 'parcel_intercountry_fixed_tax',  key: 'intercountryFixedTax', suggested: 5000},
+        {id: 'parcel_per_minute_charge',       key: 'perMinuteCharge',      suggested: 0}   // point 103
     ];
 
     /* Every charge here is in THIS REGION'S currency - the one chosen in the

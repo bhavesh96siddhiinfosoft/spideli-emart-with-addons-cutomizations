@@ -111,6 +111,7 @@
                         </fieldset>
 
                         @include('region.partials.parcel_pricing')
+                        @include('region.partials.traffic_pricing')
                     </div>
                 </div>
                 <div class="form-group col-12 text-center btm-btn">
@@ -128,6 +129,7 @@
 @endsection
 @section('scripts')
 @include('region.partials.parcel_pricing_scripts')
+@include('region.partials.traffic_pricing_scripts')
 @include('region.partials.finance_seed')
 <script type="text/javascript">
     var database = firebase.firestore();
@@ -164,6 +166,7 @@
         /* A new region starts from the suggested values. The "not saved yet"
            note is for existing regions only - here nothing is saved yet. */
         fillRegionParcelPricing(null);
+        fillRegionTrafficPricing(null);   // point 103
         $('#region_parcel_pricing_unsaved').hide();
 
         jQuery("#data-table_processing").show();
@@ -236,6 +239,11 @@
         if (parcelPricing === null) {
             return false;
         }
+        /* Point 103: null means a value is wrong; the error is shown under the section. */
+        var trafficPricing = regionTrafficPricingForSave();
+        if (trafficPricing === null) {
+            return false;
+        }
 
         jQuery("#overlay").show();
 
@@ -260,6 +268,7 @@
             'currencyId': currencyId || '',
             'parcelSmsFee': parcelSmsFee,
             'parcelPricing': parcelPricing,
+            'trafficPricing': trafficPricing,
             'zoneIds': zoneIds,
             'publish': publish,
             'financeEnabled': financeEnabled,

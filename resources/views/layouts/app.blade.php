@@ -615,6 +615,44 @@
          * Regions are a short list, so they are filtered and sorted here rather
          * than in the query. Combining where('publish') with orderBy('name')
          * would demand a composite index for a handful of documents. */
+        /* ---- A number per region (client point 103, 5 Nov 2026) -----------
+         * e.g. vehicle_type.pricePerMinute = { "<regionId>": 2 }. Renders one
+         * box per region the admin may work in; reading back keeps the values
+         * of regions the admin cannot see. A blank box removes that region
+         * (= none, 0). regionNumbersRead returns null when a box is not a
+         * number of 0 or more. */
+        async function regionNumbersRender(containerId, values) {
+            values = values && typeof values === 'object' ? values : {};
+            var regions = await getPublishedRegions();
+            var html = regions.map(function (region) {
+                var value = values[region.id];
+                return '<div class="form-group row width-50"><label class="col-4 control-label">' + $('<div>').text(region.name || region.id).html() + '</label>'
+                    + '<div class="col-7"><input type="number" step="any" min="0" class="form-control region-number" data-region="' + region.id + '" value="'
+                    + (value === null || value === undefined ? '' : value) + '"></div></div>';
+            }).join('');
+            $('#' + containerId).html(html);
+        }
+
+        function regionNumbersRead(containerId, previous) {
+            var out = Object.assign({}, previous && typeof previous === 'object' ? previous : {});
+            var bad = false;
+            $('#' + containerId + ' .region-number').each(function () {
+                var regionId = $(this).data('region');
+                var raw = String($(this).val() || '').trim();
+                if (raw === '') {
+                    delete out[regionId];
+                    return;
+                }
+                var n = Number(raw);
+                if (!isFinite(n) || n < 0) {
+                    bad = true;
+                    return;
+                }
+                out[regionId] = n;
+            });
+            return bad ? null : out;
+        }
+
         async function getPublishedRegions(respectPermission) {
             var snapshots = await database.collection('regions').get();
 
