@@ -846,6 +846,22 @@ Route::middleware(['permission:pickup-point,pickup-point.create'])->group(functi
 Route::middleware(['permission:pickup-point,pickup-point.edit'])->group(function () {
     Route::get('/pickup-points/edit/{id}', [App\Http\Controllers\PickupPointController::class, 'edit'])->name('pickup-points.edit');
 });
+/* Point 104 - driver bonuses and levels. */
+Route::middleware(['permission:driver-bonus,driver-bonus.list'])->group(function () {
+    Route::get('driver-bonuses', [App\Http\Controllers\DriverBonusController::class, 'index'])->name('driver-bonuses');
+});
+Route::middleware(['permission:driver-bonus,driver-bonus.create'])->group(function () {
+    Route::get('/driver-bonuses/create', [App\Http\Controllers\DriverBonusController::class, 'create'])->name('driver-bonuses.create');
+});
+Route::middleware(['permission:driver-bonus,driver-bonus.edit'])->group(function () {
+    Route::get('/driver-bonuses/edit/{id}', [App\Http\Controllers\DriverBonusController::class, 'edit'])->name('driver-bonuses.edit');
+});
+Route::middleware(['permission:driver-bonus,driver-bonus.settings'])->group(function () {
+    Route::get('/driver-bonuses/settings', [App\Http\Controllers\DriverBonusController::class, 'settings'])->name('driver-bonuses.settings');
+});
+Route::middleware(['permission:driver-bonus,driver-bonus.results'])->group(function () {
+    Route::get('/driver-bonuses/results', [App\Http\Controllers\DriverBonusController::class, 'results'])->name('driver-bonuses.results');
+});
 Route::middleware(['permission:service-group,service-group.list'])->group(function () {
     Route::get('service-groups', [App\Http\Controllers\ServiceGroupController::class, 'index'])->name('service-groups');
 });

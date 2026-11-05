@@ -86,6 +86,25 @@
                                                         <label class=" control-label2" for="carrier-delete">{{ trans('lang.delete') }}</label>
                                                     </td>
                                                 </tr>
+                                                <tr>
+                                                    <td>
+                                                        <strong>{{ trans('lang.driver_bonus_plural') }}</strong>
+                                                    </td>
+                                                    <td>
+                                                        <input type="checkbox" id="driver-bonus-list" value="driver-bonus.list" name="driver-bonus[]" class="permission" {{ in_array('driver-bonus.list', $permissions) ? 'checked' : '' }}>
+                                                        <label class=" control-label2" for="driver-bonus-list">{{ trans('lang.list') }}</label>
+                                                        <input type="checkbox" id="driver-bonus-create" value="driver-bonus.create" name="driver-bonus[]" class="permission" {{ in_array('driver-bonus.create', $permissions) ? 'checked' : '' }}>
+                                                        <label class=" control-label2" for="driver-bonus-create">{{ trans('lang.create') }}</label>
+                                                        <input type="checkbox" id="driver-bonus-edit" value="driver-bonus.edit" name="driver-bonus[]" class="permission" {{ in_array('driver-bonus.edit', $permissions) ? 'checked' : '' }}>
+                                                        <label class=" control-label2" for="driver-bonus-edit">{{ trans('lang.edit') }}</label>
+                                                        <input type="checkbox" id="driver-bonus-delete" value="driver-bonus.delete" name="driver-bonus[]" class="permission" {{ in_array('driver-bonus.delete', $permissions) ? 'checked' : '' }}>
+                                                        <label class=" control-label2" for="driver-bonus-delete">{{ trans('lang.delete') }}</label>
+                                                        <input type="checkbox" id="driver-bonus-settings" value="driver-bonus.settings" name="driver-bonus[]" class="permission" {{ in_array('driver-bonus.settings', $permissions) ? 'checked' : '' }}>
+                                                        <label class=" control-label2" for="driver-bonus-settings">{{ trans('lang.driver_bonus_settings') }}</label>
+                                                        <input type="checkbox" id="driver-bonus-results" value="driver-bonus.results" name="driver-bonus[]" class="permission" {{ in_array('driver-bonus.results', $permissions) ? 'checked' : '' }}>
+                                                        <label class=" control-label2" for="driver-bonus-results">{{ trans('lang.driver_bonus_results') }}</label>
+                                                    </td>
+                                                </tr>
                                              <tr>
                                                 <td>
                                                     <strong>{{ trans('lang.zone') }}</strong>

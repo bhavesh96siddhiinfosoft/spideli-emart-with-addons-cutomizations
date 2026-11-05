@@ -87,6 +87,25 @@
                                                 </tr>
                                                 <tr>
                                                     <td>
+                                                        <strong>{{ trans('lang.driver_bonus_plural') }}</strong>
+                                                    </td>
+                                                    <td>
+                                                        <input type="checkbox" id="driver-bonus-list" value="driver-bonus.list" name="driver-bonus[]" class="permission">
+                                                        <label class=" control-label2" for="driver-bonus-list">{{ trans('lang.list') }}</label>
+                                                        <input type="checkbox" id="driver-bonus-create" value="driver-bonus.create" name="driver-bonus[]" class="permission">
+                                                        <label class=" control-label2" for="driver-bonus-create">{{ trans('lang.create') }}</label>
+                                                        <input type="checkbox" id="driver-bonus-edit" value="driver-bonus.edit" name="driver-bonus[]" class="permission">
+                                                        <label class=" control-label2" for="driver-bonus-edit">{{ trans('lang.edit') }}</label>
+                                                        <input type="checkbox" id="driver-bonus-delete" value="driver-bonus.delete" name="driver-bonus[]" class="permission">
+                                                        <label class=" control-label2" for="driver-bonus-delete">{{ trans('lang.delete') }}</label>
+                                                        <input type="checkbox" id="driver-bonus-settings" value="driver-bonus.settings" name="driver-bonus[]" class="permission">
+                                                        <label class=" control-label2" for="driver-bonus-settings">{{ trans('lang.driver_bonus_settings') }}</label>
+                                                        <input type="checkbox" id="driver-bonus-results" value="driver-bonus.results" name="driver-bonus[]" class="permission">
+                                                        <label class=" control-label2" for="driver-bonus-results">{{ trans('lang.driver_bonus_results') }}</label>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
                                                         <strong>{{ trans('lang.zone') }}</strong>
                                                     </td>
                                                     <td>

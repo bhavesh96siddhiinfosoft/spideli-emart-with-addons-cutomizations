@@ -31,6 +31,8 @@ class GrantRegionPermissions extends Command
             'region' => ['region.list', 'region.create', 'region.edit', 'region.delete', 'region.backfill'],
             'carrier' => ['carrier.list', 'carrier.create', 'carrier.edit', 'carrier.delete'],
             'pickup-point' => ['pickup-point.list', 'pickup-point.create', 'pickup-point.edit', 'pickup-point.delete'],
+            /* Point 104 - driver bonuses and levels. */
+            'driver-bonus' => ['driver-bonus.list', 'driver-bonus.create', 'driver-bonus.edit', 'driver-bonus.delete', 'driver-bonus.settings', 'driver-bonus.results'],
             'service-group' => ['service-group.list', 'service-group.create', 'service-group.edit', 'service-group.delete'],
             'business-account' => ['business-account.list', 'business-account.review'],
             'order-history' => ['settings.app.orderHistory'],

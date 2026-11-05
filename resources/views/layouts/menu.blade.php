@@ -175,7 +175,16 @@ $service_type = @$_COOKIE['service_type'];
                     </a>
                 </li>
                 @endif
-               
+
+                {{-- Point 104 - driver bonuses and levels. --}}
+                @if (in_array('driver-bonus', $role_has_permission))
+                <li><a class="waves-effect waves-dark" href="{!! route('driver-bonuses') !!}" aria-expanded="false">
+                        <i class="mdi mdi-trophy"></i>
+                        <span class="hide-menu">{{ trans('lang.driver_bonus_plural') }}</span>
+                    </a>
+                </li>
+                @endif
+
             @endif
             @endif
         @endif
