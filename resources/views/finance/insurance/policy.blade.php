@@ -23,6 +23,7 @@
                     __('Status') => $status . (!empty($p['reason']) ? ' - ' . $p['reason'] : ''),
                     __('Policy number') => $p['policyNumber'] ?? '',
                     __('Cover') => $day($p['coverStart'] ?? null) . ' → ' . $day($p['coverEnd'] ?? null),
+                    __('Spideli brokerage') => isset($p['brokeragePercent']) ? rtrim(rtrim(number_format((float)$p['brokeragePercent'], 2, '.', ''), '0'), '.') . ' %' . ' · ' . __('the rest of each premium is set aside for the insurer') : __('fixed when the policy is activated'),
                     __('Premium (a year)') => Money::format((int)($p['premium'] ?? 0), $cur),
                     __('Each payment') => Money::format((int)($p['installmentAmount'] ?? 0), $cur) . ' · ' . ($p['frequency'] ?? ''),
                     __('Deductible') => Money::format((int)($p['deductible'] ?? 0), $cur),

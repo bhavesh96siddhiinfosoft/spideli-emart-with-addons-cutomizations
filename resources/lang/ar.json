@@ -1720,5 +1720,17 @@
     "Commission on the lenders' interest": "العمولة على فوائد المُقرضين",
     "Spideli's share of late fees": "حصة Spideli من رسوم التأخير",
     "none (created before the loan fees)": "لا شيء (أُنشئ قبل رسوم القرض)",
-    "Spideli withheld": "ما احتجزته Spideli"
+    "Spideli withheld": "ما احتجزته Spideli",
+    "Deducted for Spideli whenever money leaves a goal to a member (withdrawal, goal paid out or cancelled). Copied onto a goal when it is created, so a change applies to new goals only. Blank = 0.": "تُخصم لصالح Spideli كلما خرجت أموال من الهدف إلى عضو (سحب، أو صرف الهدف، أو إلغاؤه). تُنسخ إلى الهدف عند إنشائه، لذا يسري أي تغيير على الأهداف الجديدة فقط. فارغ = 0.",
+    "Admin commission on each subscription (%)": "عمولة الإدارة على كل اكتتاب (%)",
+    "For Spideli, on top of the fund's own fees. Copied onto each subscription when the customer makes it. Blank = 0.": "لصالح Spideli، إضافةً إلى رسوم الصندوق. تُنسخ إلى كل اكتتاب عند قيام العميل به. فارغ = 0.",
+    "Admin commission on each redemption (%)": "عمولة الإدارة على كل استرداد (%)",
+    "For Spideli, on top of the fund's own fees. Copied onto each redemption when the customer asks for it. Blank = 0.": "لصالح Spideli، إضافةً إلى رسوم الصندوق. تُنسخ إلى كل استرداد عند طلب العميل له. فارغ = 0.",
+    "Spideli brokerage on each premium (%)": "عمولة وساطة Spideli على كل قسط (%)",
+    "Spideli keeps this share of each premium; the rest is set aside for the insurer (the \"insurance payable\" account). Fixed on a policy when it is activated. Blank = 0 (nothing set aside).": "تحتفظ Spideli بهذه الحصة من كل قسط، ويُخصص الباقي لشركة التأمين (حساب \"المستحق للتأمين\"). تُثبت على الوثيقة عند تفعيلها. فارغ = 0 (لا يُخصص شيء).",
+    "taken": "المأخوذة",
+    "Spideli commission": "عمولة Spideli",
+    "Spideli brokerage": "وساطة Spideli",
+    "the rest of each premium is set aside for the insurer": "يُخصص باقي كل قسط لشركة التأمين",
+    "fixed when the policy is activated": "تُثبت عند تفعيل الوثيقة"
 }

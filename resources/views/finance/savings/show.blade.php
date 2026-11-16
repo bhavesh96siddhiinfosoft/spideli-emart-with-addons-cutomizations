@@ -22,6 +22,7 @@
                     __('Status') => $status,
                     __('Saved') => Money::format($saved, $cur),
                     __('Target') => Money::format((int)($g['targetAmount'] ?? 0), $cur),
+                    __('Admin commission') => isset($g['commissionPercent']) ? rtrim(rtrim(number_format((float)$g['commissionPercent'], 2, '.', ''), '0'), '.') . ' %' . (!empty($g['commissionTaken']) ? ' · ' . __('taken') . ' ' . Money::format((int)$g['commissionTaken'], $cur) : '') : __('none (created before the commission)'),
                     __('Owner') => $names[$g['ownerId'] ?? ''] ?? '',
                     __('Deadline') => $fmt($g['deadline'] ?? null),
                     __('Schedule') => !empty($g['schedule']) ? Money::format((int)($g['schedule']['amount'] ?? 0), $cur) . ' · ' . ($g['schedule']['frequency'] ?? '') : '—',

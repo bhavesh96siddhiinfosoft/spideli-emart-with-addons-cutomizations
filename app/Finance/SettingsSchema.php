@@ -170,6 +170,10 @@ class SettingsSchema
                     'groupGoals' => ['type' => 'bool', 'label' => 'Group goals'],
                     'maxMembers' => ['type' => 'int', 'min' => 2, 'label' => 'Members per group goal'],
                     'earlyWithdrawal.allowed' => ['type' => 'bool', 'label' => 'Early withdrawal allowed'],
+                    // F8 (client, 16 Nov): Spideli's commission on savings.
+                    ['section' => 'Admin commission'],
+                    'commissionPercent' => ['type' => 'number', 'min' => 0, 'max' => 99, 'label' => 'Admin commission on each payout (%)',
+                        'help' => 'Deducted for Spideli whenever money leaves a goal to a member (withdrawal, goal paid out or cancelled). Copied onto a goal when it is created, so a change applies to new goals only. Blank = 0.'],
                 ];
 
             case 'tontines':
@@ -236,6 +240,12 @@ class SettingsSchema
                     'riskDisclosure' => ['type' => 'textarea', 'required' => true, 'label' => 'Risk disclosure',
                         'help' => 'Shown and accepted before every subscription.'],
                     'simulator.maxYears' => ['type' => 'int', 'min' => 1, 'max' => 50, 'default' => 30, 'label' => 'Simulator: most years'],
+                    // F8: Spideli's commission, on top of each fund's own fees.
+                    ['section' => 'Admin commission'],
+                    'commission.subscriptionPercent' => ['type' => 'number', 'min' => 0, 'max' => 99, 'label' => 'Admin commission on each subscription (%)',
+                        'help' => 'For Spideli, on top of the fund\'s own fees. Copied onto each subscription when the customer makes it. Blank = 0.'],
+                    'commission.redemptionPercent' => ['type' => 'number', 'min' => 0, 'max' => 99, 'label' => 'Admin commission on each redemption (%)',
+                        'help' => 'For Spideli, on top of the fund\'s own fees. Copied onto each redemption when the customer asks for it. Blank = 0.'],
                 ];
 
             case 'insurance':
@@ -244,6 +254,10 @@ class SettingsSchema
                         'options' => ['health', 'life', 'auto', 'home', 'travel', 'business', 'agriculture', 'device', 'funeral']],
                     'paymentMethods' => $pm + ['label' => 'Payment methods'],
                     'claims.maxFiles' => ['type' => 'int', 'min' => 1, 'max' => 20, 'default' => 5, 'label' => 'Files per claim'],
+                    // F8: Spideli is the broker; the rest of each premium is owed to the insurer.
+                    ['section' => 'Admin commission'],
+                    'brokeragePercent' => ['type' => 'number', 'min' => 0, 'max' => 100, 'label' => 'Spideli brokerage on each premium (%)',
+                        'help' => 'Spideli keeps this share of each premium; the rest is set aside for the insurer (the "insurance payable" account). Fixed on a policy when it is activated. Blank = 0 (nothing set aside).'],
                 ];
 
             case 'financing':

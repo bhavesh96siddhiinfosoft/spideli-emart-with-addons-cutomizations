@@ -78,13 +78,17 @@ class Groups
             if ($amount > (int)($goal['savedAmount'] ?? 0)) {
                 throw new FinanceException('insufficient_funds', 'The goal holds less than this amount.');
             }
+            // F8: the goal's commission (none on goals created before it) goes to Spideli as the posting's fee.
+            [$net, $commission] = self::commission($amount, $goal['commissionPercent'] ?? 0);
             $wallet = $this->ledger->walletIdFor($t, $w['userId'], $cur);
             $state = Ledger::newState();
-            $plan = $this->ledger->plan($t, $state, 'savings_withdrawal', $cur, 'goal_' . $goal['id'], $wallet, $amount, 0,
+            $plan = $this->ledger->plan($t, $state, 'savings_withdrawal', $cur, 'goal_' . $goal['id'], $wallet, $net, $commission,
                 [$w['userId']], ['kind' => 'savings_withdrawals', 'id' => $withdrawalId], 'Savings withdrawal: ' . ($goal['name'] ?? ''));
             $tx = $this->ledger->write($t, $state, $plan, Auth::id());
             $t->update('savings_goals/' . $goal['id'], ['savedAmount' => Value::increment(-$amount), 'lastTxId' => $tx['txId'], 'updatedAt' => Value::serverTimestamp()]);
-            $t->update('savings_withdrawals/' . $withdrawalId, ['status' => 'completed', 'txId' => $tx['txId'], 'completedAt' => Value::serverTimestamp(), 'processedBy' => $this->admin()]);
+            // `amount` stays the amount taken from the member's share; paidAmount is what reached the wallet.
+            $t->update('savings_withdrawals/' . $withdrawalId, ['status' => 'completed', 'txId' => $tx['txId'], 'paidAmount' => $net, 'commission' => $commission,
+                'completedAt' => Value::serverTimestamp(), 'processedBy' => $this->admin()]);
             Audit::add($t, 'savings.withdrawal_pay', 'savings_withdrawals', $withdrawalId, ['status' => 'requested'], ['status' => 'completed', 'txId' => $tx['txId'], 'amount' => $amount]);
             return array_merge($w, ['goalName' => $goal['name'] ?? '', 'currency' => $cur]);
         });
@@ -146,9 +150,12 @@ class Groups
 
             $state = Ledger::newState();
             $plans = [];
+            $commissions = [];
             foreach ($pay as $m => $amount) {
                 if ($amount > 0) {
-                    $plans[$m] = $this->ledger->plan($t, $state, 'savings_withdrawal', $cur, 'goal_' . $goalId, $wallets[$m], $amount, 0,
+                    // F8: the goal's commission on each member's payout.
+                    [$net, $commissions[$m]] = self::commission($amount, $goal['commissionPercent'] ?? 0);
+                    $plans[$m] = $this->ledger->plan($t, $state, 'savings_withdrawal', $cur, 'goal_' . $goalId, $wallets[$m], $net, $commissions[$m],
                         [$m], ['kind' => 'savings_goals', 'id' => $goalId], ($finalStatus === 'cancelled' ? 'Goal cancelled: ' : 'Goal paid out: ') . ($goal['name'] ?? ''));
                 }
             }
@@ -163,9 +170,12 @@ class Groups
             if ($finalStatus === 'cancelled') {
                 $changes['cancelledAt'] = Value::serverTimestamp();
             }
+            if (array_sum($commissions) > 0) {
+                $changes['commissionTaken'] = array_sum($commissions);
+            }
             $t->update('savings_goals/' . $goalId, $changes);
             Audit::add($t, 'savings.pay_out_' . $finalStatus, 'savings_goals', $goalId, ['status' => $goal['status'], 'balance' => $balance],
-                ['status' => $finalStatus, 'paid' => $pay]);
+                ['status' => $finalStatus, 'paid' => $pay, 'commission' => array_sum($commissions)]);
             return $pay;
         });
     }
@@ -274,6 +284,13 @@ class Groups
         $commission = (int)round($collected * $pct / 100);
         $commission = max(0, min($commission, $collected - 1));
         return [$collected - $commission, $commission, $pct];
+    }
+
+    /** F8: [paid, Spideli's commission] for an amount at a percent (same rules as the tontine commission). */
+    public static function commission($amount, $percent)
+    {
+        $r = self::tontineCommission((int)$amount, ['commissionPercent' => is_numeric($percent) ? $percent : 0]);
+        return [$r[0], $r[1]];
     }
 
     public function tontineSuspend($tontineId, $suspend, $reason)

@@ -484,7 +484,7 @@ class FinanceController extends Controller
             'types' => ['deposit', 'withdrawal', 'transfer', 'transfer_out', 'bill_payment', 'card_funding', 'card_fee',
                 'card_withdrawal', 'savings_contribution', 'savings_withdrawal', 'tontine_contribution', 'tontine_payout',
                 'loan_funding', 'loan_disbursement', 'loan_repayment', 'loan_lender_payout', 'loan_origination_fee', 'loan_insurance_premium', 'loan_insurance_brokerage',
-                'loan_interest_commission', 'loan_late_fee_share', 'investment_subscription',
+                'loan_interest_commission', 'loan_late_fee_share', 'investment_commission', 'insurance_insurer_share', 'investment_subscription',
                 'investment_redemption', 'insurance_premium', 'insurance_claim_payout', 'conversion', 'fee', 'reversal',
                 'manual_adjustment'],
             'canAdjust' => $this->can('finance.ledger.adjust'),

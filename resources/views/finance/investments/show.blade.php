@@ -87,17 +87,18 @@
                 <div class="form-group row width-100"><div class="col-7">
                     @if ($waitingSubs)
                         <table class="table table-bordered table-sm mb-2">
-                            <thead><tr>@if ($canManage)<th style="width:40px"></th>@endif<th>{{ __('Date') }}</th><th>{{ __('Customer') }}</th><th>{{ __('Paid') }}</th><th>{{ __('Fee') }} ({{ $subFee }}%)</th><th>{{ __('Units at the current price') }}</th><th>{{ __('Reference') }}</th>@if ($canManage)<th>{{ __('Refuse') }}</th>@endif</tr></thead>
+                            <thead><tr>@if ($canManage)<th style="width:40px"></th>@endif<th>{{ __('Date') }}</th><th>{{ __('Customer') }}</th><th>{{ __('Paid') }}</th><th>{{ __('Fee') }} ({{ $subFee }}%)</th><th>{{ __('Spideli commission') }}</th><th>{{ __('Units at the current price') }}</th><th>{{ __('Reference') }}</th>@if ($canManage)<th>{{ __('Refuse') }}</th>@endif</tr></thead>
                             <tbody>
                             @foreach ($waitingSubs as $s)
-                                @php $d = $s['data']; $amt = (int)($d['amount'] ?? 0); $fee = (int)round($amt * $subFee / 100); @endphp
+                                @php $d = $s['data']; $amt = (int)($d['amount'] ?? 0); $fee = (int)round($amt * $subFee / 100); $com = Investments::commissionOn($amt - $fee, $d['commissionPercent'] ?? 0); @endphp
                                 <tr>
                                     @if ($canManage)<td><div class="form-check"><input type="checkbox" id="sub-{{ $s['id'] }}" name="ids[]" value="{{ $s['id'] }}" form="exec-subs" checked><label class="control-label" for="sub-{{ $s['id'] }}"></label></div></td>@endif
                                     <td>{{ $fmt($d['createdAt'] ?? null) }}</td>
                                     <td>{{ $names[$d['userId'] ?? ''] ?? ($d['userId'] ?? '') }}<div class="finance-help">{{ $d['signatureName'] ?? '' }} · {{ __('terms v') }}{{ $d['termsVersion'] ?? '?' }}</div></td>
                                     <td class="finance-amount">{{ Money::format($amt, $d['currency'] ?? $cur) }}</td>
                                     <td class="finance-amount">{{ Money::format($fee, $cur) }}</td>
-                                    <td class="finance-amount">{{ $nav > 0 ? Investments::unitsText(($amt - $fee) / $nav) : '—' }}</td>
+                                    <td class="finance-amount">{{ Money::format($com, $cur) }}@if (isset($d['commissionPercent']))<div class="finance-help">{{ (float)$d['commissionPercent'] }} %</div>@endif</td>
+                                    <td class="finance-amount">{{ $nav > 0 ? Investments::unitsText(($amt - $fee - $com) / $nav) : '—' }}</td>
                                     <td class="finance-mono">@if (!empty($d['txId']))<a href="{{ route('finance.ledger.show', $d['txId']) }}">{{ $d['reference'] ?? $d['txId'] }}</a>@else{{ $d['reference'] ?? '' }}@endif</td>
                                     @if ($canManage)<td>
                                         <form method="POST" action="{{ route('finance.investments.action', [$id, 'refuse-subscription']) }}" class="d-flex" onsubmit="return confirm('{{ __('Refuse and give the money back to the customer\'s wallet?') }}')">@csrf
@@ -162,7 +163,7 @@
                 <div class="form-group row width-100"><div class="col-7">
                     @if ($settling)
                         <table class="table table-bordered table-sm mb-2">
-                            <thead><tr><th>{{ __('Customer') }}</th><th>{{ __('Units') }}</th><th>{{ __('Gross') }}</th><th>{{ __('Fee') }}</th><th>{{ __('To pay') }}</th><th>{{ __('Expected') }}</th>@if ($canManage)<th></th>@endif</tr></thead>
+                            <thead><tr><th>{{ __('Customer') }}</th><th>{{ __('Units') }}</th><th>{{ __('Gross') }}</th><th>{{ __('Fee') }}</th><th>{{ __('Spideli commission') }}</th><th>{{ __('To pay') }}</th><th>{{ __('Expected') }}</th>@if ($canManage)<th></th>@endif</tr></thead>
                             <tbody>
                             @foreach ($settling as $r)
                                 @php $d = $r['data']; $due = !(($d['expectedSettlementDate'] ?? null) instanceof \DateTimeInterface) || $d['expectedSettlementDate'] <= $now; @endphp
@@ -171,6 +172,7 @@
                                     <td class="finance-amount">{{ Investments::unitsText($d['units'] ?? 0) }}</td>
                                     <td class="finance-amount">{{ Money::format((int)($d['grossAmount'] ?? 0), $cur) }}</td>
                                     <td class="finance-amount">{{ Money::format((int)($d['fee'] ?? 0), $cur) }}</td>
+                                    <td class="finance-amount">{{ Money::format((int)($d['commission'] ?? 0), $cur) }}</td>
                                     <td class="finance-amount"><strong>{{ Money::format((int)($d['netAmount'] ?? 0), $cur) }}</strong></td>
                                     <td>{{ $fmt($d['expectedSettlementDate'] ?? null, false) }} @if ($due)<span class="finance-badge-ok">{{ __('due') }}</span>@endif</td>
                                     @if ($canManage)<td>

@@ -432,7 +432,8 @@ class Insurance
         if ($policyNumber === '' || mb_strlen($policyNumber) > 100) {
             throw new FinanceException('invalid', 'Enter the policy number (at most 100 characters).');
         }
-        return $this->db->transaction(function (Transaction $t) use ($policyId, $policyNumber, $documents) {
+        $brokerage = $this->brokerageSetting($policyId);   // F8: read before the transaction
+        return $this->db->transaction(function (Transaction $t) use ($policyId, $policyNumber, $documents, $brokerage) {
             $p = $this->get($t, 'insurance_policies/' . $policyId, 'policy');
             self::state($p, ['pending_activation'], 'policy');
             if (!empty($p['demo'])) {
@@ -442,6 +443,9 @@ class Insurance
             if (!$first || ($first['data']['status'] ?? '') !== 'paid') {
                 throw new FinanceException('not_paid', 'The first premium is not paid.');
             }
+            // F8: planned (read) before any write of this transaction.
+            $pct = isset($p['brokeragePercent']) && is_numeric($p['brokeragePercent']) ? (float)$p['brokeragePercent'] : $brokerage;
+            $share = $pct !== null ? $this->planInsurerShare($t, $p + ['brokeragePercent' => $pct], (int)($first['data']['amount'] ?? 0), $policyId) : null;
             $start = self::date($p['coverStart'] ?? null) ?: self::now();
             $end = self::date($p['coverEnd'] ?? null);
             $months = $end ? max(1, (int)round(($end->getTimestamp() - $start->getTimestamp()) / (86400 * 30.4375))) : 12;
@@ -466,6 +470,13 @@ class Insurance
             $changes = ['status' => 'active', 'policyNumber' => $policyNumber, 'coverStart' => $start,
                 'documents' => array_merge(array_values((array)($p['documents'] ?? [])), $documents),
                 'nextPremiumDue' => $next, 'activatedAt' => Value::serverTimestamp(), 'activatedBy' => $this->admin(), 'updatedAt' => Value::serverTimestamp()];
+            // F8: the brokerage is fixed on the policy now; the insurer's share of the first premium is set aside.
+            if ($pct !== null) {
+                $changes['brokeragePercent'] = $pct;
+                if ($share) {
+                    $changes['lastInsurerShareTxId'] = $share($t);
+                }
+            }
             $t->update('insurance_policies/' . $policyId, $changes);
             Audit::add($t, 'insurance.policy_activate', 'insurance_policies', $policyId, ['status' => 'pending_activation'],
                 ['status' => 'active', 'policyNumber' => $policyNumber, 'premiums' => count($dates), 'documents' => count($documents)]);
@@ -566,11 +577,67 @@ class Insurance
             }
             $paid = (int)($tx['data']['lines'][0]['amount'] ?? 0);
             $changes = self::renewed($p, $paid);
+            $share = $this->planInsurerShare($t, $p, $paid, $policyId);   // F8
+            if ($share) {
+                $changes['lastInsurerShareTxId'] = $share($t);
+            }
             $t->update('insurance_policies/' . $policyId, $changes);
             Audit::add($t, 'insurance.renew', 'insurance_policies', $policyId, ['status' => 'renewal_due', 'coverEnd' => $p['coverEnd'] ?? null],
                 ['status' => 'active', 'coverEnd' => $changes['coverEnd'], 'paid' => $paid, 'txId' => $p['renewalTxId']]);
             return array_merge($p, ['coverEnd' => $changes['coverEnd']]);
         });
+    }
+
+    /**
+     * F8: [insurer's share, Spideli's brokerage] of a premium at the policy's
+     * brokeragePercent (absent = nothing set aside, as before F8).
+     */
+    public static function brokerageSplit($premium, array $policy)
+    {
+        $premium = (int)$premium;
+        if (!isset($policy['brokeragePercent']) || !is_numeric($policy['brokeragePercent']) || $premium <= 0) {
+            return [0, $premium];
+        }
+        $pct = max(0.0, min(100.0, (float)$policy['brokeragePercent']));
+        $brokerage = (int)round($premium * $pct / 100);
+        return [$premium - $brokerage, $brokerage];
+    }
+
+    /**
+     * F8: plans the posting that sets the insurer's share of a premium aside
+     * (insurance_insurer_share: platform -> insurance_payable_{CUR}); Spideli's
+     * brokerage stays on the platform account. Returns a writer (Transaction ->
+     * txId) or null when nothing is set aside. Plans only: every read happens now.
+     */
+    private function planInsurerShare(Transaction $t, array $p, $premium, $policyId, array &$state = null)
+    {
+        [$insurer, $brokerage] = self::brokerageSplit($premium, $p);
+        $cur = $p['currency'] ?? '';
+        if ($insurer <= 0 || $cur === '') {
+            return null;
+        }
+        if ($state === null) {
+            $state = Ledger::newState();
+        }
+        $plan = $this->ledger->plan($t, $state, 'insurance_insurer_share', $cur, Ledger::platformId($cur), Ledger::insurancePayableId($cur), $insurer, 0,
+            [$p['userId'] ?? ''], ['kind' => 'insurance_policies', 'id' => $policyId],
+            'Insurer\'s share of the premium (Spideli brokerage ' . (float)$p['brokeragePercent'] . ' %: ' . $brokerage . '): ' . ($p['productName'] ?? ''));
+        $ledger = $this->ledger;
+        return function (Transaction $t) use ($ledger, &$state, $plan) {
+            return $ledger->write($t, $state, $plan, Auth::id() ?: 'job')['txId'];
+        };
+    }
+
+    /** F8: the region's brokerage % for a policy (null when the region sets none). */
+    private function brokerageSetting($policyId)
+    {
+        $p = $this->db->get('insurance_policies/' . $policyId);
+        if (!$p) {
+            return null;
+        }
+        $u = $this->db->get('users/' . ($p['data']['userId'] ?? ''));
+        [$set] = (new Regions($this->db))->moduleSettings('insurance', array_merge([(string)($p['data']['regionId'] ?? '')], (array)($u['data']['regionIds'] ?? [])));
+        return isset($set['brokeragePercent']) && is_numeric($set['brokeragePercent']) ? (float)$set['brokeragePercent'] : null;
     }
 
     /**
@@ -594,8 +661,12 @@ class Insurance
                 $state = Ledger::newState();
                 $plan = $this->ledger->plan($t, $state, 'insurance_premium', $cur, $wallet, Ledger::platformId($cur), $amount, 0,
                     [$uid], ['kind' => 'insurance_policies', 'id' => $policyId], 'Insurance auto-renewal: ' . ($p['productName'] ?? ''));
+                $share = $this->planInsurerShare($t, $p, $amount, $policyId, $state);   // F8
                 $tx = $this->ledger->write($t, $state, $plan, Auth::id() ?: 'job');   // createdBy admin:job when the daily job runs it
                 $changes = self::renewed($p, $amount);
+                if ($share) {
+                    $changes['lastInsurerShareTxId'] = $share($t);
+                }
                 $changes['lastRenewalTxId'] = $tx['txId'];
                 $t->update('insurance_policies/' . $policyId, $changes);
                 Audit::add($t, 'job.insurance_auto_renew', 'insurance_policies', $policyId, ['status' => 'renewal_due'],

@@ -27,6 +27,24 @@ class Ledger
         return 'platform_' . $currency;
     }
 
+    /**
+     * F8 / F18: what is owed to insurers, one account per currency, created by
+     * its first credit: insurance_payable_{CUR} (premiums), loan_insurance_{CUR}
+     * (loan insurance premiums). Returns [kind, CUR] or null.
+     */
+    public static function parsePayableId($id)
+    {
+        if (!preg_match('/^(insurance_payable|loan_insurance)_([A-Z]{3})$/', $id, $m)) {
+            return null;
+        }
+        return ['insurer_payable', $m[2]];
+    }
+
+    public static function insurancePayableId($currency)
+    {
+        return 'insurance_payable_' . $currency;
+    }
+
     /** [uid, CUR] from wallet_{uid}_{CUR}, or null. */
     public static function parseWalletId($id)
     {
@@ -67,8 +85,8 @@ class Ledger
             $acc = $state['accounts'][$id];
 
             if ($acc === null) {
-                $wallet = self::parseWalletId($id);
-                // Only a wallet may be created, only by a credit, only in its own currency.
+                $wallet = self::parseWalletId($id) ?: self::parsePayableId($id);
+                // Only a wallet (or an insurer payable account) may be created, only by a credit, only in its own currency.
                 if ($l['direction'] === 'debit' || $wallet === null || $wallet[1] !== $cur) {
                     throw new FinanceException('account_missing', "The account $id does not exist.", ['account' => $id]);
                 }
@@ -121,6 +139,15 @@ class Ledger
             $id = $l['accountId'];
             $delta = $l['direction'] === 'debit' ? -$l['amount'] : $l['amount'];
             if (!empty($state['accounts'][$id]['new']) && empty($state['created'][$id])) {
+                if ($payable = self::parsePayableId($id)) {
+                    $t->create('financial_accounts/' . $id, [
+                        'id' => $id, 'kind' => $payable[0], 'currency' => $payable[1],
+                        'balance' => $delta, 'normalSide' => 'credit', 'status' => 'active', 'lastTxId' => $txId,
+                        'createdAt' => Value::serverTimestamp(), 'updatedAt' => Value::serverTimestamp(),
+                    ]);
+                    $state['created'][$id] = true;
+                    continue;
+                }
                 [$uid, $cur] = self::parseWalletId($id);
                 $t->create('financial_accounts/' . $id, [
                     'id' => $id, 'kind' => 'wallet', 'userId' => $uid, 'currency' => $cur,

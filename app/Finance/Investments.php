@@ -424,7 +424,9 @@ class Investments
 
             $amount = (int)($s['amount'] ?? 0);
             $fee = (int)round($amount * (float)($fund['fees']['subscriptionPercent'] ?? 0) / 100);
-            $net = $amount - $fee;
+            // F8: Spideli's commission, copied onto the subscription by the app (none before F8).
+            $commission = self::commissionOn($amount - $fee, $s['commissionPercent'] ?? 0);
+            $net = $amount - $fee - $commission;
             $units = self::units($net / $nav);
             if ($amount <= 0 || $units <= 0) {
                 throw new FinanceException('invalid_amount', 'The amount buys no units at this price.');
@@ -449,7 +451,7 @@ class Investments
             $holding['valuedAt'] = Value::serverTimestamp();
 
             $t->update('investment_subscriptions/' . $subId, [
-                'status' => 'completed', 'units' => $units, 'navPerUnit' => $nav, 'netAmount' => $net, 'fee' => $fee,
+                'status' => 'completed', 'units' => $units, 'navPerUnit' => $nav, 'netAmount' => $net, 'fee' => $fee, 'commission' => $commission,
                 'tradeDate' => $tradeDate, 'processedBy' => $this->admin(), 'updatedAt' => Value::serverTimestamp(),
             ]);
             if ($old) {
@@ -462,6 +464,10 @@ class Investments
                 'units' => $units, 'navPerUnit' => $nav, 'currency' => $cur, 'reference' => $ref, 'sourceId' => $subId, 'createdAt' => Value::serverTimestamp()]);
             if ($fee > 0) {
                 $t->create('investment_transactions/' . Money::random(20), ['userId' => $uid, 'fundId' => $fundId, 'type' => 'fee', 'amount' => $fee,
+                    'units' => 0, 'navPerUnit' => $nav, 'currency' => $cur, 'reference' => $ref, 'sourceId' => $subId, 'createdAt' => Value::serverTimestamp()]);
+            }
+            if ($commission > 0) {
+                $t->create('investment_transactions/' . Money::random(20), ['userId' => $uid, 'fundId' => $fundId, 'type' => 'commission', 'amount' => $commission,
                     'units' => 0, 'navPerUnit' => $nav, 'currency' => $cur, 'reference' => $ref, 'sourceId' => $subId, 'createdAt' => Value::serverTimestamp()]);
             }
             Audit::add($t, 'investment.subscription_execute', 'investment_subscriptions', $subId, ['status' => 'paid'],
@@ -535,7 +541,9 @@ class Investments
             }
             $gross = (int)round($units * $nav);
             $fee = (int)round($gross * (float)($fund['fees']['redemptionPercent'] ?? 0) / 100);
-            $net = $gross - $fee;
+            // F8: Spideli's commission, copied onto the redemption by the app (none before F8).
+            $commission = self::commissionOn($gross - $fee, $r['commissionPercent'] ?? 0);
+            $net = $gross - $fee - $commission;
 
             $held = (float)$h['units'];
             $all = abs($held - $units) < 0.000001;
@@ -553,7 +561,7 @@ class Investments
             $settleOn = self::addDays($tradeDate > $now ? $tradeDate : $now, (int)($fund['settlementDays'] ?? 0));
 
             $t->update('investment_redemptions/' . $redId, [
-                'status' => 'settling', 'units' => $units, 'navPerUnit' => $nav, 'grossAmount' => $gross, 'fee' => $fee, 'netAmount' => $net,
+                'status' => 'settling', 'units' => $units, 'navPerUnit' => $nav, 'grossAmount' => $gross, 'fee' => $fee, 'commission' => $commission, 'netAmount' => $net,
                 'tradeDate' => $tradeDate, 'expectedSettlementDate' => $settleOn, 'processedBy' => $this->admin(), 'updatedAt' => Value::serverTimestamp(),
             ]);
             $t->update('investment_holdings/' . $hid, $holding);
@@ -562,6 +570,10 @@ class Investments
                 'units' => $units, 'navPerUnit' => $nav, 'currency' => $cur, 'reference' => $ref, 'sourceId' => $redId, 'createdAt' => Value::serverTimestamp()]);
             if ($fee > 0) {
                 $t->create('investment_transactions/' . Money::random(20), ['userId' => $uid, 'fundId' => $fundId, 'type' => 'fee', 'amount' => $fee,
+                    'units' => 0, 'navPerUnit' => $nav, 'currency' => $cur, 'reference' => $ref, 'sourceId' => $redId, 'createdAt' => Value::serverTimestamp()]);
+            }
+            if ($commission > 0) {
+                $t->create('investment_transactions/' . Money::random(20), ['userId' => $uid, 'fundId' => $fundId, 'type' => 'commission', 'amount' => $commission,
                     'units' => 0, 'navPerUnit' => $nav, 'currency' => $cur, 'reference' => $ref, 'sourceId' => $redId, 'createdAt' => Value::serverTimestamp()]);
             }
             Audit::add($t, 'investment.redemption_execute', 'investment_redemptions', $redId, ['status' => 'submitted'],
@@ -582,18 +594,40 @@ class Investments
             $cur = $r['currency'] ?? '';
             $uid = $r['userId'] ?? '';
             $txId = '';
+            $commission = (int)($r['commission'] ?? 0);
+            $commissionTxId = '';
             if ($net > 0) {
+                /* F8: the customer sees the redemption (before Spideli's commission)
+                 * and the commission as two separate lines in their history. */
                 $wallet = $this->ledger->walletIdFor($t, $uid, $cur);
                 $state = Ledger::newState();
-                $plan = $this->ledger->plan($t, $state, 'investment_redemption', $cur, Ledger::platformId($cur), $wallet, $net, 0,
-                    [$uid], ['kind' => 'investment_redemptions', 'id' => $redId], 'Investment redemption: ' . ($r['fundName'] ?? ''));
+                $src = ['kind' => 'investment_redemptions', 'id' => $redId];
+                $plan = $this->ledger->plan($t, $state, 'investment_redemption', $cur, Ledger::platformId($cur), $wallet, $net + $commission, 0,
+                    [$uid], $src, 'Investment redemption: ' . ($r['fundName'] ?? ''));
+                $cPlan = $commission > 0 ? $this->ledger->plan($t, $state, 'investment_commission', $cur, $wallet, Ledger::platformId($cur), $commission, 0,
+                    [$uid], $src, 'Spideli commission on the redemption (' . ($r['commissionPercent'] ?? 0) . ' %): ' . ($r['fundName'] ?? '')) : null;
                 $txId = $this->ledger->write($t, $state, $plan, Auth::id())['txId'];
+                if ($cPlan) {
+                    $commissionTxId = $this->ledger->write($t, $state, $cPlan, Auth::id())['txId'];
+                }
             }
-            $t->update('investment_redemptions/' . $redId, ['status' => 'settled', 'settledAt' => Value::serverTimestamp(), 'txId' => $txId,
+            $t->update('investment_redemptions/' . $redId, ['status' => 'settled', 'settledAt' => Value::serverTimestamp(), 'txId' => $txId]
+                + ($commissionTxId !== '' ? ['commissionTxId' => $commissionTxId] : []) + [
                 'settledBy' => $this->admin(), 'updatedAt' => Value::serverTimestamp()]);
             Audit::add($t, 'investment.redemption_settle', 'investment_redemptions', $redId, ['status' => 'settling'], ['status' => 'settled', 'txId' => $txId, 'amount' => $net]);
             return $r;
         });
+    }
+
+    /** F8: Spideli's commission on an amount at a percent (0 to 99; rounded; never the whole amount). */
+    public static function commissionOn($amount, $percent)
+    {
+        $amount = (int)$amount;
+        $pct = is_numeric($percent) ? (float)$percent : 0.0;
+        if (!is_finite($pct) || $pct <= 0 || $amount <= 1) {
+            return 0;
+        }
+        return max(0, min((int)round($amount * min($pct, 99.0) / 100), $amount - 1));
     }
 
     public function refuseRedemption($redId, $reason)
