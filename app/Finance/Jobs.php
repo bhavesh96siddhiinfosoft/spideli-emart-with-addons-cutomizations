@@ -117,9 +117,11 @@ class Jobs
             }
             $id = $loan['id'];
             $l = $loan['data'];
-            $pct = (float)($this->settingsFor('lending', $l, $l['borrowerId'] ?? '')['latePenaltyPercent'] ?? 0);
+            $lendingSet = $this->settingsFor('lending', $l, $l['borrowerId'] ?? '');
+            $pct = (float)($lendingSet['latePenaltyPercent'] ?? 0);
+            $capPct = (float)(((array)($lendingSet['lateFee'] ?? []))['capPercent'] ?? 0);   // F18: late fees capped
             try {
-                $result = $this->db->transaction(function (Transaction $t) use ($id, $grace, $pct) {
+                $result = $this->db->transaction(function (Transaction $t) use ($id, $grace, $pct, $capPct) {
                     $loan = $t->get('loan_applications/' . $id);
                     $sched = $t->get('loan_schedules/' . $id);
                     if (!$loan || !$sched || !in_array($loan['data']['status'] ?? '', ['active', 'overdue'], true)) {
@@ -129,6 +131,11 @@ class Jobs
                     $nowDue = [];
                     $nowOverdue = [];
                     $penalties = 0;
+                    $room = PHP_INT_MAX;
+                    if ($capPct > 0) {
+                        $room = max(0, (int)floor((int)($loan['data']['amount'] ?? 0) * $capPct / 100)
+                            - array_sum(array_map(function ($it) { return (int)($it['penalty'] ?? 0); }, $items)));
+                    }
                     foreach ($items as $i => $it) {
                         $due = $it['dueDate'] ?? null;
                         if (!$due instanceof \DateTimeInterface) {
@@ -144,7 +151,8 @@ class Jobs
                         if ($this->now > $lateAfter && $status !== 'overdue') {
                             $penalty = 0;
                             if ((int)($it['penalty'] ?? 0) === 0 && $pct > 0) {
-                                $penalty = (int)round(($amountDue - $paid) * $pct / 100);
+                                $penalty = min((int)round(($amountDue - $paid) * $pct / 100), $room);
+                                $room -= $penalty;
                             }
                             $items[$i]['status'] = 'overdue';
                             $items[$i]['penalty'] = (int)($it['penalty'] ?? 0) + $penalty;

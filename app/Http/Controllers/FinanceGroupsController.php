@@ -332,10 +332,16 @@ class FinanceGroupsController extends Controller
         $assessment = $db->get('credit_assessments/' . $id);
         $loans = new Loans($db);
         $acc = $db->get('financial_accounts/loan_' . $id);
+        $schedule = $db->get('loan_schedules/' . $id);
+        $covered = \App\Finance\LoanFees::covered($schedule ? (array)($schedule['data']['installments'] ?? []) : [], (int)($l['repaidAmount'] ?? 0));
         $owed = [];
+        $withheld = [];
         foreach ($fundings as $f) {
             if (($f['data']['status'] ?? '') === 'succeeded' && (int)($l['amount'] ?? 0) > 0) {
-                $owed[$f['id']] = intdiv((int)($l['repaidAmount'] ?? 0) * (int)($f['data']['amount'] ?? 0), (int)$l['amount']) - (int)($f['data']['collected'] ?? 0);
+                // F18: what the lender receives now, after Spideli's commission and late fee share.
+                $p = \App\Finance\LoanFees::dueNow($f['data'], (int)$l['amount'], (int)($l['repaidAmount'] ?? 0), $covered, (array)($l['fees'] ?? []));
+                $owed[$f['id']] = $p['net'];
+                $withheld[$f['id']] = $p['commission'] + $p['lateFee'];
             }
         }
         $decision = in_array($l['status'] ?? '', ['submitted', 'under_review', 'voting', 'funding', 'agreement_pending', 'active', 'overdue', 'repaid'], true);
@@ -343,7 +349,7 @@ class FinanceGroupsController extends Controller
         return view('finance.loans.show', [
             'id' => $id, 'l' => $l, 'lending' => $lending, 'lendingFrom' => $lendingFrom,
             'passes' => Loans::votePasses($l, $lending), 'votingOver' => ($l['votingEndsAt'] ?? null) instanceof \DateTimeInterface && $l['votingEndsAt'] <= new \DateTimeImmutable(),
-            'fundings' => $fundings, 'owed' => $owed, 'agreement' => $db->get('loan_agreements/' . $id), 'schedule' => $db->get('loan_schedules/' . $id),
+            'fundings' => $fundings, 'owed' => $owed, 'withheld' => $withheld, 'agreement' => $db->get('loan_agreements/' . $id), 'schedule' => $schedule,
             'repayments' => self::sortBy($db->query('loan_repayments', [['loanId', '==', $id]], [], 300), 'createdAt'),
             'assessment' => $assessment ? $assessment['data'] : null, 'suggestion' => $loans->suggest($l),
             'account' => $acc ? $acc['data'] : null, 'stuck' => self::stuck($l),

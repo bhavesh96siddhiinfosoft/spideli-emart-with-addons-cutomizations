@@ -240,11 +240,19 @@ class Loans
             $fundings = array_values(array_filter($t->query('loan_fundings', [['loanId', '==', $loanId]]), function ($f) {
                 return ($f['data']['status'] ?? '') === 'succeeded';
             }));
+            /* F18: the loan's own rates (none on loans created before F18). What
+             * the repayments covered (late fees, interest, principal) decides
+             * Spideli's commission on the interest and its share of late fees. */
+            $fees = (array)($l['fees'] ?? []);
+            $sched = $t->get('loan_schedules/' . $loanId);
+            $covered = LoanFees::covered($sched ? (array)($sched['data']['installments'] ?? []) : [], $repaid);
             $due = [];
+            $parts = [];
             foreach ($fundings as $f) {
-                $owed = intdiv($repaid * (int)($f['data']['amount'] ?? 0), $principal) - (int)($f['data']['collected'] ?? 0);
-                if ($owed > 0) {
-                    $due[$f['id']] = $owed;
+                $p = LoanFees::dueNow($f['data'], $principal, $repaid, $covered, $fees);
+                if ($p['net'] + $p['commission'] + $p['lateFee'] > 0) {
+                    $due[$f['id']] = $p['net'];
+                    $parts[$f['id']] = $p;
                 }
             }
             if (!$due) {
@@ -258,21 +266,47 @@ class Loans
             }
             $state = Ledger::newState();
             $plans = [];
+            $platform = Ledger::platformId($cur);
             foreach ($fundings as $f) {
-                if (isset($due[$f['id']])) {
-                    $plans[$f['id']] = $this->ledger->plan($t, $state, 'loan_lender_payout', $cur, 'loan_' . $loanId, $wallets[$f['id']], $due[$f['id']], 0,
-                        [$f['data']['lenderId']], ['kind' => 'loan_fundings', 'id' => $f['id']], 'Loan repayment share');
+                if (!isset($due[$f['id']])) {
+                    continue;
+                }
+                $p = $parts[$f['id']];
+                $lender = [$f['data']['lenderId']];
+                $src = ['kind' => 'loan_fundings', 'id' => $f['id']];
+                if ($p['net'] > 0) {
+                    $plans[$f['id']][] = $this->ledger->plan($t, $state, 'loan_lender_payout', $cur, 'loan_' . $loanId, $wallets[$f['id']], $p['net'], 0,
+                        $lender, $src, $p['commission'] > 0 ? 'Loan repayment share (after Spideli\'s commission on the interest)' : 'Loan repayment share');
+                }
+                // Each Spideli revenue line is its own posting, in the lender's history.
+                if ($p['commission'] > 0) {
+                    $plans[$f['id']][] = $this->ledger->plan($t, $state, 'loan_interest_commission', $cur, 'loan_' . $loanId, $platform, $p['commission'], 0,
+                        $lender, $src, 'Spideli commission on the loan interest (' . ($fees['lenderCommissionPercent'] ?? 0) . ' %)');
+                }
+                if ($p['lateFee'] > 0) {
+                    $plans[$f['id']][] = $this->ledger->plan($t, $state, 'loan_late_fee_share', $cur, 'loan_' . $loanId, $platform, $p['lateFee'], 0,
+                        $lender, $src, 'Spideli share of the late fees (' . ($fees['lateFeePlatformSharePercent'] ?? 0) . ' %)');
                 }
             }
             $paid = [];
             foreach ($fundings as $f) {
                 if (isset($plans[$f['id']])) {
-                    $this->ledger->write($t, $state, $plans[$f['id']], Auth::id());
-                    $t->update('loan_fundings/' . $f['id'], ['collected' => Value::increment($due[$f['id']]), 'updatedAt' => Value::serverTimestamp()]);
-                    $paid[$f['data']['lenderId']] = ($paid[$f['data']['lenderId']] ?? 0) + $due[$f['id']];
+                    foreach ($plans[$f['id']] as $plan) {
+                        $this->ledger->write($t, $state, $plan, Auth::id());
+                    }
+                    $p = $parts[$f['id']];
+                    $changes = ['updatedAt' => Value::serverTimestamp()];
+                    foreach (['collected' => 'net', 'commissionWithheld' => 'commission', 'lateFeeWithheld' => 'lateFee'] as $field => $k) {
+                        if ($p[$k] > 0) {
+                            $changes[$field] = Value::increment($p[$k]);
+                        }
+                    }
+                    $t->update('loan_fundings/' . $f['id'], $changes);
+                    $paid[$f['data']['lenderId']] = ($paid[$f['data']['lenderId']] ?? 0) + $p['net'];
                 }
             }
-            Audit::add($t, 'loan.pay_lenders', 'loan_applications', $loanId, null, ['paid' => $paid]);
+            Audit::add($t, 'loan.pay_lenders', 'loan_applications', $loanId, null, ['paid' => $paid,
+                'commission' => array_sum(array_column($parts, 'commission')), 'lateFee' => array_sum(array_column($parts, 'lateFee'))]);
             return ['loan' => $l, 'paid' => $paid];
         });
     }
@@ -285,8 +319,7 @@ class Loans
             $principal = (int)($l['amount'] ?? 0);
             $repaid = (int)($l['repaidAmount'] ?? 0);
             foreach ($t->query('loan_fundings', [['loanId', '==', $loanId]]) as $f) {
-                if (($f['data']['status'] ?? '') === 'succeeded'
-                    && intdiv($repaid * (int)($f['data']['amount'] ?? 0), max(1, $principal)) > (int)($f['data']['collected'] ?? 0)) {
+                if (($f['data']['status'] ?? '') === 'succeeded' && !LoanFees::settled($f['data'], $principal, $repaid)) {
                     throw new FinanceException('invalid_state', 'A lender has not collected their share yet: pay the lenders first.');
                 }
             }

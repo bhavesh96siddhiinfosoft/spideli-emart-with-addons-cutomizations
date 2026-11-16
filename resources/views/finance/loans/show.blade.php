@@ -10,6 +10,7 @@
     $yes = (int)($l['votes']['yes'] ?? 0); $no = (int)($l['votes']['no'] ?? 0); $cast = $yes + $no;
     $a = $assessment ?: $suggestion;
     $owedTotal = array_sum(array_filter($owed, function ($v) { return $v > 0; }));
+    $owedTotal += array_sum($withheld ?? []);   // F18: Spideli's withheld parts are posted by the same action
 @endphp
 <div class="page-wrapper finance-page">
     @include('finance._top', ['pageTitle' => __('Member loan'), 'tab' => 'loans'])
@@ -34,6 +35,19 @@
                 ] as $label => $value)
                     <div class="form-group row width-50"><label class="col-3 control-label">{{ $label }}</label><div class="col-7"><span class="form-control-plaintext">{{ $value !== '' ? $value : '—' }}</span></div></div>
                 @endforeach
+                @php $fees = (array)($l['fees'] ?? []); $fmtPct = function ($v) { return rtrim(rtrim(number_format((float)$v, 2, '.', ''), '0'), '.') . ' %'; }; @endphp
+                @if ($fees)
+                    @php $d = \App\Finance\LoanFees::disbursement((int)($l['amount'] ?? 0), $fees); @endphp
+                    <div class="form-group row width-100"><label class="col-3 control-label">{{ __('Spideli fees on this loan') }}</label><div class="col-7"><span class="form-control-plaintext">
+                        {{ __('Origination fee') }} {{ $fmtPct($fees['originationPercent'] ?? 0) }} ({{ Money::format($d['origination'], $cur) }})
+                        · {{ __('Insurance premium') }} {{ $fmtPct($fees['insurancePremiumPercent'] ?? 0) }} ({{ Money::format($d['premium'], $cur) }}: {{ __('insurer') }} {{ Money::format($d['insurerShare'], $cur) }}, {{ __('Spideli') }} {{ Money::format($d['brokerage'], $cur) }}{{ !empty($fees['riskBand']) ? ', ' . __('risk') . ' ' . ucfirst($fees['riskBand']) : '' }})
+                        · {{ __('Borrower receives') }} {{ Money::format($d['toBorrower'], $cur) }}<br>
+                        {{ __('Commission on the lenders\' interest') }} {{ $fmtPct($fees['lenderCommissionPercent'] ?? 0) }}
+                        · {{ __('Spideli\'s share of late fees') }} {{ $fmtPct($fees['lateFeePlatformSharePercent'] ?? 0) }}
+                    </span></div></div>
+                @else
+                    <div class="form-group row width-100"><label class="col-3 control-label">{{ __('Spideli fees on this loan') }}</label><div class="col-7"><span class="form-control-plaintext">{{ __('none (created before the loan fees)') }}</span></div></div>
+                @endif
                 @if (!empty($l['description']))<div class="form-group row width-100"><label class="col-3 control-label">{{ __('Description') }}</label><div class="col-7"><span class="form-control-plaintext">{{ $l['description'] }}</span></div></div>@endif
                 @if (!empty($l['reason']))<div class="form-group row width-100"><label class="col-3 control-label">{{ __('Reason') }}</label><div class="col-7"><span class="form-control-plaintext">{{ $l['reason'] }}</span></div></div>@endif
             </fieldset>
@@ -132,12 +146,13 @@
                 <legend><i class="mr-3 mdi mdi-account-cash"></i>{{ __('Lenders') }}</legend>
                 <div class="form-group row width-100"><div class="col-7">
                     <table class="table table-bordered table-sm mb-0">
-                        <thead><tr><th>{{ __('Lender') }}</th><th>{{ __('Lent') }}</th><th>{{ __('Collected') }}</th><th>{{ __('Owed now') }}</th><th>{{ __('Status') }}</th></tr></thead>
+                        <thead><tr><th>{{ __('Lender') }}</th><th>{{ __('Lent') }}</th><th>{{ __('Collected') }}</th><th>{{ __('Spideli withheld') }}</th><th>{{ __('Owed now') }}</th><th>{{ __('Status') }}</th></tr></thead>
                         <tbody>
                         @foreach ($fundings as $f)
                             @php $d = $f['data']; @endphp
                             <tr><td>{{ $names[$d['lenderId'] ?? ''] ?? '' }}</td><td class="finance-amount">{{ Money::format((int)($d['amount'] ?? 0), $cur) }}</td>
                                 <td class="finance-amount">{{ Money::format((int)($d['collected'] ?? 0), $cur) }}</td>
+                                <td class="finance-amount">{{ Money::format((int)($d['commissionWithheld'] ?? 0) + (int)($d['lateFeeWithheld'] ?? 0), $cur) }}</td>
                                 <td class="finance-amount">{{ Money::format(max(0, (int)($owed[$f['id']] ?? 0)), $cur) }}</td><td>{{ $d['status'] ?? '' }}</td></tr>
                         @endforeach
                         </tbody>
