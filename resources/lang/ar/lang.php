@@ -1005,6 +1005,8 @@ return [
     'banner_position_bottom_right' => 'أسفل - يمين',
     'banner_position_bottom_left' => 'أسفل - يسار',
     'banner_position_bottom_down' => 'أسفل - الأسفل',
+    'spideli_finance' => 'Spideli Finance',
+    'finance_home_screen' => 'الشاشة الرئيسية للتمويل',
     'position_1' => 'صورة البانر للموضع 1',
     'position_2' => 'صورة البانر للموضع 2',
     'privacy_policy' => 'سياسة الخصوصية',

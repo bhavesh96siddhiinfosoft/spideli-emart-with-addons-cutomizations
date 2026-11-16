@@ -232,6 +232,7 @@
     var storageRef = firebase.storage().ref('images');
     var ref_sections = database.collection('sections').orderBy('order');
     var sections_list = [];
+    var FINANCE_BANNER_TYPES = ["finance-home", "tontine-service", "loan-service", "investment-service"];   // F7
 
     $(document).ready(function () {
         loadRegionAssignment(null);   // point 82
@@ -301,6 +302,25 @@
                 }
             })
 
+            /* F7 (client, 16 Nov): banners on the Spideli Finance screens. "finance"
+             * is the Finance home screen (no section document); Tontine, Loan and
+             * Investment are their own sections. */
+            $("#section_id").append('<optgroup label="{{ trans('lang.spideli_finance') }}"></optgroup>');
+            $('#section_id').append($("<option></option>")
+                .attr("value", "finance").attr("data-service-type", "finance-home")
+                .text({!! json_encode(trans('lang.finance_home_screen')) !!}));
+            ["tontine-service", "loan-service", "investment-service"].forEach(function (flag) {
+                snapshots.docs.forEach((listval) => {
+                    var data = listval.data();
+                    if (data.serviceTypeFlag == flag) {
+                        sections_list.push(data);
+                        $('#section_id').append($("<option></option>")
+                            .attr("value", data.id).attr("data-service-type", data.serviceTypeFlag)
+                            .text(data.name));
+                    }
+                });
+            });
+
 
         })
     });
@@ -362,6 +382,9 @@
         }
 
         if(service_type == "ondemand-service"){
+            $("#banner_position").show();
+        }
+        if (FINANCE_BANNER_TYPES.indexOf(service_type) >= 0) {   // F7
             $("#banner_position").show();
         }
     });

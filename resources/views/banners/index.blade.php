@@ -217,9 +217,12 @@
         }
     });
     async function getSectionName(sectionId) {
+        if (sectionId == 'finance') {   // F7: the Finance home screen
+            return {!! json_encode(trans('lang.spideli_finance') . ' - ' . trans('lang.finance_home_screen')) !!};
+        }
         var refData = await database.collection('sections').doc(sectionId).get();
         var data = refData.data();
-        return data.name;
+        return data ? data.name : '';
     }
     $("#is_active").click(function () {
         $("#example24 .is_open").prop('checked', $(this).prop('checked'));

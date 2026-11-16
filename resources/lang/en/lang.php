@@ -1004,6 +1004,8 @@ return [
     'banner_position_bottom_right' => 'Bottom Right',
     'banner_position_bottom_left' => 'Bottom Left',
     'banner_position_bottom_down' => 'Bottom Down',
+    'spideli_finance' => 'Spideli Finance',
+    'finance_home_screen' => 'Finance home screen',
     'position_1' => 'Banner image for position 1',
     'position_2' => 'Banner image for position 2',
     'privacy_policy' => 'Privacy Policy',

@@ -1004,6 +1004,8 @@ return [
     'banner_position_bottom_right' => 'Bas - droite',
     'banner_position_bottom_left' => 'Bas - gauche',
     'banner_position_bottom_down' => 'Bas - tout en bas',
+    'spideli_finance' => 'Spideli Finance',
+    'finance_home_screen' => "Écran d'accueil Finance",
     'position_1' => 'Image de bannière pour la position 1',
     'position_2' => 'Image de bannière pour la position 2',
     'privacy_policy' => 'Politique de confidentialité',
