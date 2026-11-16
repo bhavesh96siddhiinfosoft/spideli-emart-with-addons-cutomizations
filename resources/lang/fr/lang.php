@@ -1590,7 +1590,7 @@ return [
     'mycoolpay_public_key' => 'Clé publique',
     'mycoolpay_public_key_help' => 'Dans votre espace marchand MyCoolPay > votre application > clés d\'API.',
     'mycoolpay_private_key' => 'Clé privée',
-    'mycoolpay_private_key_help' => 'Elle reste uniquement sur le serveur : jamais envoyée aux applications ni aux pages du site. Laissez vide pour garder la clé enregistrée.',
+    'mycoolpay_private_key_help' => 'Elle est enregistrée uniquement sur le serveur (pas dans les réglages lus par les applications et le site).',
     'mycoolpay_private_key_saved' => 'Enregistrée (se termine par :last4).',
     'mycoolpay_private_key_none' => 'Pas encore enregistrée.',
     'mycoolpay_private_key_invalid' => 'Saisissez la clé privée (sans espaces).',

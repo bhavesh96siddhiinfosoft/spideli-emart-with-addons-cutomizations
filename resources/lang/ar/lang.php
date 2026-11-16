@@ -1590,7 +1590,7 @@ return [
     'mycoolpay_public_key' => 'المفتاح العام',
     'mycoolpay_public_key_help' => 'في مساحة التاجر MyCoolPay > تطبيقك > مفاتيح API.',
     'mycoolpay_private_key' => 'المفتاح الخاص',
-    'mycoolpay_private_key_help' => 'يبقى على الخادم فقط: لا يُرسل أبدًا إلى التطبيقات أو صفحات الموقع. اتركه فارغًا للاحتفاظ بالمفتاح المحفوظ.',
+    'mycoolpay_private_key_help' => 'يُحفظ على الخادم فقط (وليس في الإعدادات التي تقرؤها التطبيقات والموقع).',
     'mycoolpay_private_key_saved' => 'محفوظ (ينتهي بـ :last4).',
     'mycoolpay_private_key_none' => 'لم يُحفظ بعد.',
     'mycoolpay_private_key_invalid' => 'أدخل المفتاح الخاص (بدون مسافات).',

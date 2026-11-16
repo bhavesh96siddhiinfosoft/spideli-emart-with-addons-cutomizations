@@ -49,13 +49,9 @@
                             <label class="col-3 control-label">{{ trans('lang.mycoolpay_private_key') }}</label>
                             <div class="col-7">
                                 <input type="password" class="form-control mycoolpay_private_key" autocomplete="new-password"
-                                    placeholder="{{ !empty($secret['last4']) ? '•••• ' . $secret['last4'] : '' }}">
+                                    value="{{ $secret['privateKey'] ?? '' }}" placeholder="••••••••••••••••••••••••••••">
                                 <div class="form-text text-muted">
-                                    @if (!empty($secret['last4']))
-                                        <strong>{{ trans('lang.mycoolpay_private_key_saved', ['last4' => $secret['last4']]) }}</strong>
-                                    @else
-                                        <strong>{{ trans('lang.mycoolpay_private_key_none') }}</strong>
-                                    @endif
+                                    @if (empty($secret['privateKey']))<strong>{{ trans('lang.mycoolpay_private_key_none') }}</strong>@endif
                                     {{ trans('lang.mycoolpay_private_key_help') }}
                                 </div>
                             </div>
@@ -131,7 +127,7 @@
 <script type="text/javascript">
     var database = firebase.firestore();
     var ref = database.collection('settings').doc('mycoolpay_settings');
-    var hasPrivateKey = {!! json_encode(!empty($secret['last4'])) !!};
+    var savedPrivateKey = {!! json_encode($secret['privateKey'] ?? '') !!};
 
     function showError(msg) {
         $('.error_top').text(msg).show();
@@ -161,14 +157,14 @@
             var enable = $('#enable_mycoolpay').is(':checked');
             var publicKey = $.trim($('.mycoolpay_public_key').val());
             var privateKey = $.trim($('.mycoolpay_private_key').val());
-            if (enable && (publicKey === '' || (!hasPrivateKey && privateKey === ''))) {
+            if (enable && (publicKey === '' || privateKey === '')) {
                 showError({!! json_encode(trans('lang.mycoolpay_keys_required')) !!});
                 return;
             }
             jQuery("#data-table_processing").show();
             try {
-                // 1. The private key goes to the server only (staff-only document).
-                if (privateKey !== '') {
+                // 1. The private key goes to the server only (staff-only document), when it changed.
+                if (privateKey !== '' && privateKey !== savedPrivateKey) {
                     await $.ajax({
                         url: {!! json_encode(route('payment.mycoolpay.secret')) !!},
                         method: 'POST',

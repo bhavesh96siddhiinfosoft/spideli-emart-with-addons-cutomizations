@@ -1590,7 +1590,7 @@ return [
     'mycoolpay_public_key' => 'Public key',
     'mycoolpay_public_key_help' => 'In your MyCoolPay merchant space > your application > API keys.',
     'mycoolpay_private_key' => 'Private key',
-    'mycoolpay_private_key_help' => 'It stays on the server only: never sent to the apps or to the website pages. Leave it empty to keep the saved key.',
+    'mycoolpay_private_key_help' => 'It is stored on the server only (not in the settings the apps and the website read).',
     'mycoolpay_private_key_saved' => 'Saved (ending :last4).',
     'mycoolpay_private_key_none' => 'Not saved yet.',
     'mycoolpay_private_key_invalid' => 'Enter the private key (no spaces).',

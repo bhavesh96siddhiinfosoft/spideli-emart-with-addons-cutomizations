@@ -93,9 +93,9 @@ class SettingsController extends Controller
     }
 
     /**
-     * #92: MyCoolPay Cameroun. The page shows whether a private key is saved
-     * (its last 4 characters only) and the callback token, both read with the
-     * panel's service account from the staff-only payment_secrets/mycoolpay.
+     * #92: MyCoolPay Cameroun. The page gets the private key (in a password
+     * field) and the callback token, both read with the panel's service
+     * account from the staff-only payment_secrets/mycoolpay.
      */
     public function mycoolpay()
     {
@@ -105,7 +105,8 @@ class SettingsController extends Controller
             $doc = app(\App\Finance\Firestore::class)->get('payment_secrets/mycoolpay');
             if ($doc) {
                 $key = (string)($doc['data']['privateKey'] ?? '');
-                $secret = ['last4' => $key !== '' ? substr($key, -4) : '', 'callbackToken' => (string)($doc['data']['callbackToken'] ?? '')];
+                // The full key goes to the page only (admins), shown as dots like the other gateways' secrets.
+                $secret = ['privateKey' => $key, 'callbackToken' => (string)($doc['data']['callbackToken'] ?? '')];
             }
         } catch (\Throwable $e) {
             report($e);
