@@ -56,6 +56,7 @@
                                                             class="fa fa-trash"></i> {{trans('lang.all')}}</a></label></th>
                                         <?php }?>
                                         <th>{{trans('lang.banner_info')}}</th>
+                                        <th>{{trans('lang.section')}}</th>
                                         <th>{{trans('lang.banner_position')}}</th>
                                         <th>{{trans('lang.item_publish')}}</th>
                                         <th>{{trans('lang.actions')}}</th>
@@ -93,8 +94,21 @@
     var user_number = [];
     var refData = database.collection('banner_items');
 
-    if(section_id){
-        refData = refData.where('sectionId', '==', section_id);
+    /* With a section chosen in the header, the list shows that section's banners
+     * and also the Spideli Finance ones (F7), which belong to no store section:
+     * the Finance home screen ("finance") and the Tontine / Loan / Investment sections. */
+    async function bannerQuery() {
+        if (!section_id) {
+            return refData;
+        }
+        var ids = [section_id, 'finance'];
+        try {
+            var fin = await database.collection('sections').where('serviceTypeFlag', 'in', ['tontine-service', 'loan-service', 'investment-service']).get();
+            fin.docs.forEach(function (d) { if (ids.indexOf(d.id) < 0) { ids.push(d.id); } });
+        } catch (e) {
+            console.log('finance sections', e);
+        }
+        return refData.where('sectionId', 'in', ids);
     }
     
     var append_list = '';
@@ -109,7 +123,7 @@
             jQuery("#data-table_processing").show();
             append_list = document.getElementById('append_vendors');
             append_list.innerHTML = '';
-            refData.get().then(async function (snapshots) {
+            bannerQuery().then(function (q) { return q.get(); }).then(async function (snapshots) {
                 html = '';
                 html = await buildHTML(snapshots);
                  $(function () {
@@ -127,13 +141,13 @@
                 var table =  $('#example24').DataTable({
                 order: [],
                 columnDefs: [{
-                         targets: (checkDeletePermission==true) ? 3 : 2,
+                         targets: (checkDeletePermission==true) ? 4 : 3,
                          type: 'date',
                         render: function(data) {
                             return data;
                         }
                     },
-                    {orderable: false, targets: (checkDeletePermission==true) ? [0,3, 4] : [0,2,3]},
+                    {orderable: false, targets: (checkDeletePermission==true) ? [0,4, 5] : [0,3,4]},
                 ],
                 order: (checkDeletePermission==true) ? [1,"asc"] : [0,"asc"],
                 "language": datatableLang,
@@ -185,11 +199,12 @@
                 bottom_up: {!! json_encode(trans('lang.banner_position_bottom_up')) !!}, bottom_right: {!! json_encode(trans('lang.banner_position_bottom_right')) !!},
                 bottom_left: {!! json_encode(trans('lang.banner_position_bottom_left')) !!}, bottom_down: {!! json_encode(trans('lang.banner_position_bottom_down')) !!}
             };
-            html=html+'<td>'+$('<div></div>').text(positionNames[val.position] || val.position || positionNames.top).html()+'</td>';
-            var sectionName = ';'
+            var sectionName = '';
             if(val.sectionId != null && val.sectionId != ""){
                 sectionName = await getSectionName(val.sectionId);
             }
+            html = html + '<td>' + $('<div></div>').text(sectionName || '—').html() + '</td>';   // F7: which screen the banner is for
+            html=html+'<td>'+$('<div></div>').text(positionNames[val.position] || val.position || positionNames.top).html()+'</td>';
             
             if (val.is_publish) {
               html = html + '<td><label class="switch"><input type="checkbox" checked id="' + val.id + '" name="isSwitch"><span class="slider round"></span></label></td>';
@@ -220,9 +235,17 @@
         if (sectionId == 'finance') {   // F7: the Finance home screen
             return {!! json_encode(trans('lang.spideli_finance') . ' - ' . trans('lang.finance_home_screen')) !!};
         }
-        var refData = await database.collection('sections').doc(sectionId).get();
-        var data = refData.data();
-        return data ? data.name : '';
+        try {
+            var refData = await database.collection('sections').doc(sectionId).get();
+            var data = refData.data();
+            if (!data) {
+                return '';
+            }
+            var fin = ['tontine-service', 'loan-service', 'investment-service'].indexOf(data.serviceTypeFlag) >= 0;
+            return fin ? {!! json_encode(trans('lang.spideli_finance')) !!} + ' - ' + data.name : data.name;
+        } catch (e) {
+            return '';
+        }
     }
     $("#is_active").click(function () {
         $("#example24 .is_open").prop('checked', $(this).prop('checked'));
