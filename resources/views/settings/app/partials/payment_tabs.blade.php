@@ -25,6 +25,7 @@
         ['key' => 'orangepay', 'url' => 'settings/payment/orangepay', 'label' => trans('lang.orangePay'), 'class' => 'orangePay_active_label', 'doc' => 'orange_money_settings'],
         // #92: the client's gateways
         ['key' => 'mycoolpay', 'url' => 'settings/payment/mycoolpay', 'label' => trans('lang.mycoolpay'), 'class' => 'mycoolpay_active_label', 'doc' => 'mycoolpay_settings'],
+        ['key' => 'mypvit', 'url' => 'settings/payment/mypvit', 'label' => trans('lang.mypvit'), 'class' => 'mypvit_active_label', 'doc' => 'mypvit_settings'],
     ];
     $activeTab = $activeTab ?? '';
 @endphp

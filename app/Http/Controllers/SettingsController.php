@@ -108,16 +108,28 @@ class SettingsController extends Controller
             report($e);
         }
         // Each region's currency: MyCoolPay takes XAF (and EUR), so the page refuses other regions.
-        $regionCurrencies = [];
+        return view('settings.app.mycoolpay', ['existingToken' => preg_match('/^[a-f0-9]{40}$/', $existingToken) ? $existingToken : '',
+            'regionCurrencies' => self::regionCurrencies()]);
+    }
+
+    /** #92: MyPVIT Gabon (PVit). Everything is saved by the page in settings/mypvit_settings. */
+    public function mypvit()
+    {
+        return view('settings.app.mypvit', ['regionCurrencies' => self::regionCurrencies()]);
+    }
+
+    /** #92: regionId => [name, currency code], for the gateways that take one currency only. */
+    private static function regionCurrencies()
+    {
+        $out = [];
         try {
             foreach ((new \App\Finance\Regions(app(\App\Finance\Firestore::class)))->all() as $id => $r) {
-                $regionCurrencies[$id] = ['name' => $r['name'] ?? $id, 'currency' => strtoupper((string)($r['currency'] ?? ''))];
+                $out[$id] = ['name' => $r['name'] ?? $id, 'currency' => strtoupper((string)($r['currency'] ?? ''))];
             }
         } catch (\Throwable $e) {
             report($e);
         }
-        return view('settings.app.mycoolpay', ['existingToken' => preg_match('/^[a-f0-9]{40}$/', $existingToken) ? $existingToken : '',
-            'regionCurrencies' => $regionCurrencies]);
+        return $out;
     }
 
     public function deliveryCharge()
