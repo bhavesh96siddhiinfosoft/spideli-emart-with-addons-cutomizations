@@ -188,8 +188,25 @@ class FinanceGroupsController extends Controller
             $t = $tontineNames[$p['data']['tontineId'] ?? ''] ?? null;
             return $t && array_values((array)($t['adminIds'] ?? [])) === [$p['data']['beneficiaryUserId'] ?? ''];
         }));
+        // F12: the sponsors of professional tontines, to flag an unverified one.
+        $sponsorIds = [];
+        foreach ($rows as $r) {
+            if (Groups::tontineType($r['data']) === 'professional' && Groups::tontineSponsorId($r['data']) !== '') {
+                $sponsorIds[] = 'users/' . Groups::tontineSponsorId($r['data']);
+            }
+        }
+        $sponsors = [];
+        foreach ($sponsorIds ? $db->getMany(array_values(array_unique($sponsorIds))) : [] as $doc) {
+            if ($doc) {
+                $sponsors[$doc['id']] = $doc['data'];
+            }
+        }
+        $problems = [];
+        foreach ($rows as $r) {
+            $problems[$r['id']] = Groups::professionalSponsorProblem($r['data'], $sponsors[Groups::tontineSponsorId($r['data'])] ?? null);
+        }
         return view('finance.tontines.index', [
-            'rows' => $rows, 'status' => $status,
+            'rows' => $rows, 'status' => $status, 'problems' => $problems,
             'payouts' => Scope::filter($db, $payouts, 'beneficiaryUserId'), 'disputes' => Scope::filter($db, $disputes, 'raisedBy'),
             'tontines' => $tontineNames,
             'names' => $this->names(array_merge(array_map(function ($p) { return $p['data']['beneficiaryUserId'] ?? null; }, $payouts),
@@ -236,6 +253,17 @@ class FinanceGroupsController extends Controller
         if ($pot && (int)($pot['data']['balance'] ?? 0) !== $expectedPot) {
             $flags[] = __('Pot balance') . ' ' . Money::format((int)$pot['data']['balance'], $t['currency'] ?? '') . ' ≠ ' . __('collected minus paid out') . ' ' . Money::format($expectedPot, $t['currency'] ?? '');
         }
+        // F12: a professional tontine needs a verified company as its sponsor.
+        $type = Groups::tontineType($t);
+        $sponsor = null;
+        if ($type !== 'group' && Groups::tontineSponsorId($t) !== '') {
+            $sd = $db->get('users/' . Groups::tontineSponsorId($t));
+            $sponsor = $sd ? $sd['data'] : null;
+        }
+        $sponsorProblem = Groups::professionalSponsorProblem($t, $sponsor);
+        if ($sponsorProblem) {
+            $flags[] = __('Professional tontine:') . ' ' . __($sponsorProblem) . ' ' . __('Only a verified company may create one: suspend it, or ask the company to finish its verification.');
+        }
         $pending = array_values(array_filter($payouts, function ($p) use ($t) {
             return ($p['data']['status'] ?? '') === 'pending_approval' && array_values((array)($t['adminIds'] ?? [])) === [$p['data']['beneficiaryUserId'] ?? ''];
         }));
@@ -246,6 +274,7 @@ class FinanceGroupsController extends Controller
         return view('finance.tontines.show', [
             'id' => $id, 't' => $t, 'members' => $members, 'cycles' => $cycles, 'paidBy' => $paidBy, 'payouts' => $payouts, 'pending' => $pending,
             'disputes' => $disputes, 'pot' => $pot, 'flags' => $flags, 'names' => $this->names($uids),
+            'type' => $type, 'sponsor' => $sponsor, 'sponsorProblem' => $sponsorProblem,
             'lockedBy' => $lockedBy, 'canManage' => $this->can('finance.groups.manage') && $lockedBy === null,
         ]);
     }

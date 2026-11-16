@@ -23,6 +23,9 @@
                     __('Members') => count((array)($t['memberIds'] ?? [])) . ' / ' . ($t['membersLimit'] ?? ''),
                     __('Current cycle') => $t['currentCycle'] ?? 0,
                     __('Next due') => $fmt($t['nextDueAt'] ?? null),
+                    __('Type') => __(ucfirst($type)),
+                    __('Sponsor') => $type === 'group' ? '' : ($sponsor ? (($sponsor['businessProfile']['companyName'] ?? '') ?: trim(($sponsor['firstName'] ?? '') . ' ' . ($sponsor['lastName'] ?? '')))
+                        . ' · ' . (($sponsor['businessProfile']['status'] ?? '') === 'approved' ? __('verified') : __('not verified')) : __('missing')),
                     __('Payout order') => $t['payoutOrderMethod'] ?? '',
                     __('Admin commission') => isset($t['commissionPercent']) ? rtrim(rtrim(number_format((float)$t['commissionPercent'], 2, '.', ''), '0'), '.') . ' %' : __('none (created before the commission)'),
                     __('Pot') => $pot ? Money::format((int)($pot['data']['balance'] ?? 0), $cur) : __('no account'),

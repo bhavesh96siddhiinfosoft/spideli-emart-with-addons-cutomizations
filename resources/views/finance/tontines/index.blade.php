@@ -60,7 +60,9 @@
                         @foreach ($rows as $r)
                             @php $d = $r['data']; @endphp
                             <tr>
-                                <td>{{ $d['name'] ?? '' }} @if (!empty($d['demo']))<span class="badge badge-secondary">demo</span>@endif</td>
+                                <td>{{ $d['name'] ?? '' }} @if (!empty($d['demo']))<span class="badge badge-secondary">demo</span>@endif
+                                    <div class="finance-help">{{ __(ucfirst(\App\Finance\Groups::tontineType($d))) }}</div>
+                                    @if (!empty($problems[$r['id']]))<span class="finance-badge-bad" title="{{ __($problems[$r['id']]) }}">{{ __('Not a verified company') }}</span>@endif</td>
                                 <td class="finance-amount">{{ Money::format((int)($d['contributionAmount'] ?? 0), $d['currency'] ?? '') }}<div class="finance-help">{{ $d['frequency'] ?? '' }}</div></td>
                                 <td>{{ count((array)($d['memberIds'] ?? [])) }} / {{ $d['membersLimit'] ?? '' }}</td>
                                 <td>{{ $d['currentCycle'] ?? 0 }}</td>

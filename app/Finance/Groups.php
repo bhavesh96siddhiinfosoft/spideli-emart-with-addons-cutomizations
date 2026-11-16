@@ -286,6 +286,47 @@ class Groups
         return [$collected - $commission, $commission, $pct];
     }
 
+    /** F12: a tontine's type; missing = "group" (every tontine created before the types). */
+    public static function tontineType(array $tontine)
+    {
+        $type = (string)($tontine['type'] ?? '');
+        return in_array($type, ['professional', 'association', 'group'], true) ? $type : 'group';
+    }
+
+    /** F12: the account that sponsors a professional / association tontine: sponsorId, else its creator. */
+    public static function tontineSponsorId(array $tontine)
+    {
+        return (string)($tontine['sponsorId'] ?? ($tontine['createdBy'] ?? ''));
+    }
+
+    /**
+     * F12 (client, 16 Nov): only a verified company may create a professional
+     * tontine. Returns null when the rule holds, else why not. $sponsor is
+     * users/{sponsorId} (null when missing). A verified company is a business
+     * account approved in Business Accounts whose kind is "company" (missing
+     * kind = company, as every business account before associations).
+     */
+    public static function professionalSponsorProblem(array $tontine, array $sponsor = null)
+    {
+        if (self::tontineType($tontine) !== 'professional') {
+            return null;
+        }
+        if (!$sponsor) {
+            return 'The sponsor account does not exist.';
+        }
+        if (($sponsor['accountType'] ?? '') !== 'business') {
+            return 'The sponsor is not a business account.';
+        }
+        $profile = (array)($sponsor['businessProfile'] ?? []);
+        if (($profile['kind'] ?? 'company') !== 'company') {
+            return 'The sponsor is an association, not a company.';
+        }
+        if (($profile['status'] ?? 'pending') !== 'approved') {
+            return 'The sponsor company is not verified (Business Accounts: ' . ($profile['status'] ?? 'pending') . ').';
+        }
+        return null;
+    }
+
     /** F8: [paid, Spideli's commission] for an amount at a percent (same rules as the tontine commission). */
     public static function commission($amount, $percent)
     {

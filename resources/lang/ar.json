@@ -1754,5 +1754,14 @@
     "Declined": "رفض",
     "View the signature": "عرض التوقيع",
     "Note they signed": "الملاحظة التي وقّعها",
-    "No signed note: accepted before the note was introduced.": "لا توجد ملاحظة موقّعة: تمت الموافقة قبل إضافة الملاحظة."
+    "No signed note: accepted before the note was introduced.": "لا توجد ملاحظة موقّعة: تمت الموافقة قبل إضافة الملاحظة.",
+    "Professional": "مهنية",
+    "Association": "جمعية",
+    "Sponsor": "الجهة الراعية",
+    "Not a verified company": "ليست شركة موثّقة",
+    "Professional tontine:": "تونتين مهنية:",
+    "Only a verified company may create one: suspend it, or ask the company to finish its verification.": "لا يمكن إنشاؤها إلا من قبل شركة موثّقة: علّقها، أو اطلب من الشركة إكمال توثيقها.",
+    "The sponsor account does not exist.": "حساب الجهة الراعية غير موجود.",
+    "The sponsor is not a business account.": "الجهة الراعية ليست حساب أعمال.",
+    "The sponsor is an association, not a company.": "الجهة الراعية جمعية وليست شركة."
 }
