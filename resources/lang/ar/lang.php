@@ -1612,6 +1612,7 @@ return [
     'mycoolpay_withdraw_help' => 'سحب إلى محفظة MyCoolPay أو MTN MoMo أو Orange Money للمتاجر والسائقين ومقدمي الخدمات. لا يقبل MyCoolPay السحب إلا من عناوين IP للخوادم المرسلة بالبريد إلى support@my-coolpay.com (3 كحد أقصى).',
     'mycoolpay_keys_required' => 'أدخل المفتاح العام والمفتاح الخاص قبل تفعيل MyCoolPay.',
     'mycoolpay_save_error' => 'لم يُحفظ:',
+    'mycoolpay_region_currency' => 'لا يقبل MyCoolPay إلا XAF (وEUR إذا تم اختياره): أزل هذه المناطق: :regions',
     'midtrans' => 'MidTrans',
     'app_setting_xendit' => 'Xendit',
     'app_setting_orangepay' => 'OrangePay',

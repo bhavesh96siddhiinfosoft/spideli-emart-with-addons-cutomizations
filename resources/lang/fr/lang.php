@@ -1612,6 +1612,7 @@ return [
     'mycoolpay_withdraw_help' => 'Retraits vers le portefeuille MyCoolPay, MTN MoMo ou Orange Money pour les magasins, livreurs et prestataires. MyCoolPay n\'accepte les retraits que depuis les adresses IP de serveur envoyées par e-mail à support@my-coolpay.com (3 au maximum).',
     'mycoolpay_keys_required' => 'Saisissez la clé publique et la clé privée avant d\'activer MyCoolPay.',
     'mycoolpay_save_error' => 'Non enregistré :',
+    'mycoolpay_region_currency' => 'MyCoolPay n\'accepte que le XAF (et l\'EUR si choisi) : retirez ces régions : :regions',
     'midtrans' => 'Midtrans',
     'app_setting_xendit' => 'Xendit',
     'app_setting_orangepay' => 'OrangePay',

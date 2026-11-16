@@ -107,7 +107,17 @@ class SettingsController extends Controller
         } catch (\Throwable $e) {
             report($e);
         }
-        return view('settings.app.mycoolpay', ['existingToken' => preg_match('/^[a-f0-9]{40}$/', $existingToken) ? $existingToken : '']);
+        // Each region's currency: MyCoolPay takes XAF (and EUR), so the page refuses other regions.
+        $regionCurrencies = [];
+        try {
+            foreach ((new \App\Finance\Regions(app(\App\Finance\Firestore::class)))->all() as $id => $r) {
+                $regionCurrencies[$id] = ['name' => $r['name'] ?? $id, 'currency' => strtoupper((string)($r['currency'] ?? ''))];
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
+        return view('settings.app.mycoolpay', ['existingToken' => preg_match('/^[a-f0-9]{40}$/', $existingToken) ? $existingToken : '',
+            'regionCurrencies' => $regionCurrencies]);
     }
 
     public function deliveryCharge()

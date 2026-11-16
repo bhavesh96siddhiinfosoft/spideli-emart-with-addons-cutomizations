@@ -1612,6 +1612,7 @@ return [
     'mycoolpay_withdraw_help' => 'Payouts to the MyCoolPay wallet, MTN MoMo or Orange Money for stores, drivers and providers. MyCoolPay accepts payouts only from server IP addresses you email to support@my-coolpay.com (3 at most).',
     'mycoolpay_keys_required' => 'Enter the public key and the private key before enabling MyCoolPay.',
     'mycoolpay_save_error' => 'Not saved:',
+    'mycoolpay_region_currency' => 'MyCoolPay only accepts XAF (and EUR if chosen): remove these regions: :regions',
     'midtrans' => 'MidTrans',
     'app_setting_xendit' => 'Xendit',
     'app_setting_orangepay' => 'OrangePay',

@@ -116,6 +116,8 @@
     /* The callback token already set in the MyCoolPay merchant space (kept, so that link stays valid). */
     var existingToken = {!! json_encode($existingToken ?? '') !!};
     var callbackToken = '';
+    /* regionId => {name, currency}: MyCoolPay takes XAF only (and EUR when chosen below). */
+    var regionCurrencies = {!! json_encode((object)($regionCurrencies ?? [])) !!};
 
     function newToken() {
         var a = new Uint8Array(20);
@@ -171,6 +173,15 @@
             var privateKey = $.trim($('.mycoolpay_private_key').val());
             if (enable && (publicKey === '' || privateKey === '')) {
                 showError({!! json_encode(trans('lang.mycoolpay_keys_required')) !!});
+                return;
+            }
+            var allowedCurrencies = $('.mycoolpay_currency').val() === 'EUR' ? ['XAF', 'EUR'] : ['XAF'];
+            var wrong = getRegionAssignment().filter(function (id) {
+                var r = regionCurrencies[id];
+                return r && r.currency !== '' && allowedCurrencies.indexOf(r.currency) === -1;
+            }).map(function (id) { return regionCurrencies[id].name + ' (' + regionCurrencies[id].currency + ')'; });
+            if (wrong.length) {
+                showError({!! json_encode(trans('lang.mycoolpay_region_currency')) !!}.replace(':regions', wrong.join(', ')));
                 return;
             }
             if (!callbackToken) {
