@@ -1732,5 +1732,14 @@
     "Spideli commission": "عمولة Spideli",
     "Spideli brokerage": "وساطة Spideli",
     "the rest of each premium is set aside for the insurer": "يُخصص باقي كل قسط لشركة التأمين",
-    "fixed when the policy is activated": "تُثبت عند تفعيل الوثيقة"
+    "fixed when the policy is activated": "تُثبت عند تفعيل الوثيقة",
+    "Only the customers of this region see this biller. Its country and currency are the region's.": "لا يرى هذه الجهة إلا عملاء هذه المنطقة. دولتها وعملتها هما دولة المنطقة وعملتها.",
+    "Choose the region (one with Finance switched on).": "اختر المنطقة (منطقة مفعّل فيها التمويل).",
+    "This region has no currency or country. Set them in Region Management.": "لا توجد عملة أو دولة لهذه المنطقة. حدّدهما في إدارة المناطق.",
+    "This biller has no region yet: customers will not see it until you choose one.": "لا توجد منطقة لهذه الجهة بعد: لن يراها العملاء حتى تختار منطقة.",
+    "From the region": "من المنطقة",
+    "Filled from the region when you save.": "تُملأ من المنطقة عند الحفظ.",
+    "none: hidden from customers": "لا شيء: مخفية عن العملاء",
+    "All my regions": "كل مناطقي",
+    "No region (hidden from customers)": "بدون منطقة (مخفية عن العملاء)"
 }

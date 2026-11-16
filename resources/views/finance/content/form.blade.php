@@ -45,6 +45,13 @@
                                             @foreach ($f['options'] as $ok => $ol)<option value="{{ $ok }}" {{ (string)$v === (string)$ok ? 'selected' : '' }}>{{ __($ol) }}</option>@endforeach
                                         </select>
                                         @break
+                                    @case('region')
+                                        <select id="ct-{{ $key }}" name="{{ $key }}" class="form-control finance-select2" required>
+                                            <option value="">—</option>
+                                            @foreach ($options[$key] ?? [] as $ok => $ol)<option value="{{ $ok }}" {{ (string)$v === (string)$ok ? 'selected' : '' }}>{{ $ol }}</option>@endforeach
+                                        </select>
+                                        @if ($v === '' && $id)<div class="form-text text-danger">{{ __('This biller has no region yet: customers will not see it until you choose one.') }}</div>@endif
+                                        @break
                                     @case('multiselect')
                                         <select id="ct-{{ $key }}" name="{{ $key }}[]" class="form-control finance-select2" multiple>
                                             @foreach ($options[$key] ?? [] as $ok => $ol)<option value="{{ $ok }}" {{ in_array($ok, (array)$v, true) ? 'selected' : '' }}>{{ $ol }}</option>@endforeach
@@ -62,6 +69,11 @@
                                         <button type="button" class="btn btn-sm btn-outline-primary" id="ct-add-package"><i class="mdi mdi-plus"></i> {{ __('Another package') }}</button>
                                         @break
                                     @default
+                                        @if (!empty($f['auto']))
+                                        <input type="text" id="ct-{{ $key }}" class="form-control" value="{{ is_array($v) ? '' : $v }}" readonly placeholder="{{ __('From the region') }}">
+                                        <div class="form-text text-muted">{{ __('Filled from the region when you save.') }}</div>
+                                        @break
+                                        @endif
                                         <input type="{{ ['date' => 'date', 'datetime' => 'datetime-local', 'url' => 'url', 'int' => 'number'][$f[0]] ?? 'text' }}" id="ct-{{ $key }}" name="{{ $key }}" class="form-control"
                                             value="{{ is_array($v) ? '' : $v }}" {{ in_array($f[0], ['number', 'money'], true) ? 'inputmode=decimal' : '' }} {{ !empty($f['req']) ? 'required' : '' }}
                                             @if (isset($f['max']) && $f[0] === 'text') maxlength="{{ $f['max'] }}" @endif>

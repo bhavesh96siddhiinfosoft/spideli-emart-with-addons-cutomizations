@@ -2,13 +2,15 @@
 @section('content')
 @php
     $tz = new DateTimeZone(config('app.timezone'));
-    $show = function ($v, $key) use ($s, $tz) {
+    $regionNames = $regionNames ?? [];
+    $show = function ($v, $key) use ($s, $tz, $regionNames) {
         if ($v instanceof \DateTimeInterface) { return $v->setTimezone($tz)->format(($s['fields'][$key][0] ?? '') === 'datetime' ? 'Y-m-d H:i' : 'Y-m-d'); }
         if (is_bool($v)) { return $v ? __('Yes') : __('No'); }
         if (is_float($v)) { return rtrim(rtrim(number_format($v, 6, '.', ' '), '0'), '.'); }
         if (is_array($v)) { return count($v); }
         $f = $s['fields'][$key] ?? null;
         if ($f && $f[0] === 'select') { return __($f['options'][$v] ?? $v); }
+        if ($f && $f[0] === 'region') { return $v === '' || $v === null ? __('none: hidden from customers') : ($regionNames[$v] ?? $v); }
         return (string)$v;
     };
     $import = ['indicators' => 'indicators', 'securities' => 'prices'][$tab] ?? null;
@@ -23,6 +25,16 @@
                 @if ($canManage)<a class="btn btn-primary text-nowrap ml-3" href="{{ route('finance.content.create', $tab) }}"><i class="mdi mdi-plus mr-1"></i>{{ __('Add') }}</a>@endif
             </div>
             <div class="card-body">
+                @if ($tab === 'billers')
+                    <form method="GET" class="form-inline mb-3"><input type="hidden" name="tab" value="billers">
+                        <label class="mr-2" for="ct-region-filter">{{ __('Region') }}</label>
+                        <select id="ct-region-filter" name="region" class="form-control" onchange="this.form.submit()">
+                            <option value="">{{ __('All my regions') }}</option>
+                            @foreach ($regionFilter ?? [] as $rid => $rn)<option value="{{ $rid }}" {{ ($region ?? '') === $rid ? 'selected' : '' }}>{{ $rn }}</option>@endforeach
+                            <option value="-" {{ ($region ?? '') === '-' ? 'selected' : '' }}>{{ __('No region (hidden from customers)') }}</option>
+                        </select>
+                    </form>
+                @endif
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped" id="financeContentTable">
                         <thead><tr>@foreach ($s['columns'] as $c)<th>{{ __($s['fields'][$c][1] ?? $c) }}</th>@endforeach<th>{{ __('Published') }}</th><th>{{ __('Updated') }}</th>@if ($canManage)<th></th>@endif</tr></thead>

@@ -83,10 +83,27 @@ class FinanceContentController extends Controller
         }
         $s = self::kind($kind);
         $rows = $this->db()->query($s['collection'], [], [], 1000);
+        $regionNames = [];
+        $region = '';
+        if ($kind === 'billers') {
+            // F4: each region has its own billers; a regional admin sees their regions' only.
+            $regions = new Regions($this->db());
+            foreach ($regions->all() as $r) {
+                $regionNames[$r['id']] = $r['name'] ?? $r['id'];
+            }
+            $mine = Regions::allowedIds();
+            $region = (string)$request->input('region', '');
+            $rows = array_values(array_filter($rows, function ($r) use ($mine, $region) {
+                $rid = (string)($r['data']['regionId'] ?? '');
+                return (!$mine || in_array($rid, $mine, true)) && ($region === '' || $rid === $region || ($region === '-' && $rid === ''));
+            }));
+            $regionFilter = array_intersect_key($regionNames, $regions->visible(true));
+        }
         usort($rows, function ($a, $b) use ($s) {
             return [(int)($a['data']['order'] ?? 0), (string)($a['data'][$s['label']] ?? '')] <=> [(int)($b['data']['order'] ?? 0), (string)($b['data'][$s['label']] ?? '')];
         });
-        return view('finance.content.index', ['tab' => $kind, 's' => $s, 'rows' => $rows, 'canManage' => $manage]);
+        return view('finance.content.index', ['tab' => $kind, 's' => $s, 'rows' => $rows, 'canManage' => $manage,
+            'regionNames' => $regionNames, 'regionFilter' => $regionFilter ?? [], 'region' => $region]);
     }
 
     public function form($kind, $id = null)
@@ -97,9 +114,21 @@ class FinanceContentController extends Controller
             $doc = $this->db()->get($s['collection'] . '/' . $id);
             abort_unless($doc, 404);
             $record = $doc['data'];
+            abort_unless($this->regionAllowed($kind, $record), 404);
         }
         $options = [];
         foreach ($s['fields'] as $key => $f) {
+            if ($f[0] === 'region') {
+                // F4: the Finance regions this admin may use (and the record's own, so an edit keeps it).
+                $options[$key] = [];
+                $regions = new Regions($this->db());
+                $visible = $regions->visible(true);
+                foreach ($regions->all() as $r) {
+                    if (isset($visible[$r['id']]) || $r['id'] === ($record[$key] ?? null)) {
+                        $options[$key][$r['id']] = ($r['name'] ?? $r['id']) . ' (' . ($r['countryCode'] ?? '?') . ', ' . ($r['currency'] ?: '?') . ')';
+                    }
+                }
+            }
             if ($f[0] === 'multiselect') {
                 $options[$key] = [];
                 $from = Content::SCHEMAS[$f['from']];
@@ -122,7 +151,12 @@ class FinanceContentController extends Controller
                 abort_unless($doc, 404);
                 $existing = $doc['data'];
             }
-            $data = Content::fromInput($kind, $request->all(), $existing);
+            $input = $request->all();
+            if ($kind === 'billers') {
+                abort_unless($existing === null || $this->regionAllowed($kind, $existing), 404);
+                $input = $this->withRegion($input);
+            }
+            $data = Content::fromInput($kind, $input, $existing);
             $id = (new Content($this->db()))->save($kind, $id, $data);
             $msg = __('Saved.');
             if ($kind === 'billers' && trim((string)$request->input('samples')) !== '' && is_string($data['accountPattern'] ?? null)) {
@@ -135,6 +169,33 @@ class FinanceContentController extends Controller
         } catch (\Throwable $e) {
             return back()->withInput()->with('error', $this->failure($e));
         }
+    }
+
+    /**
+     * F4: a biller's region must be a Finance region this admin may use; its
+     * country and currency are the region's (never typed).
+     */
+    private function withRegion(array $input)
+    {
+        $rid = (string)($input['regionId'] ?? '');
+        $visible = (new Regions($this->db()))->visible(true);
+        if (!isset($visible[$rid])) {
+            throw new \App\Finance\FinanceException('invalid', __('Choose the region (one with Finance switched on).'));
+        }
+        $r = $visible[$rid];
+        if (empty($r['currency']) || empty($r['countryCode'])) {
+            throw new \App\Finance\FinanceException('invalid', __('This region has no currency or country. Set them in Region Management.'));
+        }
+        $input['currency'] = $r['currency'];
+        $input['country'] = strtoupper($r['countryCode']);
+        return $input;
+    }
+
+    /** F4: a regional admin only opens billers of their regions. */
+    private function regionAllowed($kind, array $record)
+    {
+        $mine = Regions::allowedIds();
+        return $kind !== 'billers' || !$mine || in_array((string)($record['regionId'] ?? ''), $mine, true);
     }
 
     public function rateAdd(Request $request)

@@ -24,7 +24,9 @@ class Content
      * Field types: text, textarea, url (https), number (float), int, money
      * (minor units of the record's "currency"), date, datetime, bool,
      * select (options), multiselect (options from another kind), regex,
-     * packages (rows of code / name / amount). "req" = required.
+     * packages (rows of code / name / amount), region (a Finance region id,
+     * checked by the controller). "req" = required; "auto" = filled from the
+     * chosen region, shown read-only.
      */
     public const SCHEMAS = [
         'indicators' => [
@@ -127,14 +129,16 @@ class Content
         ],
         'billers' => [
             'collection' => 'utility_billers', 'title' => 'Billers', 'label' => 'name',
-            'columns' => ['name', 'category', 'country', 'amountType'],
+            'columns' => ['name', 'category', 'regionId', 'amountType'],
             'help' => 'Only billers the operations team can pay. Test the account pattern on real samples before publishing.',
             'fields' => [
+                // F4 (client, 16 Nov): bill payments belong to regions; each region has its own billers.
+                'regionId' => ['region', 'Region', 'req' => true, 'help' => 'Only the customers of this region see this biller. Its country and currency are the region\'s.'],
                 'name' => ['text', 'Name', 'req' => true],
                 'category' => ['select', 'Category', 'req' => true, 'options' => ['electricity' => 'Electricity', 'water' => 'Water', 'tv' => 'TV', 'internet' => 'Internet', 'phone' => 'Phone',
                     'gas' => 'Gas', 'education' => 'Education', 'taxes' => 'Taxes', 'products' => 'Products', 'other' => 'Other']],
-                'country' => ['text', 'Country (ISO-2)', 'req' => true, 'max' => 2],
-                'currency' => ['text', 'Currency (ISO-3)', 'req' => true, 'max' => 3],
+                'country' => ['text', 'Country (ISO-2)', 'req' => true, 'max' => 2, 'auto' => 'region'],
+                'currency' => ['text', 'Currency (ISO-3)', 'req' => true, 'max' => 3, 'auto' => 'region'],
                 'accountLabel' => ['text', 'Account label', 'req' => true, 'help' => 'e.g. Meter number'],
                 'accountHint' => ['text', 'Account hint'],
                 'accountPattern' => ['regex', 'Account pattern', 'help' => 'A regular expression the whole account must match, e.g. \d{11}'],
@@ -257,6 +261,8 @@ class Content
                 if (@preg_match('/^(?:' . str_replace('/', '\/', (string)$raw) . ')$/', '') === false) {
                     throw new FinanceException('invalid', "$label: " . __('not a valid pattern.'));
                 }
+                return [true, (string)$raw];
+            case 'region':
                 return [true, (string)$raw];
             case 'select':
                 if (!array_key_exists((string)$raw, $f['options'])) {
