@@ -355,6 +355,9 @@ Route::prefix('settings')->group(function () {
         Route::get('payment/xendit', [App\Http\Controllers\SettingsController::class, 'xendit'])->name('payment.xendit');
         Route::get('payment/midtrans', [App\Http\Controllers\SettingsController::class, 'midTrans'])->name('payment.midTrans');
         Route::get('payment/orangepay', [App\Http\Controllers\SettingsController::class, 'orangePay'])->name('payment.orangePay');
+        // #92: the client's gateways
+        Route::get('payment/mycoolpay', [App\Http\Controllers\SettingsController::class, 'mycoolpay'])->name('payment.mycoolpay');
+        Route::post('payment/mycoolpay/secret', [App\Http\Controllers\SettingsController::class, 'mycoolpaySecret'])->name('payment.mycoolpay.secret');
     });
     Route::middleware(['permission:delivery-charge,settings.app.deliveryCharge'])->group(function () {
         Route::get('app/deliveryCharge', [App\Http\Controllers\SettingsController::class, 'deliveryCharge'])->name('settings.app.deliveryCharge');

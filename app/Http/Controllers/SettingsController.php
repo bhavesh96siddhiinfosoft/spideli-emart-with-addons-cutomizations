@@ -92,6 +92,59 @@ class SettingsController extends Controller
         return view('settings.app.orangePay');
     }
 
+    /**
+     * #92: MyCoolPay Cameroun. The page shows whether a private key is saved
+     * (its last 4 characters only) and the callback token, both read with the
+     * panel's service account from the staff-only payment_secrets/mycoolpay.
+     */
+    public function mycoolpay()
+    {
+        $secret = null;
+        $secretError = false;
+        try {
+            $doc = app(\App\Finance\Firestore::class)->get('payment_secrets/mycoolpay');
+            if ($doc) {
+                $key = (string)($doc['data']['privateKey'] ?? '');
+                $secret = ['last4' => $key !== '' ? substr($key, -4) : '', 'callbackToken' => (string)($doc['data']['callbackToken'] ?? '')];
+            }
+        } catch (\Throwable $e) {
+            report($e);
+            $secretError = true;
+        }
+        return view('settings.app.mycoolpay', ['secret' => $secret, 'secretError' => $secretError]);
+    }
+
+    /**
+     * #92: saves MyCoolPay's private key in payment_secrets/mycoolpay (never in
+     * settings/*, which the apps and the website read). The first save also
+     * creates the secret part of the callback URL.
+     */
+    public function mycoolpaySecret(\Illuminate\Http\Request $request)
+    {
+        $key = trim((string)$request->input('privateKey'));
+        if ($key === '' || strlen($key) > 200 || preg_match('/\s/', $key)) {
+            return response()->json(['message' => trans('lang.mycoolpay_private_key_invalid')], 422);
+        }
+        try {
+            $db = app(\App\Finance\Firestore::class);
+            $old = $db->get('payment_secrets/mycoolpay');
+            $token = (string)($old['data']['callbackToken'] ?? '');
+            if ($token === '') {
+                $token = bin2hex(random_bytes(20));
+            }
+            $db->commit([$db->write('set', 'payment_secrets/mycoolpay', [
+                'privateKey' => $key,
+                'callbackToken' => $token,
+                'updatedAt' => \App\Finance\Value::serverTimestamp(),
+                'updatedBy' => 'admin:' . \Illuminate\Support\Facades\Auth::id(),
+            ])]);
+        } catch (\Throwable $e) {
+            report($e);
+            return response()->json(['message' => trans('lang.mycoolpay_private_key_not_saved')], 500);
+        }
+        return response()->json(['saved' => true, 'last4' => substr($key, -4)]);
+    }
+
     public function deliveryCharge()
     {
         return view('settings.app.deliveryCharge');
