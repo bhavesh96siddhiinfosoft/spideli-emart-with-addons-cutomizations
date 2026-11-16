@@ -2,12 +2,10 @@
 
 @section('content')
 {{-- #92: MyCoolPay Cameroun (my-coolpay.com). API: merchant API documentation of 14 Oct 2021 and the
-     official PHP SDK. The public key and the switches live in settings/mycoolpay_settings (read by the
-     apps and the website); the private key and the callback token only in the staff-only
-     payment_secrets/mycoolpay, written by this panel's server. --}}
+     official PHP SDK. Everything is saved in settings/mycoolpay_settings, like the other gateways:
+     keys, switches, regions, the callback token and the four links set in the MyCoolPay merchant space. --}}
 @php
     $webBase = preg_replace('#/admin/?$#', '', rtrim(url('/'), '/'));
-    $token = $secret['callbackToken'] ?? '';
 @endphp
 <div class="page-wrapper">
     <div class="card">
@@ -17,9 +15,6 @@
 
         <div class="card-body">
             <div class="error_top alert alert-danger" style="display:none"></div>
-            @if (!empty($secretError))
-                <div class="alert alert-warning">{{ trans('lang.mycoolpay_secret_read_error') }}</div>
-            @endif
             <div class="row vendor_payout_create">
                 <div class="vendor_payout_create-inner">
                     <fieldset>
@@ -28,7 +23,6 @@
                         <div class="form-check width-100">
                             <input type="checkbox" class="enable_mycoolpay" id="enable_mycoolpay">
                             <label class="col-3 control-label" for="enable_mycoolpay">{{ trans('lang.app_setting_enable_mycoolpay') }}</label>
-                            <div class="form-text text-muted">{{ trans('lang.app_setting_enable_mycoolpay_help') }}</div>
                         </div>
 
                         <div class="form-group row width-100">
@@ -48,12 +42,8 @@
                         <div class="form-group row width-100">
                             <label class="col-3 control-label">{{ trans('lang.mycoolpay_private_key') }}</label>
                             <div class="col-7">
-                                <input type="password" class="form-control mycoolpay_private_key" autocomplete="new-password"
-                                    value="{{ $secret['privateKey'] ?? '' }}" placeholder="••••••••••••••••••••••••••••">
-                                <div class="form-text text-muted">
-                                    @if (empty($secret['privateKey']))<strong>{{ trans('lang.mycoolpay_private_key_none') }}</strong>@endif
-                                    {{ trans('lang.mycoolpay_private_key_help') }}
-                                </div>
+                                <input type="password" class="form-control mycoolpay_private_key" autocomplete="new-password">
+                                <div class="form-text text-muted">{{ trans('lang.mycoolpay_public_key_help') }}</div>
                             </div>
                         </div>
 
@@ -85,17 +75,12 @@
                         <div class="form-group row width-100">
                             <div class="col-12 form-text text-muted mb-2">{{ trans('lang.mycoolpay_urls_help') }}</div>
                         </div>
-                        @foreach ([
-                            'mycoolpay_callback_url' => $token !== '' ? $webBase . '/mycoolpay/callback/' . $token : '',
-                            'mycoolpay_success_url' => $webBase . '/mycoolpay/return/success',
-                            'mycoolpay_cancel_url' => $webBase . '/mycoolpay/return/cancel',
-                            'mycoolpay_failure_url' => $webBase . '/mycoolpay/return/failure',
-                        ] as $labelKey => $link)
+                        @foreach (['callbackUrl' => 'mycoolpay_callback_url', 'successUrl' => 'mycoolpay_success_url',
+                                   'cancelUrl' => 'mycoolpay_cancel_url', 'failureUrl' => 'mycoolpay_failure_url'] as $field => $labelKey)
                             <div class="form-group row width-100">
                                 <label class="col-3 control-label">{{ trans('lang.' . $labelKey) }}</label>
                                 <div class="col-7">
-                                    <input type="text" class="form-control mycoolpay_link" readonly value="{{ $link }}"
-                                        placeholder="{{ trans('lang.mycoolpay_callback_pending') }}" onclick="this.select()">
+                                    <input type="text" class="form-control mycoolpay_link" id="mycoolpay_{{ $field }}" readonly onclick="this.select()">
                                 </div>
                             </div>
                         @endforeach
@@ -127,7 +112,30 @@
 <script type="text/javascript">
     var database = firebase.firestore();
     var ref = database.collection('settings').doc('mycoolpay_settings');
-    var savedPrivateKey = {!! json_encode($secret['privateKey'] ?? '') !!};
+    var webBase = {!! json_encode($webBase) !!};
+    /* The callback token already set in the MyCoolPay merchant space (kept, so that link stays valid). */
+    var existingToken = {!! json_encode($existingToken ?? '') !!};
+    var callbackToken = '';
+
+    function newToken() {
+        var a = new Uint8Array(20);
+        window.crypto.getRandomValues(a);
+        return Array.prototype.map.call(a, function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+    }
+
+    function links(token) {
+        return {
+            callbackUrl: webBase + '/mycoolpay/callback/' + token,
+            successUrl: webBase + '/mycoolpay/return/success',
+            cancelUrl: webBase + '/mycoolpay/return/cancel',
+            failureUrl: webBase + '/mycoolpay/return/failure'
+        };
+    }
+
+    function showLinks() {
+        var l = links(callbackToken);
+        Object.keys(l).forEach(function (k) { $('#mycoolpay_' + k).val(l[k]); });
+    }
 
     function showError(msg) {
         $('.error_top').text(msg).show();
@@ -143,9 +151,13 @@
                 $('#enable_mycoolpay').prop('checked', p.isEnabled === true);
                 $('#mycoolpay_withdraw_enable').prop('checked', p.isWithdrawEnabled === true);
                 $('.mycoolpay_public_key').val(p.publicKey || '');
+                $('.mycoolpay_private_key').val(p.privateKey || '');
                 $('.mycoolpay_currency').val(p.currency || 'XAF');
                 $('.mycoolpay_mode').val(p.paymentMode || 'paylink');
             }
+            callbackToken = (p && /^[a-f0-9]{40}$/.test(p.callbackToken || '')) ? p.callbackToken
+                : (/^[a-f0-9]{40}$/.test(existingToken) ? existingToken : newToken());
+            showLinks();
             jQuery("#data-table_processing").hide();
         }).catch(function (e) {
             jQuery("#data-table_processing").hide();
@@ -161,33 +173,30 @@
                 showError({!! json_encode(trans('lang.mycoolpay_keys_required')) !!});
                 return;
             }
+            if (!callbackToken) {
+                callbackToken = newToken();
+            }
             jQuery("#data-table_processing").show();
             try {
-                // 1. The private key goes to the server only (staff-only document), when it changed.
-                if (privateKey !== '' && privateKey !== savedPrivateKey) {
-                    await $.ajax({
-                        url: {!! json_encode(route('payment.mycoolpay.secret')) !!},
-                        method: 'POST',
-                        headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
-                        data: {privateKey: privateKey}
-                    });
-                }
-                // 2. The public part, read by the apps and the website.
-                await ref.set({
+                await ref.set(Object.assign({
+                    gateway: 'mycoolpay',
+                    name: 'MyCoolPay',
                     isEnabled: enable,
+                    enable: enable,   // the field an earlier app version of this document used
+                    isSandbox: false, // MyCoolPay has no sandbox
                     isWithdrawEnabled: $('#mycoolpay_withdraw_enable').is(':checked'),
                     publicKey: publicKey,
+                    privateKey: privateKey,
                     currency: $('.mycoolpay_currency').val(),
                     paymentMode: $('.mycoolpay_mode').val(),
                     regionIds: getRegionAssignment(),
-                    gateway: 'mycoolpay',
+                    callbackToken: callbackToken,
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, {merge: true});
+                }, links(callbackToken)), {merge: true});
                 window.location.href = {!! json_encode(url('settings/payment/mycoolpay')) !!};
             } catch (e) {
                 jQuery("#data-table_processing").hide();
-                var msg = (e && e.responseJSON && e.responseJSON.message) ? e.responseJSON.message : (e && e.message ? e.message : String(e));
-                showError({!! json_encode(trans('lang.mycoolpay_save_error')) !!} + ' ' + msg);
+                showError({!! json_encode(trans('lang.mycoolpay_save_error')) !!} + ' ' + (e && e.message ? e.message : String(e)));
             }
         });
     });

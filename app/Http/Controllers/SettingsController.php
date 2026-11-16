@@ -93,57 +93,21 @@ class SettingsController extends Controller
     }
 
     /**
-     * #92: MyCoolPay Cameroun. The page gets the private key (in a password
-     * field) and the callback token, both read with the panel's service
-     * account from the staff-only payment_secrets/mycoolpay.
+     * #92: MyCoolPay Cameroun. Everything is saved by the page in
+     * settings/mycoolpay_settings, like the other gateways. The callback token
+     * a first version kept in payment_secrets/mycoolpay is passed on, so the
+     * callback link already set in the MyCoolPay merchant space stays valid.
      */
     public function mycoolpay()
     {
-        $secret = null;
-        $secretError = false;
+        $existingToken = '';
         try {
             $doc = app(\App\Finance\Firestore::class)->get('payment_secrets/mycoolpay');
-            if ($doc) {
-                $key = (string)($doc['data']['privateKey'] ?? '');
-                // The full key goes to the page only (admins), shown as dots like the other gateways' secrets.
-                $secret = ['privateKey' => $key, 'callbackToken' => (string)($doc['data']['callbackToken'] ?? '')];
-            }
+            $existingToken = (string)($doc['data']['callbackToken'] ?? '');
         } catch (\Throwable $e) {
             report($e);
-            $secretError = true;
         }
-        return view('settings.app.mycoolpay', ['secret' => $secret, 'secretError' => $secretError]);
-    }
-
-    /**
-     * #92: saves MyCoolPay's private key in payment_secrets/mycoolpay (never in
-     * settings/*, which the apps and the website read). The first save also
-     * creates the secret part of the callback URL.
-     */
-    public function mycoolpaySecret(\Illuminate\Http\Request $request)
-    {
-        $key = trim((string)$request->input('privateKey'));
-        if ($key === '' || strlen($key) > 200 || preg_match('/\s/', $key)) {
-            return response()->json(['message' => trans('lang.mycoolpay_private_key_invalid')], 422);
-        }
-        try {
-            $db = app(\App\Finance\Firestore::class);
-            $old = $db->get('payment_secrets/mycoolpay');
-            $token = (string)($old['data']['callbackToken'] ?? '');
-            if ($token === '') {
-                $token = bin2hex(random_bytes(20));
-            }
-            $db->commit([$db->write('set', 'payment_secrets/mycoolpay', [
-                'privateKey' => $key,
-                'callbackToken' => $token,
-                'updatedAt' => \App\Finance\Value::serverTimestamp(),
-                'updatedBy' => 'admin:' . \Illuminate\Support\Facades\Auth::id(),
-            ])]);
-        } catch (\Throwable $e) {
-            report($e);
-            return response()->json(['message' => trans('lang.mycoolpay_private_key_not_saved')], 500);
-        }
-        return response()->json(['saved' => true, 'last4' => substr($key, -4)]);
+        return view('settings.app.mycoolpay', ['existingToken' => preg_match('/^[a-f0-9]{40}$/', $existingToken) ? $existingToken : '']);
     }
 
     public function deliveryCharge()
