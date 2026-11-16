@@ -232,13 +232,18 @@ class Groups
                 throw new FinanceException('nothing_to_collect', 'This cycle has collected nothing.');
             }
             $cur = $tontine['currency'] ?? ($cycle['currency'] ?? '');
+            /* F21: the tontine's admin commission (copied onto it at creation;
+             * none on older tontines) goes to Spideli's platform account as the
+             * posting's fee; the member receives the rest. */
+            [$net, $commission, $pct] = self::tontineCommission($amount, $tontine);
             $wallet = $this->ledger->walletIdFor($t, $p['beneficiaryUserId'], $cur);
             $state = Ledger::newState();
-            $plan = $this->ledger->plan($t, $state, 'tontine_payout', $cur, $tontine['potAccountId'] ?? ('tontine_' . $p['tontineId']), $wallet, $amount, 0,
+            $plan = $this->ledger->plan($t, $state, 'tontine_payout', $cur, $tontine['potAccountId'] ?? ('tontine_' . $p['tontineId']), $wallet, $net, $commission,
                 [$p['beneficiaryUserId']], ['kind' => 'tontine_payouts', 'id' => $payoutId], 'Tontine payout: ' . ($tontine['name'] ?? '') . ' #' . $number);
             $tx = $this->ledger->write($t, $state, $plan, Auth::id());
 
-            $t->update('tontine_payouts/' . $payoutId, ['status' => 'paid', 'amount' => $amount, 'txId' => $tx['txId'], 'reference' => $tx['reference'],
+            $t->update('tontine_payouts/' . $payoutId, ['status' => 'paid', 'amount' => $net, 'grossAmount' => $amount, 'commission' => $commission,
+                'commissionPercent' => $pct, 'txId' => $tx['txId'], 'reference' => $tx['reference'],
                 'approvedBy' => $this->admin(), 'approvedAt' => Value::serverTimestamp(), 'paidAt' => Value::serverTimestamp()]);
             $t->update('tontine_cycles/' . $cycleId, ['status' => 'paid', 'paidAt' => Value::serverTimestamp(), 'lastTxId' => $tx['txId'], 'updatedAt' => Value::serverTimestamp()]);
             if ($next) {
@@ -248,9 +253,27 @@ class Groups
                 $t->update('tontines/' . $p['tontineId'], ['status' => 'completed', 'completedAt' => Value::serverTimestamp(), 'updatedAt' => Value::serverTimestamp()]);
             }
             Audit::add($t, 'tontine.payout_approve', 'tontine_payouts', $payoutId, ['status' => 'pending_approval'],
-                ['status' => 'paid', 'amount' => $amount, 'txId' => $tx['txId'], 'completed' => !$next]);
-            return array_merge($p, ['amount' => $amount, 'currency' => $cur, 'tontineName' => $tontine['name'] ?? '']);   // the amount paid, not the request's
+                ['status' => 'paid', 'amount' => $net, 'commission' => $commission, 'txId' => $tx['txId'], 'completed' => !$next]);
+            return array_merge($p, ['amount' => $net, 'currency' => $cur, 'tontineName' => $tontine['name'] ?? '']);   // the amount paid, not the request's
         });
+    }
+
+    /**
+     * F21: [paid to the member, Spideli's commission, percent] for a cycle's
+     * collected amount (minor units). The percent is the tontine's own
+     * commissionPercent (0 when the tontine has none); the commission is rounded
+     * to whole minor units and always leaves the member something.
+     */
+    public static function tontineCommission($collected, array $tontine)
+    {
+        $pct = (float)($tontine['commissionPercent'] ?? 0);
+        if (!is_finite($pct) || $pct < 0) {
+            $pct = 0.0;
+        }
+        $pct = min($pct, 99.0);
+        $commission = (int)round($collected * $pct / 100);
+        $commission = max(0, min($commission, $collected - 1));
+        return [$collected - $commission, $commission, $pct];
     }
 
     public function tontineSuspend($tontineId, $suspend, $reason)

@@ -24,6 +24,7 @@
                     __('Current cycle') => $t['currentCycle'] ?? 0,
                     __('Next due') => $fmt($t['nextDueAt'] ?? null),
                     __('Payout order') => $t['payoutOrderMethod'] ?? '',
+                    __('Admin commission') => isset($t['commissionPercent']) ? rtrim(rtrim(number_format((float)$t['commissionPercent'], 2, '.', ''), '0'), '.') . ' %' : __('none (created before the commission)'),
                     __('Pot') => $pot ? Money::format((int)($pot['data']['balance'] ?? 0), $cur) : __('no account'),
                 ] as $label => $value)
                     <div class="form-group row width-50"><label class="col-3 control-label">{{ $label }}</label><div class="col-7"><span class="form-control-plaintext">{{ $value !== '' ? $value : '—' }}</span></div></div>
@@ -96,7 +97,8 @@
                 @foreach ($pending as $p)
                     @php $d = $p['data']; @endphp
                     <div class="form-group row width-100"><div class="col-7">
-                        <p>{{ __('Cycle') }} {{ $d['cycleNumber'] ?? '' }}: {{ $names[$d['beneficiaryUserId'] ?? ''] ?? '' }} {{ __('is the beneficiary and the only admin, so nobody else can approve it. Approving pays the cycle\'s collected amount from the pot to their wallet and moves the tontine to the next cycle.') }}</p>
+                        <p>{{ __('Cycle') }} {{ $d['cycleNumber'] ?? '' }}: {{ $names[$d['beneficiaryUserId'] ?? ''] ?? '' }} {{ __('is the beneficiary and the only admin, so nobody else can approve it. Approving pays the cycle\'s collected amount from the pot to their wallet and moves the tontine to the next cycle.') }}
+                            @if (!empty($t['commissionPercent'])) {{ __('The tontine\'s admin commission is deducted from it for Spideli.') }}@endif</p>
                         <form method="POST" action="{{ route('finance.tontines.action', [$id, 'approve-payout']) }}" onsubmit="return confirm('{{ __('Approve and pay this payout?') }}')">@csrf
                             <input type="hidden" name="payoutId" value="{{ $p['id'] }}"><button class="btn btn-success">{{ __('Approve and pay') }}</button></form>
                     </div></div>

@@ -181,6 +181,10 @@ class SettingsSchema
                     'payoutOrderMethods' => ['type' => 'options', 'options' => ['fixed', 'random'], 'required' => true, 'label' => 'Payout order',
                         'help' => 'Without it every tontine creation is refused.'],
                     'minContribution' => ['type' => 'money', 'label' => 'Smallest contribution'],
+                    // F21 (client, 16 Nov): Spideli's commission on each payout.
+                    ['section' => 'Admin commission'],
+                    'commissionPercent' => ['type' => 'number', 'min' => 0, 'max' => 99, 'label' => 'Admin commission on each payout (%)',
+                        'help' => 'Deducted from the member\'s payout at each cycle, for Spideli. Copied onto a tontine when it is created, so a change applies to new tontines only. Blank = 0.'],
                 ];
 
             case 'lending':

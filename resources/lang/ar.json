@@ -1687,5 +1687,10 @@
     "Lends to others": "يُقرض الآخرين",
     "Short history": "سجل قصير",
     "Long-standing customer": "عميل قديم",
-    "Finance restriction": "تقييد مالي"
+    "Finance restriction": "تقييد مالي",
+    "Admin commission": "عمولة الإدارة",
+    "Admin commission on each payout (%)": "عمولة الإدارة على كل دفعة (%)",
+    "Deducted from the member's payout at each cycle, for Spideli. Copied onto a tontine when it is created, so a change applies to new tontines only. Blank = 0.": "تُخصم من دفعة العضو في كل دورة لصالح Spideli. تُنسخ إلى التونتين عند إنشائه، لذا يسري أي تغيير على التونتينات الجديدة فقط. فارغ = 0.",
+    "none (created before the commission)": "لا شيء (أُنشئ قبل العمولة)",
+    "The tontine's admin commission is deducted from it for Spideli.": "تُخصم منها عمولة إدارة التونتين لصالح Spideli."
 }
