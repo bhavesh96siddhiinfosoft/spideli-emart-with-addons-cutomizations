@@ -35,11 +35,17 @@ class Fcm
      * ['ok' => false, 'http' => status, 'status' => "NOT_FOUND"..., 'errorCode' => "UNREGISTERED"...,
      *  'message' => text] ('http' 0 = FCM could not be reached).
      */
-    public function send(array $message)
+    /* $validateOnly: FCM checks the message and the token without delivering
+     * anything to the phone (points 90 / 91: a driver's push status). */
+    public function send(array $message, $validateOnly = false)
     {
         try {
+            $body = ['message' => $message];
+            if ($validateOnly) {
+                $body['validate_only'] = true;
+            }
             $res = Http::withToken($this->accessToken())->timeout(15)->post(
-                'https://fcm.googleapis.com/v1/projects/' . $this->projectId . '/messages:send', ['message' => $message]);
+                'https://fcm.googleapis.com/v1/projects/' . $this->projectId . '/messages:send', $body);
         } catch (\Throwable $e) {
             return ['ok' => false, 'http' => 0, 'status' => 'UNAVAILABLE', 'errorCode' => '', 'message' => 'FCM unreachable'];
         }

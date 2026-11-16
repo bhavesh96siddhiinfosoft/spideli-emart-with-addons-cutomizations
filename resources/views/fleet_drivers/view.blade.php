@@ -156,6 +156,8 @@
         <!-- Bank detail -->
         <div class="restaurant_info-section">
             {{-- Point 104: level, progress and bonuses received. --}}
+            {{-- Points 90 / 91: can this driver's phone receive push notifications? --}}
+            @include('drivers.partials.push_status', ['pushRoute' => 'fleet.drivers', 'driverId' => $id])
             @include('driver_bonuses.partials.driver_card')
         </div>
         <div class="form-group col-12 text-center btm-btn">

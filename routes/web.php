@@ -107,6 +107,9 @@ Route::middleware(['permission:drivers,drivers.create'])->group(function () {
 });
 Route::middleware(['permission:drivers,drivers.view'])->group(function () {
     Route::get('/drivers/view/{id}', [App\Http\Controllers\DriverController::class, 'view'])->name('drivers.view');
+    /* Points 90 / 91: can this driver's phone receive push notifications? */
+    Route::get('/drivers/push-status/{id}', [App\Http\Controllers\DriverPushController::class, 'status'])->name('drivers.push.status');
+    Route::post('/drivers/push-test/{id}', [App\Http\Controllers\DriverPushController::class, 'test'])->name('drivers.push.test');
 });
 Route::middleware(['permission:drivers-document,driver.document.list'])->group(function () {
     Route::get('drivers/document-list/{id}', [App\Http\Controllers\DriverController::class, 'DocumentList'])->name('drivers.document');
@@ -125,6 +128,8 @@ Route::middleware(['permission:fleet-drivers,fleet.drivers.edit'])->group(functi
 });
 Route::middleware(['permission:fleet-drivers,fleet.drivers.view'])->group(function () {
     Route::get('/fleet-drivers/view/{id}', [App\Http\Controllers\DriverController::class, 'fleetDriversview'])->name('fleet.drivers.view');
+    Route::get('/fleet-drivers/push-status/{id}', [App\Http\Controllers\DriverPushController::class, 'status'])->name('fleet.drivers.push.status');
+    Route::post('/fleet-drivers/push-test/{id}', [App\Http\Controllers\DriverPushController::class, 'test'])->name('fleet.drivers.push.test');
 });
 
 Route::middleware(['permission:coupons,coupons'])->group(function () {
