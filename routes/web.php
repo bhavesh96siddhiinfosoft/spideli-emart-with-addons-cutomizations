@@ -1110,6 +1110,7 @@ Route::middleware(['permission:finance-groups,finance.groups'])->group(function 
     Route::get('finance/tontines/{id}', [App\Http\Controllers\FinanceGroupsController::class, 'tontine'])->name('finance.tontines.show');
     Route::get('finance/loans', [App\Http\Controllers\FinanceGroupsController::class, 'loans'])->name('finance.loans');
     Route::get('finance/loans/{id}', [App\Http\Controllers\FinanceGroupsController::class, 'loan'])->name('finance.loans.show');
+    Route::get('finance/loans/{id}/guarantor-signature', [App\Http\Controllers\FinanceGroupsController::class, 'guarantorSignature'])->name('finance.loans.guarantor_signature');   // F15
 });
 Route::middleware(['permission:finance-groups,finance.groups.manage'])->group(function () {
     Route::post('finance/savings/{id}/{action}', [App\Http\Controllers\FinanceGroupsController::class, 'savingAction'])->name('finance.savings.action')

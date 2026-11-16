@@ -319,6 +319,17 @@ class FinanceGroupsController extends Controller
         return $since instanceof \DateTimeInterface && $since < (new \DateTimeImmutable())->modify('-' . (int)config('finance.loan_stuck_days', 14) . ' days');
     }
 
+    /** F15: the guarantor's signature image, through a short signed link. */
+    public function guarantorSignature($id)
+    {
+        $db = $this->db();
+        $doc = $db->get('loan_applications/' . $id);
+        abort_unless($doc && Scope::allows($db, $doc['data'] + ['id' => $id], 'borrowerId'), 404);
+        $path = (string)($doc['data']['guarantor']['signaturePath'] ?? '');
+        abort_unless($path !== '' && strpos($path, '..') === false, 404);
+        return redirect()->away(\App\Finance\Storage::signedUrl($path));
+    }
+
     public function loan($id)
     {
         $db = $this->db();
@@ -353,7 +364,7 @@ class FinanceGroupsController extends Controller
             'repayments' => self::sortBy($db->query('loan_repayments', [['loanId', '==', $id]], [], 300), 'createdAt'),
             'assessment' => $assessment ? $assessment['data'] : null, 'suggestion' => $loans->suggest($l),
             'account' => $acc ? $acc['data'] : null, 'stuck' => self::stuck($l),
-            'names' => $this->names(array_merge([$l['borrowerId'] ?? null], (array)($l['eligibleVoterIds'] ?? []), array_map(function ($f) { return $f['data']['lenderId'] ?? null; }, $fundings))),
+            'names' => $this->names(array_merge([$l['borrowerId'] ?? null, $l['guarantor']['userId'] ?? null], (array)($l['eligibleVoterIds'] ?? []), array_map(function ($f) { return $f['data']['lenderId'] ?? null; }, $fundings))),
             'lockedBy' => $lockedBy, 'canManage' => $this->can('finance.groups.manage') && $lockedBy === null,
         ]);
     }

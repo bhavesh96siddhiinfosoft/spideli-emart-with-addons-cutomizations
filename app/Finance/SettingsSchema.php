@@ -230,6 +230,11 @@ class SettingsSchema
                     'voting.approvalPercent' => ['type' => 'int', 'min' => 1, 'max' => 100, 'required' => true, 'label' => 'Approval (%)'],
                     'voting.durationHours' => ['type' => 'int', 'min' => 1, 'required' => true, 'label' => 'Vote duration (hours)'],
                     'agreementTerms' => ['type' => 'textarea', 'label' => 'Loan agreement text'],
+                    // F15 (client, 16 Nov): the note a guarantor reads and signs before accepting.
+                    ['section' => 'Guarantor'],
+                    'guarantor.noteText' => ['type' => 'textarea', 'label' => 'Note the guarantor reads and signs',
+                        'default' => "I, {guarantor}, agree to be the guarantor of the loan of {amount} requested by {borrower} on Spideli Finance. I understand that if {borrower} does not repay this loan as agreed, Spideli may debit my Spideli Finance wallet to repay what is still due on it. I have read this note and I sign it freely.",
+                        'help' => 'Shown to the guarantor before they sign and accept. {guarantor}, {borrower} and {amount} are replaced by the names and the loan amount. The text they signed is kept on the loan.'],
                 ];
 
             case 'investments':

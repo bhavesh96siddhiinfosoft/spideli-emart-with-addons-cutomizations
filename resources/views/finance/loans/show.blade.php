@@ -52,6 +52,44 @@
                 @if (!empty($l['reason']))<div class="form-group row width-100"><label class="col-3 control-label">{{ __('Reason') }}</label><div class="col-7"><span class="form-control-plaintext">{{ $l['reason'] }}</span></div></div>@endif
             </fieldset>
 
+            @if (!empty($l['guarantor']['userId']))
+            {{-- F15: the guarantor, and the note they signed --}}
+            @php
+                $g = (array)$l['guarantor'];
+                $gStatus = (string)($g['status'] ?? 'invited');
+                $gBadge = ['accepted' => 'finance-badge-ok', 'declined' => 'finance-badge-bad'][$gStatus] ?? 'finance-badge-warn';
+                $gLabel = ['invited' => __('Invited, has not answered yet'), 'accepted' => __('Accepted and signed'), 'declined' => __('Declined')][$gStatus] ?? $gStatus;
+            @endphp
+            <fieldset>
+                <legend><i class="mr-3 mdi mdi-account-check"></i>{{ __('Guarantor') }}</legend>
+                @foreach ([
+                    __('Guarantor') => $names[$g['userId']] ?? $g['userId'],
+                    __('Answer') => null,
+                    __('Invited') => $fmt($g['invitedAt'] ?? null),
+                    __('Answered') => $fmt($g['respondedAt'] ?? null),
+                ] as $label => $value)
+                    <div class="form-group row width-50"><label class="col-3 control-label">{{ $label }}</label><div class="col-7"><span class="form-control-plaintext">
+                        @if ($value === null)<span class="{{ $gBadge }}">{{ $gLabel }}</span>@else{{ $value !== '' ? $value : '—' }}@endif
+                    </span></div></div>
+                @endforeach
+                @if ($gStatus === 'accepted')
+                    <div class="form-group row width-50"><label class="col-3 control-label">{{ __('Signed by') }}</label><div class="col-7"><span class="form-control-plaintext">
+                        {{ $g['signatureName'] ?? '—' }}
+                        @if (!empty($g['signaturePath'])) · <a href="{{ route('finance.loans.guarantor_signature', $id) }}" target="_blank" rel="noopener">{{ __('View the signature') }}</a>@endif
+                    </span></div></div>
+                    <div class="form-group row width-100"><label class="col-3 control-label">{{ __('Note they signed') }}</label><div class="col-7">
+                        @if (!empty($g['noteText']))
+                            <div class="form-control-plaintext" style="white-space:pre-line;border-left:3px solid #ddd;padding-left:10px">{{ $g['noteText'] }}</div>
+                        @else
+                            <span class="form-control-plaintext text-muted">{{ __('No signed note: accepted before the note was introduced.') }}</span>
+                        @endif
+                    </div></div>
+                @elseif ($gStatus === 'declined' && !empty($g['declineReason']))
+                    <div class="form-group row width-100"><label class="col-3 control-label">{{ __('Reason') }}</label><div class="col-7"><span class="form-control-plaintext">{{ $g['declineReason'] }}</span></div></div>
+                @endif
+            </fieldset>
+            @endif
+
             <fieldset>
                 <legend><i class="mr-3 mdi mdi-chart-line"></i>{{ __('Credit assessment') }}</legend>
                 <div class="form-group row width-100"><div class="col-7 finance-help">

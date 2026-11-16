@@ -1741,5 +1741,18 @@
     "Filled from the region when you save.": "تُملأ من المنطقة عند الحفظ.",
     "none: hidden from customers": "لا شيء: مخفية عن العملاء",
     "All my regions": "كل مناطقي",
-    "No region (hidden from customers)": "بدون منطقة (مخفية عن العملاء)"
+    "No region (hidden from customers)": "بدون منطقة (مخفية عن العملاء)",
+    "Guarantor": "الضامن",
+    "Note the guarantor reads and signs": "الملاحظة التي يقرؤها الضامن ويوقّعها",
+    "Shown to the guarantor before they sign and accept. {guarantor}, {borrower} and {amount} are replaced by the names and the loan amount. The text they signed is kept on the loan.": "تُعرض على الضامن قبل التوقيع والموافقة. تُستبدل {guarantor} و{borrower} و{amount} بالأسماء ومبلغ القرض. يُحفظ النص الموقّع على القرض.",
+    "I, {guarantor}, agree to be the guarantor of the loan of {amount} requested by {borrower} on Spideli Finance. I understand that if {borrower} does not repay this loan as agreed, Spideli may debit my Spideli Finance wallet to repay what is still due on it. I have read this note and I sign it freely.": "أنا، {guarantor}، أوافق على أن أكون ضامنًا لقرض بقيمة {amount} طلبه {borrower} على Spideli Finance. أفهم أنه إذا لم يسدّد {borrower} هذا القرض كما هو متفق عليه، يجوز لـ Spideli الخصم من محفظتي في Spideli Finance لسداد ما تبقى منه. لقد قرأت هذه الملاحظة وأوقّعها بإرادتي.",
+    "Answer": "الرد",
+    "Invited": "تمت الدعوة",
+    "Answered": "تم الرد",
+    "Invited, has not answered yet": "تمت دعوته، ولم يرد بعد",
+    "Accepted and signed": "وافق ووقّع",
+    "Declined": "رفض",
+    "View the signature": "عرض التوقيع",
+    "Note they signed": "الملاحظة التي وقّعها",
+    "No signed note: accepted before the note was introduced.": "لا توجد ملاحظة موقّعة: تمت الموافقة قبل إضافة الملاحظة."
 }

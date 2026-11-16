@@ -83,6 +83,8 @@
     .finance-money td { padding: 4px 8px 4px 0; border: 0; }
     .finance-money input { max-width: 180px; }
     .finance-badge-ok { background: #e6f4ea; color: #1e7e34; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+    .finance-badge-warn { background: #fff4e5; color: #9a5b00; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+    .finance-badge-bad { background: #fdecea; color: #b42318; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
     /* style.css pins every .select2 container to its parent's corner (written for
        the phone country picker); undo it inside Finance pages. */
     .finance-page .select2.select2-container { position: relative !important; left: 0 !important; top: 0 !important; bottom: auto !important; width: 100% !important; }
