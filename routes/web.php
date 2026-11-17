@@ -359,6 +359,7 @@ Route::prefix('settings')->group(function () {
         Route::get('payment/mycoolpay', [App\Http\Controllers\SettingsController::class, 'mycoolpay'])->name('payment.mycoolpay');
         Route::get('payment/mypvit', [App\Http\Controllers\SettingsController::class, 'mypvit'])->name('payment.mypvit');
         Route::get('payment/sebpay-{country}', [App\Http\Controllers\SettingsController::class, 'sebpay'])->where('country', 'cm|gn')->name('payment.sebpay');
+        Route::get('payment/pispi', [App\Http\Controllers\SettingsController::class, 'pispi'])->name('payment.pispi');
     });
     Route::middleware(['permission:delivery-charge,settings.app.deliveryCharge'])->group(function () {
         Route::get('app/deliveryCharge', [App\Http\Controllers\SettingsController::class, 'deliveryCharge'])->name('settings.app.deliveryCharge');

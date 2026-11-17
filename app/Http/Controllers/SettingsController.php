@@ -130,6 +130,15 @@ class SettingsController extends Controller
             'currency' => $countries[$country]['currency'], 'regionCurrencies' => self::regionCurrencies()]);
     }
 
+    /** #92: PI-SPI sandbox API Business (the participant's URL replaces it in production). */
+    const PISPI_SANDBOX_API = 'https://sandbox.api.pi-bceao.com/piz/v1';
+
+    /** #92: PI-SPI (BCEAO, XOF). Everything is saved by the page in settings/pispi_settings. */
+    public function pispi()
+    {
+        return view('settings.app.pispi', ['regionCurrencies' => self::regionCurrencies()]);
+    }
+
     /** #92: regionId => [name, currency code], for the gateways that take one currency only. */
     private static function regionCurrencies()
     {

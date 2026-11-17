@@ -28,6 +28,7 @@
         ['key' => 'mypvit', 'url' => 'settings/payment/mypvit', 'label' => trans('lang.mypvit'), 'class' => 'mypvit_active_label', 'doc' => 'mypvit_settings'],
         ['key' => 'sebpay_cm', 'url' => 'settings/payment/sebpay-cm', 'label' => trans('lang.sebpay_cm'), 'class' => 'sebpay_cm_active_label', 'doc' => 'sebpay_cm_settings'],
         ['key' => 'sebpay_gn', 'url' => 'settings/payment/sebpay-gn', 'label' => trans('lang.sebpay_gn'), 'class' => 'sebpay_gn_active_label', 'doc' => 'sebpay_gn_settings'],
+        ['key' => 'pispi', 'url' => 'settings/payment/pispi', 'label' => trans('lang.pispi'), 'class' => 'pispi_active_label', 'doc' => 'pispi_settings'],
     ];
     $activeTab = $activeTab ?? '';
 @endphp
