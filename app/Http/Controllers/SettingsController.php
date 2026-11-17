@@ -118,6 +118,18 @@ class SettingsController extends Controller
         return view('settings.app.mypvit', ['regionCurrencies' => self::regionCurrencies()]);
     }
 
+    /**
+     * #92: Sebpay, one page per country: settings/sebpay_{country}_settings.
+     * Cameroun pays in XAF (Guinée, GNF, to come).
+     */
+    public function sebpay($country)
+    {
+        $countries = ['cm' => ['title' => trans('lang.sebpay_cm'), 'currency' => 'XAF']];
+        abort_unless(isset($countries[$country]), 404);
+        return view('settings.app.sebpay', ['country' => $country, 'title' => $countries[$country]['title'],
+            'currency' => $countries[$country]['currency'], 'regionCurrencies' => self::regionCurrencies()]);
+    }
+
     /** #92: regionId => [name, currency code], for the gateways that take one currency only. */
     private static function regionCurrencies()
     {

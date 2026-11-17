@@ -26,6 +26,7 @@
         // #92: the client's gateways
         ['key' => 'mycoolpay', 'url' => 'settings/payment/mycoolpay', 'label' => trans('lang.mycoolpay'), 'class' => 'mycoolpay_active_label', 'doc' => 'mycoolpay_settings'],
         ['key' => 'mypvit', 'url' => 'settings/payment/mypvit', 'label' => trans('lang.mypvit'), 'class' => 'mypvit_active_label', 'doc' => 'mypvit_settings'],
+        ['key' => 'sebpay_cm', 'url' => 'settings/payment/sebpay-cm', 'label' => trans('lang.sebpay_cm'), 'class' => 'sebpay_cm_active_label', 'doc' => 'sebpay_cm_settings'],
     ];
     $activeTab = $activeTab ?? '';
 @endphp
