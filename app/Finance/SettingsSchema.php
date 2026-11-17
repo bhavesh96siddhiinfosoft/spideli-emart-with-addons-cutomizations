@@ -94,6 +94,17 @@ class SettingsSchema
                         'help' => 'The currencies a customer can convert between, the region\'s own included. They become wallet currencies too.'],
                     'convert.feePercent' => ['type' => 'number', 'min' => 0, 'max' => 100, 'label' => 'Fee (%)'],
                     'convert.maxRateAgeHours' => ['type' => 'int', 'min' => 1, 'default' => 48, 'label' => 'Oldest exchange rate accepted (hours)'],
+                    // F6: the customer's main Spideli wallet (users.wallet_amount) <-> this Finance wallet. Free;
+                    // the app moves both balances in one transaction (ledger types main_wallet_in / main_wallet_out).
+                    ['section' => 'Main Spideli wallet'],
+                    'mainWallet.toFinance.enabled' => ['type' => 'bool', 'label' => 'Main wallet to Finance wallet offered',
+                        'help' => 'The customer moves money from their main Spideli wallet (orders, rides) into this Finance wallet. No fee.'],
+                    'mainWallet.toFinance.min' => ['type' => 'money', 'label' => 'Smallest amount (to Finance)'],
+                    'mainWallet.toFinance.max' => ['type' => 'money', 'label' => 'Largest amount (to Finance)'],
+                    'mainWallet.toMain.enabled' => ['type' => 'bool', 'label' => 'Finance wallet to main wallet offered',
+                        'help' => 'The customer moves money from this Finance wallet back to their main Spideli wallet. No fee.'],
+                    'mainWallet.toMain.min' => ['type' => 'money', 'label' => 'Smallest amount (to main wallet)'],
+                    'mainWallet.toMain.max' => ['type' => 'money', 'label' => 'Largest amount (to main wallet)'],
                     ['section' => 'Security'],
                     'security.reauthAbove' => ['type' => 'money', 'label' => 'Ask for the password again from',
                         'help' => 'A currency left blank = always asked.'],
@@ -783,6 +794,8 @@ class SettingsSchema
             case 'wallet':
                 $money('deposit.min', 'deposit.max');
                 $money('withdraw.min', 'withdraw.max');
+                $money('mainWallet.toFinance.min', 'mainWallet.toFinance.max');
+                $money('mainWallet.toMain.min', 'mainWallet.toMain.max');
                 $conv = self::getPath($d, 'convert.currencies') ?: [];
                 if (self::getPath($d, 'convert.enabled') && count($conv) < 2) {
                     $e['convert.currencies'] = 'Conversion needs at least 2 convertible currencies.';

@@ -157,6 +157,10 @@
                         @endforelse
                         </tbody>
                     </table>
+                    {{-- F6: the main Spideli wallet (orders, rides), outside the ledger; money moves to and from Finance in the app. --}}
+                    <div class="mt-2 text-muted">{{ __('Main Spideli wallet (orders, rides)') }}:
+                        <strong class="finance-amount">{{ is_numeric($u['wallet_amount'] ?? null) ? rtrim(rtrim(number_format((float)$u['wallet_amount'], 2, '.', ' '), '0'), '.') : '0' }}</strong>
+                        <span>({{ __('in the app currency; not part of the ledger') }})</span></div>
                 </div></div>
             </fieldset>
 

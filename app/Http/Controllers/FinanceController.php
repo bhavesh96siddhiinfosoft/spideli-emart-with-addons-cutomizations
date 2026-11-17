@@ -486,7 +486,7 @@ class FinanceController extends Controller
                 'loan_funding', 'loan_disbursement', 'loan_repayment', 'loan_lender_payout', 'loan_origination_fee', 'loan_insurance_premium', 'loan_insurance_brokerage',
                 'loan_interest_commission', 'loan_late_fee_share', 'investment_commission', 'insurance_insurer_share', 'investment_subscription',
                 'investment_redemption', 'insurance_premium', 'insurance_claim_payout', 'conversion', 'fee', 'reversal',
-                'manual_adjustment'],
+                'manual_adjustment', 'main_wallet_in', 'main_wallet_out'],
             'canAdjust' => $this->can('finance.ledger.adjust'),
             'currencyCodes' => (new Regions($db))->currencyCodes(),
             'pending' => FourEyes::pendingCount(),

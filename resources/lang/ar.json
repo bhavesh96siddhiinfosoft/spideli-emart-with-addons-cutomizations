@@ -1763,5 +1763,16 @@
     "Only a verified company may create one: suspend it, or ask the company to finish its verification.": "لا يمكن إنشاؤها إلا من قبل شركة موثّقة: علّقها، أو اطلب من الشركة إكمال توثيقها.",
     "The sponsor account does not exist.": "حساب الجهة الراعية غير موجود.",
     "The sponsor is not a business account.": "الجهة الراعية ليست حساب أعمال.",
-    "The sponsor is an association, not a company.": "الجهة الراعية جمعية وليست شركة."
+    "The sponsor is an association, not a company.": "الجهة الراعية جمعية وليست شركة.",
+    "Main Spideli wallet": "محفظة Spideli الرئيسية",
+    "Main wallet to Finance wallet offered": "التحويل من المحفظة الرئيسية إلى محفظة Finance متاح",
+    "The customer moves money from their main Spideli wallet (orders, rides) into this Finance wallet. No fee.": "ينقل العميل المال من محفظة Spideli الرئيسية (الطلبات، الرحلات) إلى محفظة Finance هذه. بدون رسوم.",
+    "Smallest amount (to Finance)": "أصغر مبلغ (إلى Finance)",
+    "Largest amount (to Finance)": "أكبر مبلغ (إلى Finance)",
+    "Finance wallet to main wallet offered": "التحويل من محفظة Finance إلى المحفظة الرئيسية متاح",
+    "The customer moves money from this Finance wallet back to their main Spideli wallet. No fee.": "ينقل العميل المال من محفظة Finance هذه إلى محفظة Spideli الرئيسية. بدون رسوم.",
+    "Smallest amount (to main wallet)": "أصغر مبلغ (إلى المحفظة الرئيسية)",
+    "Largest amount (to main wallet)": "أكبر مبلغ (إلى المحفظة الرئيسية)",
+    "Main Spideli wallet (orders, rides)": "محفظة Spideli الرئيسية (الطلبات، الرحلات)",
+    "in the app currency; not part of the ledger": "بعملة التطبيق؛ ليست جزءًا من دفتر الحسابات"
 }
