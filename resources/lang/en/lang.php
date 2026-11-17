@@ -1640,6 +1640,7 @@ return [
     'mypvit_account_code_invalid' => 'The operation account code starts with ACC_.',
     'mypvit_region_currency' => 'MyPVIT only accepts XAF: remove these regions: :regions',
     'sebpay_cm' => 'Sebpay Cameroun',
+    'sebpay_gn' => 'Sebpay Guinée',
     'app_setting_enable_sebpay' => 'Enable Sebpay',
     'sebpay_sandbox_help' => 'Sandbox: enter your test keys (pk_test_..., sk_test_...); Sebpay sends them to its test server. For real payments, turn it off and enter your live keys (pk_live_...).',
     'sebpay_public_key' => 'Public key',

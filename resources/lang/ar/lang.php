@@ -1640,6 +1640,7 @@ return [
     'mypvit_account_code_invalid' => 'رمز حساب العمليات يبدأ بـ ACC_.',
     'mypvit_region_currency' => 'لا يقبل MyPVIT إلا XAF: أزل هذه المناطق: :regions',
     'sebpay_cm' => 'Sebpay الكاميرون',
+    'sebpay_gn' => 'Sebpay غينيا',
     'app_setting_enable_sebpay' => 'تفعيل Sebpay',
     'sebpay_sandbox_help' => 'وضع الاختبار: أدخل مفاتيح الاختبار (pk_test_... و sk_test_...)؛ يرسلها Sebpay إلى خادم الاختبار. للدفعات الحقيقية، أوقفه وأدخل المفاتيح الحقيقية (pk_live_...).',
     'sebpay_public_key' => 'المفتاح العام',

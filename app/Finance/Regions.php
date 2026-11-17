@@ -21,12 +21,12 @@ class Regions
         'stripeSettings' => 'Stripe', 'paypalSettings' => 'PayPal', 'flutterWave' => 'FlutterWave',
         'payStack' => 'Paystack', 'orange_money_settings' => 'OrangePay', 'MercadoPago' => 'MercadoPago',
         'xendit_settings' => 'Xendit', 'midtrans_settings' => 'MidTrans', 'payFastSettings' => 'Payfast',
-        'razorpaySettings' => 'Razorpay', 'mycoolpay_settings' => 'MyCoolPay', 'mypvit_settings' => 'MyPVIT', 'sebpay_cm_settings' => 'Sebpay Cameroun',
+        'razorpaySettings' => 'Razorpay', 'mycoolpay_settings' => 'MyCoolPay', 'mypvit_settings' => 'MyPVIT', 'sebpay_cm_settings' => 'Sebpay Cameroun', 'sebpay_gn_settings' => 'Sebpay Guinée',
     ];
 
     /** Payment method family => the gateway settings documents that provide it (spec 4.5). */
     public const METHOD_GATEWAYS = [
-        'mobile_money' => ['orange_money_settings', 'flutterWave', 'payStack', 'mycoolpay_settings', 'mypvit_settings', 'sebpay_cm_settings'],
+        'mobile_money' => ['orange_money_settings', 'flutterWave', 'payStack', 'mycoolpay_settings', 'mypvit_settings', 'sebpay_cm_settings', 'sebpay_gn_settings'],
         'wave' => ['flutterWave'],
         'card' => ['mycoolpay_settings', 'mypvit_settings', 'stripeSettings', 'flutterWave', 'payStack', 'MercadoPago', 'xendit_settings', 'midtrans_settings', 'payFastSettings', 'razorpaySettings'],
         'paypal' => ['paypalSettings'],

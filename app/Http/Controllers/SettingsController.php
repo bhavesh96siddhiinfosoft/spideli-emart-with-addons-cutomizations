@@ -120,11 +120,11 @@ class SettingsController extends Controller
 
     /**
      * #92: Sebpay, one page per country: settings/sebpay_{country}_settings.
-     * Cameroun pays in XAF (Guinée, GNF, to come).
+     * Cameroun pays in XAF, Guinée in GNF.
      */
     public function sebpay($country)
     {
-        $countries = ['cm' => ['title' => trans('lang.sebpay_cm'), 'currency' => 'XAF']];
+        $countries = ['cm' => ['title' => trans('lang.sebpay_cm'), 'currency' => 'XAF'], 'gn' => ['title' => trans('lang.sebpay_gn'), 'currency' => 'GNF']];
         abort_unless(isset($countries[$country]), 404);
         return view('settings.app.sebpay', ['country' => $country, 'title' => $countries[$country]['title'],
             'currency' => $countries[$country]['currency'], 'regionCurrencies' => self::regionCurrencies()]);
