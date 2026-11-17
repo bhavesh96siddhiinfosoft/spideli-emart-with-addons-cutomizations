@@ -1774,5 +1774,6 @@
     "Smallest amount (to main wallet)": "أصغر مبلغ (إلى المحفظة الرئيسية)",
     "Largest amount (to main wallet)": "أكبر مبلغ (إلى المحفظة الرئيسية)",
     "Main Spideli wallet (orders, rides)": "محفظة Spideli الرئيسية (الطلبات، الرحلات)",
-    "in the app currency; not part of the ledger": "بعملة التطبيق؛ ليست جزءًا من دفتر الحسابات"
+    "in the app currency; not part of the ledger": "بعملة التطبيق؛ ليست جزءًا من دفتر الحسابات",
+    "Top-ups paid but not credited": "شحنات مدفوعة لم تُضف إلى المحفظة"
 }

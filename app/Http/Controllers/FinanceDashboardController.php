@@ -66,6 +66,8 @@ class FinanceDashboardController extends Controller
             $add(__('Payments'), __('External transfers to pay'), $this->waiting('money_transfers', [['status', '==', 'processing']], 'senderId'), route('finance.payments', ['kind' => 'transfers']), true);
             $add(__('Payments'), __('Bills to pay'), $this->waiting('utility_payment_requests', [['status', '==', 'processing']], 'userId'), route('finance.payments', ['kind' => 'bills']), true);
             $add(__('Payments'), __('Gateway payments to verify'), $this->waiting('payment_receipts', [['verified', '==', false]], 'userId'), route('finance.payments', ['kind' => 'receipts']));
+            // F14: a top-up paid on the website whose wallet could not be credited: credit it by hand (Customers > Add money).
+            $add(__('Payments'), __('Top-ups paid but not credited'), $this->waiting('finance_topups', [['status', '==', 'paid_not_credited']], 'userId'), route('finance.customers'), true);
         }
         if ($can('finance.ledger')) {
             $add(__('Payments'), __('Approvals waiting'), FourEyes::pendingCount(), route('finance.approvals'));
