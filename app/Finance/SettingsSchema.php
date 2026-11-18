@@ -105,6 +105,14 @@ class SettingsSchema
                         'help' => 'The customer moves money from this Finance wallet back to their main Spideli wallet. No fee.'],
                     'mainWallet.toMain.min' => ['type' => 'money', 'label' => 'Smallest amount (to main wallet)'],
                     'mainWallet.toMain.max' => ['type' => 'money', 'label' => 'Largest amount (to main wallet)'],
+                    // F17: wallet pockets (sub-wallets inside the Finance wallet).
+                    ['section' => 'Wallet pockets'],
+                    'pockets.enabled' => ['type' => 'bool', 'label' => 'Wallet pockets offered',
+                        'help' => 'Allow customers to create named pockets in their Finance wallet, distribute funds across them, transfer between wallet and pockets, and transact directly from a pocket.'],
+                    'pockets.maxPockets' => ['type' => 'int', 'min' => 1, 'max' => 50, 'label' => 'Maximum pockets per customer',
+                        'help' => 'Leave blank for no limit (default: 10).'],
+                    'pockets.minTransfer' => ['type' => 'money', 'label' => 'Smallest transfer to/from a pocket'],
+                    'pockets.maxTransfer' => ['type' => 'money', 'label' => 'Largest transfer to/from a pocket'],
                     ['section' => 'Security'],
                     'security.reauthAbove' => ['type' => 'money', 'label' => 'Ask for the password again from',
                         'help' => 'A currency left blank = always asked.'],
@@ -796,6 +804,7 @@ class SettingsSchema
                 $money('withdraw.min', 'withdraw.max');
                 $money('mainWallet.toFinance.min', 'mainWallet.toFinance.max');
                 $money('mainWallet.toMain.min', 'mainWallet.toMain.max');
+                $money('pockets.minTransfer', 'pockets.maxTransfer');
                 $conv = self::getPath($d, 'convert.currencies') ?: [];
                 if (self::getPath($d, 'convert.enabled') && count($conv) < 2) {
                     $e['convert.currencies'] = 'Conversion needs at least 2 convertible currencies.';

@@ -161,6 +161,26 @@
                     <div class="mt-2 text-muted">{{ __('Main Spideli wallet (orders, rides)') }}:
                         <strong class="finance-amount">{{ is_numeric($u['wallet_amount'] ?? null) ? rtrim(rtrim(number_format((float)$u['wallet_amount'], 2, '.', ' '), '0'), '.') : '0' }}</strong>
                         <span>({{ __('in the app currency; not part of the ledger') }})</span></div>
+
+                    {{-- F17: wallet pockets (sub-wallets inside the Finance wallet). --}}
+                    <div class="mt-3">
+                        <strong class="d-block mb-1 text-muted">{{ __('Wallet pockets') }} ({{ count($pockets) }})</strong>
+                        <table class="table table-bordered mb-0">
+                            <thead><tr><th>{{ __('Pocket') }}</th><th>{{ __('Balance') }}</th><th>{{ __('Currency') }}</th><th>{{ __('Status') }}</th></tr></thead>
+                            <tbody>
+                            @forelse ($pockets as $p)
+                                <tr>
+                                    <td><strong>{{ $p['data']['name'] ?? $p['id'] }}</strong>@if (!empty($p['data']['purpose'])) <span class="finance-help">· {{ $p['data']['purpose'] }}</span>@endif</td>
+                                    <td class="finance-amount">{{ Money::format((int)($p['data']['balance'] ?? 0), $p['data']['currency'] ?? '') }}</td>
+                                    <td>{{ $p['data']['currency'] ?? '' }}</td>
+                                    <td>{{ $p['data']['status'] ?? 'active' }}</td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="4" class="text-muted">{{ __('No pockets yet.') }}</td></tr>
+                            @endforelse
+                            </tbody>
+                        </table>
+                    </div>
                 </div></div>
             </fieldset>
 

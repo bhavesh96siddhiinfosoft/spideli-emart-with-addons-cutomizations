@@ -86,13 +86,14 @@ class FinanceDeskController extends Controller
         $uids = array_values(array_unique(array_filter(array_map(function ($r) use ($userField) {
             return $r['data'][$userField] ?? null;
         }, $rows), 'is_string')));
-        $users = $uids ? $this->db()->getMany(array_map(function ($u) { return 'users/' . $u; }, $uids)) : [];
+        $users = $uids ? $this->db()->getMany(array_map(function ($u) {
+            return 'users/' . $u; }, $uids)) : [];
         return array_values(array_filter($rows, function ($r) use ($allowed, $users, $userField) {
             if (!empty($r['data']['regionId'])) {
                 return in_array($r['data']['regionId'], $allowed, true);
             }
             $u = $users['users/' . ($r['data'][$userField] ?? '')] ?? null;
-            return $u && array_intersect((array)($u['data']['regionIds'] ?? []), $allowed);
+            return $u && array_intersect((array) ($u['data']['regionIds'] ?? []), $allowed);
         }));
     }
 
@@ -101,7 +102,8 @@ class FinanceDeskController extends Controller
         $uids = array_values(array_unique(array_filter($uids, 'is_string')));
         $out = [];
         if ($uids) {
-            foreach ($this->db()->getMany(array_map(function ($u) { return 'users/' . $u; }, $uids)) as $doc) {
+            foreach ($this->db()->getMany(array_map(function ($u) {
+                return 'users/' . $u; }, $uids)) as $doc) {
                 if ($doc) {
                     $d = $doc['data'];
                     $out[$doc['id']] = trim(trim(($d['firstName'] ?? '') . ' ' . ($d['lastName'] ?? '')) . ' ' . (!empty($d['email']) ? '(' . $d['email'] . ')' : ''));
@@ -142,7 +144,7 @@ class FinanceDeskController extends Controller
             $found = array_filter($found, function ($r) use ($rest, $typed) {
                 $d = $r['data'];
                 return strpos(strtolower(trim(($d['firstName'] ?? '') . ' ' . ($d['lastName'] ?? ''))), $typed) === 0
-                    || strpos(strtolower((string)($d['lastName'] ?? '')), $rest) === 0;
+                    || strpos(strtolower((string) ($d['lastName'] ?? '')), $rest) === 0;
             });
         }
         return array_values($found);
@@ -151,7 +153,7 @@ class FinanceDeskController extends Controller
     public function customers(Request $request)
     {
         $db = $this->db();
-        $q = trim((string)$request->input('q'));
+        $q = trim((string) $request->input('q'));
         $filter = $request->input('filter', 'verified');
         $rows = [];
         if ($q !== '') {
@@ -180,8 +182,8 @@ class FinanceDeskController extends Controller
         /* Joined between two dates (users.createdAt): narrows any list; with
          * "Joined in these dates" it is the list itself. */
         $tz = new \DateTimeZone(config('app.timezone'));
-        $from = \DateTimeImmutable::createFromFormat('!Y-m-d', (string)$request->input('from'), $tz) ?: null;
-        $to = \DateTimeImmutable::createFromFormat('!Y-m-d', (string)$request->input('to'), $tz) ?: null;
+        $from = \DateTimeImmutable::createFromFormat('!Y-m-d', (string) $request->input('from'), $tz) ?: null;
+        $to = \DateTimeImmutable::createFromFormat('!Y-m-d', (string) $request->input('to'), $tz) ?: null;
         if ($filter === 'joined' && $q === '') {
             $range = [];
             if ($from) {
@@ -198,21 +200,30 @@ class FinanceDeskController extends Controller
                 return $at instanceof \DateTimeInterface && (!$from || $at >= $from) && (!$to || $at < $to->modify('+1 day'));
             }));
         }
-        $rows = array_values(array_filter($rows, function ($r) { return ($r['data']['role'] ?? 'customer') === 'customer'; }));
-        $region = (string)$request->input('region');
+        $rows = array_values(array_filter($rows, function ($r) {
+            return ($r['data']['role'] ?? 'customer') === 'customer'; }));
+        $region = (string) $request->input('region');
         $regions = new Regions($db);
         if ($region !== '') {
-            $rows = array_values(array_filter($rows, function ($r) use ($region) { return in_array($region, (array)($r['data']['regionIds'] ?? []), true); }));
+            $rows = array_values(array_filter($rows, function ($r) use ($region) {
+                return in_array($region, (array) ($r['data']['regionIds'] ?? []), true); }));
         }
         $allowed = Regions::allowedIds();
         if ($allowed) {
-            $rows = array_values(array_filter($rows, function ($r) use ($allowed) { return (bool)array_intersect((array)($r['data']['regionIds'] ?? []), $allowed); }));
+            $rows = array_values(array_filter($rows, function ($r) use ($allowed) {
+                return (bool) array_intersect((array) ($r['data']['regionIds'] ?? []), $allowed); }));
         }
         return view('finance.customers.index', [
-            'rows' => $rows, 'q' => $q, 'filter' => $filter, 'region' => $region,
-            'from' => $from ? $from->format('Y-m-d') : '', 'to' => $to ? $to->format('Y-m-d') : '',
+            'rows' => $rows,
+            'q' => $q,
+            'filter' => $filter,
+            'region' => $region,
+            'from' => $from ? $from->format('Y-m-d') : '',
+            'to' => $to ? $to->format('Y-m-d') : '',
             'canEditCustomer' => $this->can('users.edit'),
-            'regions' => $regions->visible(false), 'regionNames' => array_map(function ($r) { return $r['name'] ?? ''; }, $regions->all()),
+            'regions' => $regions->visible(false),
+            'regionNames' => array_map(function ($r) {
+                return $r['name'] ?? ''; }, $regions->all()),
         ]);
     }
 
@@ -243,9 +254,14 @@ class FinanceDeskController extends Controller
                 return [];
             }
         };
-        $perm = ['groups' => $this->can('finance.groups'), 'investments' => $this->can('finance.investments'),
-                 'insurance' => $this->can('finance.insurance'), 'financing' => $this->can('finance.financing'),
-                 'ledger' => $this->can('finance.ledger'), 'audit' => $this->can('finance.audit')];
+        $perm = [
+            'groups' => $this->can('finance.groups'),
+            'investments' => $this->can('finance.investments'),
+            'insurance' => $this->can('finance.insurance'),
+            'financing' => $this->can('finance.financing'),
+            'ledger' => $this->can('finance.ledger'),
+            'audit' => $this->can('finance.audit')
+        ];
         $loans = [];
         if ($perm['groups']) {
             foreach ($read(__('Loans'), 'loan_applications', [['borrowerId', '==', $uid]]) as $l) {
@@ -281,11 +297,61 @@ class FinanceDeskController extends Controller
             $audit = array_slice(self::sortBy($audit, 'at'), 0, 50);
         }
 
+        $userAccounts = $db->query('financial_accounts', [['userId', '==', $uid]]);
+        $wallets = [];
+        $accountMap = [];
+        foreach ($userAccounts as $acc) {
+            if (($acc['data']['kind'] ?? 'wallet') === 'wallet') {
+                $wallets[] = $acc;
+            }
+            $accountMap[$acc['id']] = $acc['data'];
+        }
+
+        /* F17: Pockets are real ledger accounts financial_accounts/pocket_{id}.
+         * wallet_pockets/{id} keeps name, purpose, status. Balances and currency
+         * are read from the financial_accounts document. */
+        $pockets = $read(__('Wallet pockets'), 'wallet_pockets', [['userId', '==', $uid]]);
+        foreach ($pockets as &$p) {
+            $accId = 'pocket_' . $p['id'];
+            $acc = $accountMap[$accId] ?? null;
+            if ($acc === null) {
+                $snap = $db->get('financial_accounts/' . $accId);
+                $acc = $snap ? $snap['data'] : null;
+            }
+            $p['data']['balance'] = (int) ($acc['balance'] ?? 0);
+            $p['data']['currency'] = $acc['currency'] ?? ($p['data']['currency'] ?? '');
+            if (isset($acc['status'])) {
+                $p['data']['status'] = $acc['status'];
+            }
+        }
+        unset($p);
+
+        $known = array_column($pockets, 'id');
+        foreach ($accountMap as $accId => $accData) {
+            if (($accData['kind'] ?? '') === 'pocket' && strpos($accId, 'pocket_') === 0) {
+                $pktId = substr($accId, 7);
+                if (!in_array($pktId, $known, true)) {
+                    $pockets[] = [
+                        'id' => $pktId,
+                        'data' => [
+                            'name' => $pktId,
+                            'purpose' => null,
+                            'balance' => (int) ($accData['balance'] ?? 0),
+                            'currency' => $accData['currency'] ?? '',
+                            'status' => $accData['status'] ?? 'active',
+                        ],
+                    ];
+                }
+            }
+        }
+
         return view('finance.customers.show', $records + [
             'uid' => $uid,
             'u' => $user['data'],
-            'regionNames' => array_map(function ($r) { return $r['name'] ?? ''; }, $regions->all()),
-            'wallets' => $db->query('financial_accounts', [['userId', '==', $uid]]),
+            'regionNames' => array_map(function ($r) {
+                return $r['name'] ?? ''; }, $regions->all()),
+            'wallets' => $wallets,
+            'pockets' => $pockets,
             'kyc' => $kyc,
             'ledger' => array_slice($ledger, 0, 50),
             'transfers' => $transfers,
@@ -305,7 +371,7 @@ class FinanceDeskController extends Controller
                in their first Finance region - the same posting, audit and
                second-admin rule as Finance > Ledger. */
             'canAdjust' => $this->can('finance.ledger.adjust'),
-            'adjustRegion' => $regions->filterIds((array)($user['data']['regionIds'] ?? []))[0] ?? '',
+            'adjustRegion' => $regions->filterIds((array) ($user['data']['regionIds'] ?? []))[0] ?? '',
         ]);
     }
 
@@ -321,7 +387,7 @@ class FinanceDeskController extends Controller
         $user = $db->get('users/' . $uid);
         abort_unless($user && ($user['data']['role'] ?? 'customer') === 'customer', 404);
         abort_unless($this->scope([$user], 'id') || !Regions::allowedIds(), 404);
-        $reason = trim((string)$request->input('reason'));
+        $reason = trim((string) $request->input('reason'));
         if ($reason === '') {
             return back()->with('error', __('Write how the customer\'s identity was checked.'));
         }
@@ -335,7 +401,8 @@ class FinanceDeskController extends Controller
                 return back()->with('error', __('Two-step verification is already off for this customer.'));
             }
             $auth->resetTwoStep($uid);
-            $removed = array_map(function ($f) { return trim($f['kind'] . ' ' . $f['hint']); }, $account['twoStep']);
+            $removed = array_map(function ($f) {
+                return trim($f['kind'] . ' ' . $f['hint']); }, $account['twoStep']);
             $db->batch([Audit::write($db, 'customer.two_step_reset', 'users', $uid, ['twoStep' => $removed], ['twoStep' => []], $reason)]);
         } catch (\Throwable $e) {
             report($e);
@@ -353,13 +420,13 @@ class FinanceDeskController extends Controller
         abort_unless($this->scope([$user], 'id') || !Regions::allowedIds(), 404);
         $r = (new CreditScores($db))->refresh($uid);
         return $r ? back()->with('success', __('Credit score recalculated:') . ' ' . $r['score'] . ' (' . __($r['band']) . ').')
-                  : back()->with('error', __('The score could not be calculated now. Try again.'));
+            : back()->with('error', __('The score could not be calculated now. Try again.'));
     }
 
     public function restrict(Request $request, $uid)
     {
         try {
-            (new Desk($this->db()))->restrict($uid, (array)$request->input('scopes', []), trim((string)$request->input('reason')));
+            (new Desk($this->db()))->restrict($uid, (array) $request->input('scopes', []), trim((string) $request->input('reason')));
         } catch (\Throwable $e) {
             return back()->withInput()->with('error', $this->failure($e));
         }
@@ -369,7 +436,7 @@ class FinanceDeskController extends Controller
     public function lift(Request $request, $uid)
     {
         try {
-            (new Desk($this->db()))->lift($uid, trim((string)$request->input('reason')));
+            (new Desk($this->db()))->lift($uid, trim((string) $request->input('reason')));
         } catch (\Throwable $e) {
             return back()->with('error', $this->failure($e));
         }
@@ -385,8 +452,10 @@ class FinanceDeskController extends Controller
         $rows = self::sortBy($rows, 'submittedAt', true);
         return view('finance.kyc.index', [
             'rows' => $rows,
-            'names' => $this->names(array_map(function ($r) { return $r['data']['userId'] ?? null; }, $rows)),
-            'locks' => Locks::held(array_map(function ($r) { return 'kyc_applications/' . $r['id']; }, $rows)),
+            'names' => $this->names(array_map(function ($r) {
+                return $r['data']['userId'] ?? null; }, $rows)),
+            'locks' => Locks::held(array_map(function ($r) {
+                return 'kyc_applications/' . $r['id']; }, $rows)),
         ]);
     }
 
@@ -395,7 +464,7 @@ class FinanceDeskController extends Controller
     {
         $db = $this->db();
         $regions = new Regions($db);
-        $candidates = array_values(array_filter(array_merge([(string)($app['regionId'] ?? '')], (array)($user['regionIds'] ?? []))));
+        $candidates = array_values(array_filter(array_merge([(string) ($app['regionId'] ?? '')], (array) ($user['regionIds'] ?? []))));
         foreach ($candidates as $rid) {
             if (!empty($regions->all()[$rid]['financeEnabled'])) {
                 $doc = $db->get('finance_settings/' . Regions::docId($rid, 'kyc'));
@@ -434,10 +503,16 @@ class FinanceDeskController extends Controller
         $lockedBy = $open && $this->can('finance.kyc.decide') ? Locks::take('kyc_applications/' . $id) : null;
 
         return view('finance.kyc.show', [
-            'id' => $id, 'a' => $a, 'user' => $user['data'], 'docs' => $docs, 'links' => $links,
+            'id' => $id,
+            'a' => $a,
+            'user' => $user['data'],
+            'docs' => $docs,
+            'links' => $links,
             'reviews' => self::sortBy($db->query('kyc_reviews', [['applicationId', '==', $id]]), 'at', true),
             'missing' => Desk::kycMissing($kyc, $a['level'] ?? '', array_column($docs, 'data')),
-            'kycFrom' => $kycFrom, 'open' => $open, 'lockedBy' => $lockedBy,
+            'kycFrom' => $kycFrom,
+            'open' => $open,
+            'lockedBy' => $lockedBy,
             'canDecide' => $this->can('finance.kyc.decide') && $lockedBy === null,
         ]);
     }
@@ -446,7 +521,7 @@ class FinanceDeskController extends Controller
     {
         $db = $this->db();
         $desk = new Desk($db);
-        $reason = trim((string)$request->input('reason'));
+        $reason = trim((string) $request->input('reason'));
         try {
             Locks::assertMine('kyc_applications/' . $id);
             switch ($action) {
@@ -485,7 +560,7 @@ class FinanceDeskController extends Controller
     {
         try {
             Locks::assertMine('kyc_applications/' . $id);
-            (new Desk($this->db()))->kycDocument($docId, $request->input('decision') === 'accept', trim((string)$request->input('note')));
+            (new Desk($this->db()))->kycDocument($docId, $request->input('decision') === 'accept', trim((string) $request->input('note')));
         } catch (\Throwable $e) {
             return back()->with('error', $this->failure($e));
         }
@@ -507,13 +582,18 @@ class FinanceDeskController extends Controller
         $userField = $kind === 'transfers' ? 'senderId' : 'userId';
         $rows = $this->scope($db->query($collection, $where, [], 300), $userField);
         if ($kind === 'receipts') {
-            $rows = array_values(array_filter($rows, function ($r) { return empty($r['data']['disputed']); }));
+            $rows = array_values(array_filter($rows, function ($r) {
+                return empty($r['data']['disputed']); }));
         }
         $rows = self::sortBy($rows, 'createdAt', true);
         return view('finance.payments.index', [
-            'kind' => $kind, 'rows' => $rows, 'counts' => $counts,
-            'names' => $this->names(array_map(function ($r) use ($userField) { return $r['data'][$userField] ?? null; }, $rows)),
-            'locks' => Locks::held(array_map(function ($r) use ($collection) { return $collection . '/' . $r['id']; }, $rows)),
+            'kind' => $kind,
+            'rows' => $rows,
+            'counts' => $counts,
+            'names' => $this->names(array_map(function ($r) use ($userField) {
+                return $r['data'][$userField] ?? null; }, $rows)),
+            'locks' => Locks::held(array_map(function ($r) use ($collection) {
+                return $collection . '/' . $r['id']; }, $rows)),
         ]);
     }
 
@@ -530,8 +610,14 @@ class FinanceDeskController extends Controller
         $lockedBy = $open && $this->can('finance.payments.process') ? Locks::take($collection . '/' . $id) : null;
         $tx = !empty($d['txId']) ? $db->get('ledger_transactions/' . $d['txId']) : null;
         return view('finance.payments.show', [
-            'kind' => $kind, 'id' => $id, 'd' => $d, 'tx' => $tx, 'open' => $open, 'lockedBy' => $lockedBy,
-            'customer' => $this->names([$d[$userField] ?? null])[$d[$userField] ?? ''] ?? '', 'uid' => $d[$userField] ?? '',
+            'kind' => $kind,
+            'id' => $id,
+            'd' => $d,
+            'tx' => $tx,
+            'open' => $open,
+            'lockedBy' => $lockedBy,
+            'customer' => $this->names([$d[$userField] ?? null])[$d[$userField] ?? ''] ?? '',
+            'uid' => $d[$userField] ?? '',
             'canProcess' => $this->can('finance.payments.process') && $lockedBy === null,
         ]);
     }
@@ -541,7 +627,7 @@ class FinanceDeskController extends Controller
         abort_unless(isset(self::QUEUES[$kind]), 404);
         $collection = self::QUEUES[$kind][0];
         $desk = new Desk($this->db());
-        $reason = trim((string)$request->input('reason'));
+        $reason = trim((string) $request->input('reason'));
         $note = '';
         try {
             Locks::assertMine($collection . '/' . $id);
@@ -549,11 +635,11 @@ class FinanceDeskController extends Controller
             switch ("$kind.$action") {
                 case 'withdrawals.complete':
                     $d = $desk->withdrawalComplete($id, $request->input('payoutReference'));
-                    $note = $this->notify($d['userId'] ?? '', 'wallet_withdrawal_completed', ['amount' => Money::format((int)($d['amount'] ?? 0), $d['currency'] ?? '')], ['operationId' => $id]);
+                    $note = $this->notify($d['userId'] ?? '', 'wallet_withdrawal_completed', ['amount' => Money::format((int) ($d['amount'] ?? 0), $d['currency'] ?? '')], ['operationId' => $id]);
                     break;
                 case 'withdrawals.fail':
                     $d = $desk->withdrawalFail($id, $reason);
-                    $note = $this->notify($d['userId'] ?? '', 'wallet_withdrawal_failed', ['amount' => Money::format((int)($d['total'] ?? $d['amount'] ?? 0), $d['currency'] ?? ''), 'reason' => $reason], ['operationId' => $id]);
+                    $note = $this->notify($d['userId'] ?? '', 'wallet_withdrawal_failed', ['amount' => Money::format((int) ($d['total'] ?? $d['amount'] ?? 0), $d['currency'] ?? ''), 'reason' => $reason], ['operationId' => $id]);
                     break;
                 case 'transfers.start':
                     $desk->transferStart($id);
@@ -561,28 +647,28 @@ class FinanceDeskController extends Controller
                     break;
                 case 'transfers.complete':
                     $d = $desk->transferComplete($id, $request->input('providerReference'), $request->boolean('recipientVerified'));
-                    $note = $this->notify($d['senderId'] ?? '', 'transfer_sent', ['amount' => Money::format((int)($d['amount'] ?? 0), $d['currency'] ?? ''), 'recipientName' => $d['recipientName'] ?? ''], ['transferId' => $id]);
+                    $note = $this->notify($d['senderId'] ?? '', 'transfer_sent', ['amount' => Money::format((int) ($d['amount'] ?? 0), $d['currency'] ?? ''), 'recipientName' => $d['recipientName'] ?? ''], ['transferId' => $id]);
                     break;
                 case 'transfers.fail':
                     $d = $desk->transferFail($id, $reason);
-                    $note = $this->notify($d['senderId'] ?? '', 'transfer_reversed', ['amount' => Money::format((int)($d['amount'] ?? 0), $d['currency'] ?? ''), 'recipientName' => $d['recipientName'] ?? '', 'reason' => $reason], ['transferId' => $id]);
+                    $note = $this->notify($d['senderId'] ?? '', 'transfer_reversed', ['amount' => Money::format((int) ($d['amount'] ?? 0), $d['currency'] ?? ''), 'recipientName' => $d['recipientName'] ?? '', 'reason' => $reason], ['transferId' => $id]);
                     break;
                 case 'transfers.cancel':
                     $d = $desk->transferCancel($id);
-                    $note = $this->notify($d['senderId'] ?? '', 'transfer_reversed', ['amount' => Money::format((int)($d['amount'] ?? 0), $d['currency'] ?? ''), 'recipientName' => $d['recipientName'] ?? '', 'reason' => __('cancelled at your request')], ['transferId' => $id]);
+                    $note = $this->notify($d['senderId'] ?? '', 'transfer_reversed', ['amount' => Money::format((int) ($d['amount'] ?? 0), $d['currency'] ?? ''), 'recipientName' => $d['recipientName'] ?? '', 'reason' => __('cancelled at your request')], ['transferId' => $id]);
                     break;
                 case 'bills.complete':
                     $fields = $request->only(['billerReference', 'customerName', 'token', 'tokenLabel', 'units']);
                     $d = $desk->billComplete($id, $fields);
-                    $values = ['amount' => Money::format((int)($d['amount'] ?? 0), $d['currency'] ?? ''), 'billerName' => $d['billerName'] ?? '', 'account' => $d['account'] ?? ''];
+                    $values = ['amount' => Money::format((int) ($d['amount'] ?? 0), $d['currency'] ?? ''), 'billerName' => $d['billerName'] ?? '', 'account' => $d['account'] ?? ''];
                     $note = $this->notify($d['userId'] ?? '', 'bill_paid', $values, ['requestId' => $id]);
-                    if (trim((string)($fields['token'] ?? '')) !== '') {
+                    if (trim((string) ($fields['token'] ?? '')) !== '') {
                         $note .= ' / ' . $this->notify($d['userId'] ?? '', 'bill_token', $values + ['token' => trim($fields['token'])], ['requestId' => $id]);
                     }
                     break;
                 case 'bills.fail':
                     $d = $desk->billFail($id, $reason);
-                    $note = $this->notify($d['userId'] ?? '', 'bill_reversed', ['amount' => Money::format((int)($d['amount'] ?? 0), $d['currency'] ?? ''), 'billerName' => $d['billerName'] ?? '', 'reason' => $reason], ['requestId' => $id]);
+                    $note = $this->notify($d['userId'] ?? '', 'bill_reversed', ['amount' => Money::format((int) ($d['amount'] ?? 0), $d['currency'] ?? ''), 'billerName' => $d['billerName'] ?? '', 'reason' => $reason], ['requestId' => $id]);
                     break;
                 case 'receipts.verify':
                     $desk->receiptVerify($id);

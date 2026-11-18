@@ -1775,5 +1775,14 @@
     "Largest amount (to main wallet)": "أكبر مبلغ (إلى المحفظة الرئيسية)",
     "Main Spideli wallet (orders, rides)": "محفظة Spideli الرئيسية (الطلبات، الرحلات)",
     "in the app currency; not part of the ledger": "بعملة التطبيق؛ ليست جزءًا من دفتر الحسابات",
-    "Top-ups paid but not credited": "شحنات مدفوعة لم تُضف إلى المحفظة"
+    "Top-ups paid but not credited": "شحنات مدفوعة لم تُضف إلى المحفظة",
+    "Wallet pockets": "جيوب المحفظة",
+    "Wallet pockets offered": "جيوب المحفظة متاحة",
+    "Allow customers to create named pockets in their Finance wallet, distribute funds across them, transfer between wallet and pockets, and transact directly from a pocket.": "السماح للعملاء بإنشاء جيوب مخصصة داخل محفظة Finance وتوزيع الأموال بينها والتحويل بين المحفظة والجيوب واستخدامها مباشرة في المعاملات.",
+    "Maximum pockets per customer": "أقصى عدد جيوب لكل عميل",
+    "Leave blank for no limit (default: 10).": "اتركه فارغاً لعدم وضع حد (الافتراضي: 10).",
+    "Smallest transfer to/from a pocket": "أصغر مبلغ للتحويل من/إلى الجيب",
+    "Largest transfer to/from a pocket": "أكبر مبلغ للتحويل من/إلى الجيب",
+    "Pocket": "الجيب",
+    "No pockets yet.": "لا توجد جيوب بعد."
 }
