@@ -556,15 +556,16 @@
             }
             actionHtml = actionHtml + '</span>';
             html.push(actionHtml);
+            var storeVerifiedIcon = spideliVerifiedBadge(val.isDocumentVerify === true || (val.author && authorVerifiedMap[val.author] === true));
             if (val.photo != '') {
                 if (val.photo) {
                     photo = val.photo;
                 } else {
                     photo = placeholderImage;
                 }
-                html.push('<img alt="" width="100%" style="width:70px;height:70px;" src="' + photo + '" onerror="this.onerror=null;this.src=\'' + placeholderImage + '\'" alt="image">' + '<a href="' + route_view + '" class="redirecttopage left_space">' + val.title + '</a>');
+                html.push('<img alt="" width="100%" style="width:70px;height:70px;" src="' + photo + '" onerror="this.onerror=null;this.src=\'' + placeholderImage + '\'" alt="image">' + '<a href="' + route_view + '" class="redirecttopage left_space">' + val.title + '</a>' + storeVerifiedIcon);
             } else {
-                html.push('<img alt="" width="100%" style="width:70px;height:70px;" src="' + placeholderImage + '" alt="image">' + '<a href="' + route_view + '" class="redirecttopage left_space">' + val.title + '</a>');
+                html.push('<img alt="" width="100%" style="width:70px;height:70px;" src="' + placeholderImage + '" alt="image">' + '<a href="' + route_view + '" class="redirecttopage left_space">' + val.title + '</a>' + storeVerifiedIcon);
             }
         
             if (val.hasOwnProperty('phonenumber')) {
@@ -601,12 +602,14 @@
             var active = val.isActive;
             return html;
         }
+        var authorVerifiedMap = {};
         async function vendorStatus(id) {
             let status = true;
             await database.collection('users').doc(id).get().then((snapshots) => {
                 let data = snapshots.data();
                 if (data) {
                     status = data.active;
+                    authorVerifiedMap[id] = data.isDocumentVerify === true;
                 }
             });
             return status;

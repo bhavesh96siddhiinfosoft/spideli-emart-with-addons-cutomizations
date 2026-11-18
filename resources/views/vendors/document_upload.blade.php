@@ -336,15 +336,18 @@
                         var vendorDocId = await docrefSnapshot.data().documents.filter((doc) => doc.status == 'approved').map((docData) => docData.documentId);
                         if (vendorDocId.length >= enableDocIds.length) {
                             await database.collection('users').doc(vendor.id).update({ 'isDocumentVerify': true, isActive:true });
+                            await spideliSyncVendorStoresVerified(vendor.id, true);
                         } else {
                             await enableDocIds.forEach(async (docId) => {
                                 if (!vendorDocId.includes(docId)) {
                                     await database.collection('users').doc(vendor.id).update({ 'isDocumentVerify': false, isActive: false });
+                                    await spideliSyncVendorStoresVerified(vendor.id, false);
                                 }
                             });
                         }
                     } else {
                         await database.collection('users').doc(vendor.id).update({ 'isDocumentVerify': false, isActive: false });
+                        await spideliSyncVendorStoresVerified(vendor.id, false);
                     }
                 });
                 isCompleted = true;

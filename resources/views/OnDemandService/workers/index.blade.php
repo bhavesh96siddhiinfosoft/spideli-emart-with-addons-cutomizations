@@ -462,10 +462,11 @@
             'for="is_open_' + id + '" ></label></td>');
         }
 
+        var verifiedIcon = spideliVerifiedBadge(val.isDocumentVerify === true);
         if (val.profilePictureURL == '' || val.profilePictureURL == null) {
-            html.push('<img class="rounded" style="width:50px" src="' + placeholderImage + '" alt="image"><a class="left_space" href="' + route1 + '">' + val.firstName + ' ' + val.lastName + '</a>');
+            html.push('<img class="rounded" style="width:50px" src="' + placeholderImage + '" alt="image"><a class="left_space" href="' + route1 + '">' + val.firstName + ' ' + val.lastName + '</a>' + verifiedIcon);
         } else {
-            html.push('<img onerror="this.onerror=null;this.src=\'' + placeholderImage + '\'" class="rounded" style="width:50px" src="' + val.profilePictureURL + '" alt="image"><a class="left_space" href="' + route1 + '">' + val.firstName + ' ' + val.lastName + '</a>');
+            html.push('<img onerror="this.onerror=null;this.src=\'' + placeholderImage + '\'" class="rounded" style="width:50px" src="' + val.profilePictureURL + '" alt="image"><a class="left_space" href="' + route1 + '">' + val.firstName + ' ' + val.lastName + '</a>' + verifiedIcon);
         }
         html.push(shortEmail(val.email));
 

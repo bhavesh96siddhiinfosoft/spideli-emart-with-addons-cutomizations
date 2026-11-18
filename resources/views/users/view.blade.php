@@ -270,7 +270,7 @@
                 if(snapshots.docs.length>0){
                 var user = snapshots.docs[0].data();
 
-                $(".user_name").text(user.firstName + ' ' + user.lastName);
+                $(".user_name").text(user.firstName + ' ' + user.lastName).append(spideliVerifiedBadge(spideliCustomerKycVerified(user)));
 
                 renderBusinessAccount(user);
 

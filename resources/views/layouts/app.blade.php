@@ -3054,6 +3054,43 @@
             });
         }
 
+        /* Point #111: green "Verified" badge helpers.
+         * - Customer: verified when Finance KYC is approved (kycStatus === 'approved' or non-empty kycLevel !== 'none').
+         * - Driver / Provider / Store / Worker: isDocumentVerify === true. */
+        function spideliCustomerKycVerified(user) {
+            if (!user) {
+                return false;
+            }
+            if (user.kycStatus === 'approved') {
+                return true;
+            }
+            var lvl = user.kycLevel != null ? String(user.kycLevel).trim().toLowerCase() : '';
+            return lvl !== '' && lvl !== 'none';
+        }
+
+        function spideliVerifiedBadge(isVerified, title) {
+            if (!isVerified) {
+                return '';
+            }
+            var label = title || "{{ trans('lang.verified') }}";
+            var safe = String(label).replace(/"/g, '&quot;');
+            return ' <i class="mdi mdi-verified spideli-verified-badge" data-toggle="tooltip" title="' + safe + '" data-bs-original-title="' + safe + '"></i>';
+        }
+
+        async function spideliSyncVendorStoresVerified(ownerId, verified) {
+            if (!ownerId) {
+                return;
+            }
+            try {
+                var snap = await firebase.firestore().collection('vendors').where('author', '==', ownerId).get();
+                await Promise.all(snap.docs.map(function (d) {
+                    return d.ref.update({ isDocumentVerify: !!verified });
+                }));
+            } catch (e) {
+                console.error('Could not sync store verification flag:', e);
+            }
+        }
+
         /* `delta` is signed: positive credits, negative debits. The owner is
          * looked up from the store when it is not already known. */
         async function applyVendorWalletDelta(storeId, ownerUserId, delta) {

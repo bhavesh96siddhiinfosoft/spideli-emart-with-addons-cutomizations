@@ -37,9 +37,13 @@
                         <thead><tr><th>{{ __('Customer') }}</th><th>{{ __('Phone') }}</th><th>{{ __('Regions') }}</th><th>{{ __('Verification') }}</th><th>{{ __('Restriction') }}</th><th>{{ __('Status') }}</th><th>{{ __('Joined') }}</th><th>{{ trans('lang.actions') }}</th></tr></thead>
                         <tbody>
                         @foreach ($rows as $r)
-                            @php $d = $r['data']; $restr = $d['financeRestriction'] ?? null; @endphp
+                            @php
+                                $d = $r['data'];
+                                $restr = $d['financeRestriction'] ?? null;
+                                $kycVerified = ($d['kycStatus'] ?? '') === 'approved' || (!empty($d['kycLevel']) && strtolower(trim((string)$d['kycLevel'])) !== 'none');
+                            @endphp
                             <tr>
-                                <td>{{ trim(($d['firstName'] ?? '') . ' ' . ($d['lastName'] ?? '')) }}<div class="finance-help">{{ $d['email'] ?? '' }}</div></td>
+                                <td>{{ trim(($d['firstName'] ?? '') . ' ' . ($d['lastName'] ?? '')) }}@if ($kycVerified) <i class="mdi mdi-verified spideli-verified-badge" data-toggle="tooltip" title="{{ trans('lang.verified') }}" data-bs-original-title="{{ trans('lang.verified') }}"></i>@endif<div class="finance-help">{{ $d['email'] ?? '' }}</div></td>
                                 <td class="finance-amount">{{ $d['phoneNumber'] ?? '' }}</td>
                                 <td>{{ implode(', ', array_map(function ($id) use ($regionNames) { return $regionNames[$id] ?? $id; }, (array)($d['regionIds'] ?? []))) }}</td>
                                 <td>

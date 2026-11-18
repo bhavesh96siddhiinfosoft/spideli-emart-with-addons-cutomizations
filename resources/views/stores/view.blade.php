@@ -1169,6 +1169,9 @@
                         async function(snapshots) {
                             snapshots.docs.forEach((listval) => {
                                 var user = listval.data();
+                                if (vendor.isDocumentVerify === true || user.isDocumentVerify === true) {
+                                    $(".vendor_name").append(spideliVerifiedBadge(true));
+                                }
 
                                 $(".vendor_email").html(shortEmail(user.email));
                                 if (user.phoneNumber.includes('+')) {

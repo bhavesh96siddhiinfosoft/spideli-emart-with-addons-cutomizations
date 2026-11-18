@@ -421,15 +421,23 @@ ul.rating {
     object-fit: cover;
 }
 
-/* The verified tick. Not an action icon, so the theme's circular border and
-   fixed box are explicitly undone - it sits inline after a name. */
-.business-verified {
+/* The verified tick (point #111 & business accounts). Not an action icon, so the
+   theme's circular border and fixed box are explicitly undone - it sits inline after a name. */
+.business-verified,
+.spideli-verified-badge {
     color: #0FBF00;
     border: 0 !important;
     width: auto !important;
     height: auto !important;
     padding: 0 !important;
+    margin-left: 4px;
     font-size: 16px;
+    vertical-align: middle;
+    display: inline-block;
+}
+.verified-icon-heading {
+    color: #0FBF00;
+    font-size: 18px;
     vertical-align: middle;
 }
 

@@ -601,8 +601,9 @@
                 if (snapshots.docs.length > 0) {
                     var user = snapshots.docs[0].data();
 
-                    $(".user_name").text(user.firstName + ' ' + user.lastName);
-                    $(".itemTitle").text(user.firstName + ' ' + user.lastName);
+                    var providerBadge = spideliVerifiedBadge(user.isDocumentVerify === true);
+                    $(".user_name").text(user.firstName + ' ' + user.lastName).append(providerBadge);
+                    $(".itemTitle").text(user.firstName + ' ' + user.lastName).append(providerBadge);
 
                     if (user.hasOwnProperty('email') && user.email) {
                         $(".email").text(shortEmail(user.email));

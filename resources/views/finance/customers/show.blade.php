@@ -5,6 +5,7 @@
     $fmtDate = function ($v) { return $v instanceof \DateTimeInterface ? $v->setTimezone(new DateTimeZone(config('app.timezone')))->format('Y-m-d H:i') : ''; };
     $restr = $u['financeRestriction'] ?? null;
     $name = trim(($u['firstName'] ?? '') . ' ' . ($u['lastName'] ?? ''));
+    $kycVerified = ($u['kycStatus'] ?? '') === 'approved' || (!empty($u['kycLevel']) && strtolower(trim((string)$u['kycLevel'])) !== 'none');
 @endphp
 <div class="page-wrapper finance-page">
     @include('finance._top', ['pageTitle' => $name ?: $uid, 'tab' => 'customers'])
@@ -14,7 +15,7 @@
 
             <fieldset>
                 <legend><i class="mr-3 mdi mdi-account"></i>{{ __('Customer') }}</legend>
-                <div class="form-group row width-50"><label class="col-3 control-label">{{ __('Name') }}</label><div class="col-7"><span class="form-control-plaintext">{{ $name ?: '—' }}</span></div></div>
+                <div class="form-group row width-50"><label class="col-3 control-label">{{ __('Name') }}</label><div class="col-7"><span class="form-control-plaintext">{{ $name ?: '—' }}@if ($kycVerified) <i class="mdi mdi-verified spideli-verified-badge" data-toggle="tooltip" title="{{ trans('lang.verified') }}" data-bs-original-title="{{ trans('lang.verified') }}"></i>@endif</span></div></div>
                 <div class="form-group row width-50"><label class="col-3 control-label">{{ __('E-mail') }}</label><div class="col-7"><span class="form-control-plaintext">{{ $u['email'] ?? '—' }}</span></div></div>
                 <div class="form-group row width-50"><label class="col-3 control-label">{{ __('Phone') }}</label><div class="col-7"><span class="form-control-plaintext finance-amount">{{ $u['phoneNumber'] ?? '—' }}</span></div></div>
                 <div class="form-group row width-50"><label class="col-3 control-label">{{ __('Regions') }}</label><div class="col-7"><span class="form-control-plaintext">{{ implode(', ', array_map(function ($id) use ($regionNames) { return $regionNames[$id] ?? $id; }, (array)($u['regionIds'] ?? []))) ?: '—' }}</span></div></div>

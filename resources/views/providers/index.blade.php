@@ -417,10 +417,11 @@
             html.push('<input type="checkbox" id="is_open_' + id + '" class="is_open" dataId="' + id + '"><label class="col-3 control-label"\n' +
                 'for="is_open_' + id + '" ></label>');
         }
+        var verifiedIcon = spideliVerifiedBadge(val.isDocumentVerify === true);
         if (val.profilePictureURL == '') {
-            html.push('<img class="rounded" style="width:50px" src="' + placeholderImage + '" alt="image"> <a href="' + providerView + '" class="redirecttopage left_space">' + val.firstName + ' ' + val.lastName + '</a>');
+            html.push('<img class="rounded" style="width:50px" src="' + placeholderImage + '" alt="image"> <a href="' + providerView + '" class="redirecttopage left_space">' + val.firstName + ' ' + val.lastName + '</a>' + verifiedIcon);
         } else {
-            html.push('<img class="rounded" style="width:50px" src="' + val.profilePictureURL + '" onerror="this.onerror=null;this.src=\'' + placeholderImage + '\'" alt="image"> <a href="' + providerView + '" class="redirecttopage left_space">' + val.firstName + ' ' + val.lastName + '</a>');
+            html.push('<img class="rounded" style="width:50px" src="' + val.profilePictureURL + '" onerror="this.onerror=null;this.src=\'' + placeholderImage + '\'" alt="image"> <a href="' + providerView + '" class="redirecttopage left_space">' + val.firstName + ' ' + val.lastName + '</a>' + verifiedIcon);
         }
         if(val.email != ''){
             html.push(shortEmail(val.email));

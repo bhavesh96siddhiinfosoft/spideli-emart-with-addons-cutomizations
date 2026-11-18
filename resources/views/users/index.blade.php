@@ -446,13 +446,7 @@
         return html;
     }
     function verifiedMark(val) {
-        if (!val.businessProfile || val.businessProfile.status != 'approved') {
-            return '';
-        }
-
-        return ' <i class="mdi mdi-verified business-verified" data-toggle="tooltip"' +
-            ' title="{{ trans('lang.business_account_verified') }}"' +
-            ' data-bs-original-title="{{ trans('lang.business_account_verified') }}"></i>';
+        return spideliVerifiedBadge(spideliCustomerKycVerified(val));
     }
 
     $("#is_active").click(function() {
