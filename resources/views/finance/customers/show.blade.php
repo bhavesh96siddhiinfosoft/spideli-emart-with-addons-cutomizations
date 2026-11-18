@@ -140,12 +140,14 @@
 
             <fieldset>
                 <legend><i class="mr-3 mdi mdi-wallet"></i>{{ __('Wallets') }}</legend>
-                @if ($canAdjust)
-                    {{-- Point 93: money into this customer's wallet, e.g. for testing. --}}
-                    <div class="form-group row width-100 mb-2"><div class="col-7">
-                        <a class="btn btn-sm btn-primary" href="{{ route('finance.adjust.create', ['user' => $uid, 'region' => $adjustRegion, 'direction' => 'credit', 'from' => 'customer']) }}"><i class="mdi mdi-plus-circle mr-1"></i>{{ __('Add money') }}</a>
-                    </div></div>
-                @endif
+                <div class="form-group row width-100 mb-2"><div class="col-7 d-flex align-items-center">
+                    @if ($canAdjust)
+                        {{-- Point 93: money into this customer's wallet, e.g. for testing. --}}
+                        <a class="btn btn-sm btn-primary mr-2" href="{{ route('finance.adjust.create', ['user' => $uid, 'region' => $adjustRegion, 'direction' => 'credit', 'from' => 'customer']) }}"><i class="mdi mdi-plus-circle mr-1"></i>{{ __('Add money') }}</a>
+                    @endif
+                    {{-- F3: Customer's personal QR code to receive money. --}}
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-toggle="modal" data-target="#customerQrModal"><i class="mdi mdi-qrcode mr-1"></i>{{ __('Payment QR code') }}</button>
+                </div></div>
                 <div class="form-group row width-100"><div class="col-7">
                     <table class="table table-bordered mb-0">
                         <thead><tr><th>{{ __('Account') }}</th><th>{{ __('Balance') }}</th><th>{{ __('Status') }}</th></tr></thead>
@@ -347,9 +349,51 @@
         </div></div>
     </div>
 </div>
+
+{{-- F3: Customer's personal QR code modal --}}
+<div class="modal fade" id="customerQrModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="mdi mdi-qrcode mr-2"></i>{{ __('Payment QR code') }}</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body text-center">
+                <p class="text-muted">{{ __('Scan this QR code in the Spideli mobile app to send money to this customer.') }}</p>
+                <div id="customer_receive_qr" class="d-flex justify-content-center my-3"></div>
+                <div class="mt-2 font-weight-bold">{{ trim(($u['firstName'] ?? '') . ' ' . ($u['lastName'] ?? '')) ?: $uid }}</div>
+                @if (!empty($u['phoneNumber']))
+                    <div class="text-muted small">{{ ($u['countryCode'] ?? '') . ' ' . $u['phoneNumber'] }}</div>
+                @endif
+                <div class="finance-mono text-muted small mt-2">{{ $uid }}</div>
+                <div class="input-group mt-3">
+                    <input type="text" id="customer_qr_uri" class="form-control form-control-sm finance-mono" readonly value="{{ 'spideli://finance/pay?uid=' . $uid . '&name=' . urlencode(trim(($u['firstName'] ?? '') . ' ' . ($u['lastName'] ?? ''))) . (!empty($u['phoneNumber']) ? '&phone=' . urlencode(($u['countryCode'] ?? '') . $u['phoneNumber']) : '') }}">
+                    <div class="input-group-append">
+                        <button class="btn btn-sm btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('customer_qr_uri').value); this.innerText = '{{ __('Copied!') }}';"><i class="mdi mdi-content-copy mr-1"></i>{{ __('Copy URI') }}</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ __('Close') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 @section('scripts')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
-    $(function () { $('.finance-select2').select2({ width: '100%' }); });
+    $(function () {
+        $('.finance-select2').select2({ width: '100%' });
+        var qrDrawn = false;
+        $('#customerQrModal').on('shown.bs.modal', function () {
+            if (!qrDrawn) {
+                var el = document.getElementById('customer_receive_qr');
+                var uri = document.getElementById('customer_qr_uri').value;
+                new QRCode(el, { text: uri, width: 180, height: 180, correctLevel: QRCode.CorrectLevel.M });
+                qrDrawn = true;
+            }
+        });
+    });
 </script>
 @endsection

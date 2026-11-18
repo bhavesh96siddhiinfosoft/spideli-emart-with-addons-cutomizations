@@ -1784,5 +1784,11 @@
     "Smallest transfer to/from a pocket": "أصغر مبلغ للتحويل من/إلى الجيب",
     "Largest transfer to/from a pocket": "أكبر مبلغ للتحويل من/إلى الجيب",
     "Pocket": "الجيب",
-    "No pockets yet.": "لا توجد جيوب بعد."
+    "No pockets yet.": "لا توجد جيوب بعد.",
+    "QR code transfers enabled": "التحويلات عبر رمز QR متاحة",
+    "Allow customers to show a personal QR code to receive money, and scan other users' QR codes to send.": "السماح للعملاء بإظهار رمز QR شخصي لاستلام الأموال ومسح رموز QR الخاصة بالمستخدمين الآخرين للإرسال.",
+    "Payment QR code": "رمز QR للدفع",
+    "Scan this QR code in the Spideli mobile app to send money to this customer.": "امسح رمز QR هذا في تطبيق Spideli للجوال لإرسال الأموال إلى هذا العميل.",
+    "Copy URI": "نسخ الرابط",
+    "Copied!": "تم النسخ!"
 }

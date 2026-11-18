@@ -126,6 +126,11 @@ class SettingsSchema
                 foreach (['internal' => 'Spideli to Spideli', 'mobile_money' => 'Mobile money', 'wave' => 'Wave', 'bank' => 'Bank'] as $ch => $title) {
                     $fields[] = ['section' => 'Channel: ' . $title];
                     $fields["channels.$ch.enabled"] = ['type' => 'bool', 'label' => 'Offered'];
+                    if ($ch === 'internal') {
+                        // F3: QR code per customer to receive money
+                        $fields["channels.$ch.qrEnabled"] = ['type' => 'bool', 'label' => 'QR code transfers enabled',
+                            'help' => 'Allow customers to show a personal QR code to receive money, and scan other users\' QR codes to send.'];
+                    }
                     if ($ch === 'mobile_money') {
                         $fields["channels.$ch.operators"] = ['type' => 'list', 'label' => 'Operators', 'help' => 'e.g. MTN Mobile Money, Orange Money. The channel is hidden without operators.'];
                     }
