@@ -3441,5 +3441,9 @@ return [
     'provider_payment_earning' => 'Provider earning',
     'provider_payment_credited' => 'In wallet',
     'provider_payment_method' => 'Payment method',
+    'provider_payment_unrecorded' => 'Paid but not recorded',
+    'provider_payment_unrecorded_text' => 'Clients paid these at a gateway but the subscription could not be recorded (amount different or a write failed). Check the gateway reference and complete them by hand.',
+    'provider_payment_reference' => 'Reference',
+    'provider_payment_reason' => 'Reason',
 ];
 ?>

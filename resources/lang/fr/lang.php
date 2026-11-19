@@ -3443,5 +3443,9 @@ Format accepté : MP3',
     'provider_payment_earning' => 'Gain du prestataire',
     'provider_payment_credited' => 'Dans le portefeuille',
     'provider_payment_method' => 'Moyen de paiement',
+    'provider_payment_unrecorded' => 'Payé mais non enregistré',
+    'provider_payment_unrecorded_text' => 'Ces clients ont payé via une passerelle mais l’abonnement n’a pas pu être enregistré (montant différent ou écriture échouée). Vérifiez la référence de la passerelle et finalisez-les à la main.',
+    'provider_payment_reference' => 'Référence',
+    'provider_payment_reason' => 'Raison',
 ];
 ?>

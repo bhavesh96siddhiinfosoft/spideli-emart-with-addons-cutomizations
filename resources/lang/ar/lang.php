@@ -3251,5 +3251,9 @@ return [
     'provider_payment_earning' => 'ربح مقدم الخدمة',
     'provider_payment_credited' => 'في المحفظة',
     'provider_payment_method' => 'طريقة الدفع',
+    'provider_payment_unrecorded' => 'مدفوع لكن غير مسجّل',
+    'provider_payment_unrecorded_text' => 'دفع هؤلاء العملاء عبر بوابة دفع لكن تعذر تسجيل الاشتراك (مبلغ مختلف أو فشل الحفظ). تحقق من مرجع البوابة وأكملها يدوياً.',
+    'provider_payment_reference' => 'المرجع',
+    'provider_payment_reason' => 'السبب',
 ];
 ?>
