@@ -799,6 +799,12 @@ Route::middleware(['permission:vendor-subscriptions,vendor-subscriptions'])->gro
     Route::get('/vendor-subscriptions/subscribers', [App\Http\Controllers\VendorSubscriptionController::class, 'subscribers'])->name('vendor-subscriptions.subscribers');
     Route::get('/vendor-subscriptions/payments', [App\Http\Controllers\VendorSubscriptionController::class, 'payments'])->name('vendor-subscriptions.payments');
 });
+// #114: subscriptions a provider sells to its own clients - own collections, read-only oversight.
+Route::middleware(['permission:provider-subscriptions,provider-subscriptions'])->group(function () {
+    Route::get('/provider-subscriptions', [App\Http\Controllers\ProviderSubscriptionController::class, 'plans'])->name('provider-subscriptions.plans');
+    Route::get('/provider-subscriptions/subscribers', [App\Http\Controllers\ProviderSubscriptionController::class, 'subscribers'])->name('provider-subscriptions.subscribers');
+    Route::get('/provider-subscriptions/payments', [App\Http\Controllers\ProviderSubscriptionController::class, 'payments'])->name('provider-subscriptions.payments');
+});
 
 Route::middleware(['permission:subscription-history,subscription.history'])->group(function () {
     Route::get('/subscription-plan/history/{id?}', [App\Http\Controllers\SubscriptionPlanController::class, 'SubscriptionPlanHistory'])->name('subscription.subscriptionPlanHistory');

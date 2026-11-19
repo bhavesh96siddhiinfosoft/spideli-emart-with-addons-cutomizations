@@ -595,6 +595,15 @@ $service_type = @$_COOKIE['service_type'];
             </a>
         </li>
         @endif
+
+        {{-- #114: subscriptions providers sell to their clients --}}
+        @if (in_array('provider-subscriptions', $role_has_permission))
+        <li><a class="waves-effect waves-dark" href="{!! route('provider-subscriptions.plans') !!}" aria-expanded="false">
+                <i class="mdi mdi-ticket-account"></i>
+                <span class="hide-menu">{{ trans('lang.provider_subscription_plural') }}</span>
+            </a>
+        </li>
+        @endif
        
         @endif
         @endif

@@ -988,6 +988,15 @@
                                                 </tr>
                                                 <tr>
                                                     <td>
+                                                        <strong>{{ trans('lang.provider_subscription_plural') }}</strong>
+                                                    </td>
+                                                    <td>
+                                                        <input type="checkbox" id="provider-subscriptions-list" value="provider-subscriptions" name="provider-subscriptions[]" class="permission">
+                                                        <label class=" control-label2" for="provider-subscriptions-list">{{ trans('lang.list') }}</label>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
                                                         <strong>{{ trans('lang.subscription_history') }}</strong>
                                                     </td>
                                                     <td>
