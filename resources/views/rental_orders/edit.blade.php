@@ -192,6 +192,19 @@
                                                         <p><strong>{{ trans('lang.rental_package_km') }}:</strong>
                                                             <span id="rental_pack_km"></span><br>
                                                         </p>
+                                                        {{-- #112: rental by the day and the customer's booking note --}}
+                                                        <p class="spd-rental-daily-row" style="display:none"><strong>{{ trans('lang.rental_type_label') }}:</strong>
+                                                            <span id="rental_type_text"></span><br>
+                                                        </p>
+                                                        <p class="spd-rental-daily-row" style="display:none"><strong>{{ trans('lang.rental_days') }}:</strong>
+                                                            <span id="rental_days_count"></span><br>
+                                                        </p>
+                                                        <p class="spd-rental-daily-row" style="display:none"><strong>{{ trans('lang.rental_return_date') }}:</strong>
+                                                            <span id="rental_return_date"></span><br>
+                                                        </p>
+                                                        <p id="rental_note_row" style="display:none"><strong>{{ trans('lang.rental_booking_note') }}:</strong>
+                                                            <span id="rental_booking_note" style="white-space:pre-wrap"></span><br>
+                                                        </p>
                                                     </div>
 
                                                 </div>
@@ -661,6 +674,32 @@
                     $('#rental_pack_price').text(baseFare);
                     $('#rental_pack_hours').text(order.rentalPackageModel.includedHours + ' ' + 'Hr');
                     $('#rental_pack_km').text(order.rentalPackageModel.includedDistance + ' ' + 'Km');
+                }
+
+                // #112: a rental by the day. The order's package copy already holds the totals for all the days
+                // (price, hours, km), so the totals above and the extra charges stay right.
+                if (order.rentalType === 'daily') {
+                    var rentalDays = parseInt(order.rentalDays, 10) || 0;
+                    var dayFare = parseFloat(order.rentalPackageModel ? order.rentalPackageModel.dayFare : NaN);
+                    $('#rental_type_text').text(@json(trans('lang.rental_package_type_daily')));
+                    $('#rental_days_count').text(rentalDays);
+                    if (!isNaN(dayFare) && rentalDays > 0) {
+                        var dayFareText = currencyAtRight ? dayFare.toFixed(decimal_degits) + currentCurrency :
+                            currentCurrency + dayFare.toFixed(decimal_degits);
+                        $('#rental_pack_price').text($('#rental_pack_price').text() + ' (' + dayFareText + ' × ' + rentalDays + ')');
+                    }
+                    if (order.returnDateTime && typeof order.returnDateTime.toDate === 'function') {
+                        var returnDate = order.returnDateTime.toDate();
+                        $('#rental_return_date').text(returnDate.getFullYear() + '-' +
+                            String(returnDate.getMonth() + 1).padStart(2, '0') + '-' +
+                            String(returnDate.getDate()).padStart(2, '0') + ' ' +
+                            returnDate.toLocaleTimeString('en-US'));
+                    }
+                    $('.spd-rental-daily-row').show();
+                }
+                if (order.bookingNote && String(order.bookingNote).trim() !== '') {
+                    $('#rental_booking_note').text(String(order.bookingNote));
+                    $('#rental_note_row').show();
                 }
 
                 fcmToken = order.author.fcmToken;

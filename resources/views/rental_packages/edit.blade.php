@@ -40,6 +40,7 @@
                                         <div class="form-text text-muted">{{ trans('lang.enter_vehicle_type') }}</div>
                                     </div>
                                 </div>
+                                @include('rental_packages.partials.type_fields')
                                 <div class="form-group row width-100">
                                     <label class="col-3 control-label">{{ trans('lang.package_description') }}</label>
                                     <div class="col-7">
@@ -113,6 +114,8 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.21.0/jquery.validate.min.js"></script>
 
+@include('rental_packages.partials.type_script')
+
 <script>
 
     var packageId = "<?php echo $id; ?>";
@@ -151,6 +154,7 @@
         $("#extraMinuteFare").val(packageData.extraMinuteFare);
         $("#ordering").val(packageData.ordering);
         $("#published").prop('checked', packageData.published);
+        spideliRentalTypeLoad(packageData);   // #112
 
         jQuery("#data-table_processing").hide();
        
@@ -212,9 +216,15 @@
             showError("{{ trans('lang.enter_package_ordering') }}");
         }else{
 
+            var rentalTypeError = spideliRentalTypeCheck();   // #112
+            if (rentalTypeError) {
+                showError(rentalTypeError);
+                return;
+            }
+
             jQuery("#data-table_processing").show();
 
-            database.collection('rental_packages').doc(packageId).update({
+            database.collection('rental_packages').doc(packageId).update(Object.assign({
                 'name': name,
                 'vehicleTypeId': vehicleTypeId,
                 'description': description,
@@ -227,7 +237,7 @@
                 'published': published,
                 'sectionId':sectionId
 
-            }).then(function(result) {
+            }, spideliRentalTypeFields(true))).then(function(result) {
                 window.location.href = "{{ route('rental-package') }}";
             }).catch(function(error) {
                 showError(error);

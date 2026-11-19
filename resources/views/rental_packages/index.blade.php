@@ -264,12 +264,16 @@
                 `);
             }
 
-            row.push(`<td><a href="${route1}" id="${childData.id}">${childData.name}</a></td>`);
+            // #112: a "By the day" package shows its type, its price per day and its day limits.
+            var isDailyPackage = childData.packageType === 'daily';
+            row.push(`<td><a href="${route1}" id="${childData.id}">${childData.name}</a>` +
+                (isDailyPackage ? ` <span class="badge badge-info">{{ trans('lang.rental_package_type_daily') }}</span>` : '') + `</td>`);
 
             row.push(
-                currencyAtRight ?
+                (currencyAtRight ?
                 parseFloat(childData.baseFare).toFixed(decimal_degits) + currentCurrency :
-                currentCurrency + parseFloat(childData.baseFare).toFixed(decimal_degits)
+                currentCurrency + parseFloat(childData.baseFare).toFixed(decimal_degits)) +
+                (isDailyPackage ? ' {{ trans('lang.rental_per_day') }} (' + (parseInt(childData.minDays, 10) || 1) + '–' + (parseInt(childData.maxDays, 10) || 1) + ' {{ trans('lang.rental_days_unit') }})' : '')
             );
 
             row.push(childData.vehicleTypeName);

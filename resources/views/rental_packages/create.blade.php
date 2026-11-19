@@ -40,6 +40,7 @@
                                         <div class="form-text text-muted">{{ trans('lang.enter_vehicle_type') }}</div>
                                     </div>
                                 </div>
+                                @include('rental_packages.partials.type_fields')
                                 <div class="form-group row width-100">
                                     <label class="col-3 control-label">{{ trans('lang.package_description') }}</label>
                                     <div class="col-7">
@@ -112,6 +113,8 @@
 @section('scripts')
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.21.0/jquery.validate.min.js"></script>
+
+@include('rental_packages.partials.type_script')
 
 <script>
     var service_type = getCookie('service_type') || '';        
@@ -190,12 +193,18 @@
             showError("{{ trans('lang.enter_package_ordering') }}");
         }else{
 
+            var rentalTypeError = spideliRentalTypeCheck();   // #112
+            if (rentalTypeError) {
+                showError(rentalTypeError);
+                return;
+            }
+
             jQuery("#data-table_processing").show();
             
             var id = database.collection("tmp").doc().id;
             var createdAt = firebase.firestore.FieldValue.serverTimestamp();
 
-            database.collection('rental_packages').doc(id).set({
+            database.collection('rental_packages').doc(id).set(Object.assign({
                 'id': id,
                 'name': name,
                 'vehicleTypeId': vehicleTypeId,
@@ -209,7 +218,7 @@
                 'published': published,
                 'createdAt': createdAt,
                 'sectionId':sectionId
-            }).then(function(result) {
+            }, spideliRentalTypeFields(false))).then(function(result) {
                 window.location.href = "{{ route('rental-package') }}";
             }).catch(function(error) {
                 showError(error);
