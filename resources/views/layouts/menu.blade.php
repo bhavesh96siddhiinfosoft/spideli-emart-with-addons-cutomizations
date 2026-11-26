@@ -452,6 +452,14 @@ $service_type = @$_COOKIE['service_type'];
                     <span class="hide-menu">{{ trans('lang.add_requests') }}</span>
                 </a>
             </li>
+            {{-- #113: advert price per day per zone --}}
+            @if (in_array('advertisements.edit', json_decode(@session('user_permissions'), true) ?: []))
+            <li><a class="waves-effect waves-dark" href="{!! route('advertisement-prices') !!}" aria-expanded="false">
+                    <i class="ri-price-tag-3-fill"></i>
+                    <span class="hide-menu">{{ trans('lang.adv_prices') }}</span>
+                </a>
+            </li>
+            @endif
             @endif
             @endif
             

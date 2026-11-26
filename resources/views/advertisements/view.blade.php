@@ -50,6 +50,11 @@
                                                 <label class="col-12 control-label"><strong>{{ trans('lang.payment_status') }}:</strong>
                                                     <span id="paymentStatus"></span></label>
                                             </div>
+                                            {{-- #113: the price (days x the price per day of the store's zone) or what was paid online --}}
+                                            <div class="form-group row widt-100 gendetail-col">
+                                                <label class="col-12 control-label"><strong>{{ trans('lang.adv_price') }}:</strong>
+                                                    <span id="advPrice"></span></label>
+                                            </div>
                                             <div class="form-group row widt-100 gendetail-col">
                                                 <label class="col-12 control-label"><strong>{{ trans('lang.status') }}:</strong>
                                                     <span id="status"></span></label>
@@ -277,6 +282,50 @@
             placeholderImage = placeholderImageData.image;
         });
         var ref = database.collection('advertisements').where("id", "==", id);
+
+        /* #113: days of an advert = its duration rounded up (a start during the day counts as a day). */
+        function spideliAdvertDays(startDate, endDate) {
+            var s = startDate && startDate.toDate ? startDate.toDate().getTime() : NaN;
+            var e = endDate && endDate.toDate ? endDate.toDate().getTime() : NaN;
+            if (isNaN(s) || isNaN(e) || e < s) {
+                return 0;
+            }
+            return Math.max(1, Math.ceil((e - s) / 86400000));
+        }
+
+        function spideliAdvMoney(amount, cur) {
+            var d = parseInt(cur.decimal_degits, 10);
+            var text = (parseFloat(amount) || 0).toFixed(isNaN(d) ? 2 : d);
+            return cur.symbolAtRight ? text + ' ' + (cur.symbol || '') : (cur.symbol || '') + text;
+        }
+
+        /* #113: what was paid online (advertisement.payment), else days x the price per day of the store's zone and
+         * region (advertisement_prices/{zoneId}.prices.{regionId}), else "no price for this zone". */
+        async function showAdvertPrice(data) {
+            var $p = $('#advPrice');
+            var vendor = data.vendorId ? await database.collection('vendors').doc(data.vendorId).get() : null;
+            var v = vendor && vendor.exists ? vendor.data() : {};
+            var region = v.regionId ? await database.collection('regions').doc(v.regionId).get() : null;
+            var cur = {};
+            if (region && region.exists && region.data().currencyId) {
+                var c = await database.collection('currencies').doc(region.data().currencyId).get();
+                cur = c.exists ? c.data() : {};
+            }
+            var pay = data.payment || null;
+            if (data.paymentStatus && pay && pay.amount != null) {
+                $p.text(spideliAdvMoney(pay.amount, cur) + ' (' + pay.days + ' × ' + spideliAdvMoney(pay.pricePerDay, cur) + ') · ' +
+                    (pay.methodLabel || pay.method || '') + (pay.reference ? ' · ' + pay.reference : ''));
+                return;
+            }
+            var days = spideliAdvertDays(data.startDate, data.endDate);
+            var priceDoc = v.zoneId ? await database.collection('advertisement_prices').doc(v.zoneId).get() : null;
+            var price = priceDoc && priceDoc.exists && priceDoc.data().prices ? priceDoc.data().prices[v.regionId] : undefined;
+            if (typeof price !== 'number' || !days) {
+                $p.html('<span class="text-danger"></span>').find('span').text(@json(trans('lang.adv_price_none')));
+                return;
+            }
+            $p.text(spideliAdvMoney(days * price, cur) + ' (' + days + ' × ' + spideliAdvMoney(price, cur) + ')');
+        }
         var advApprovedSub = '';
         var advApprovedMsg = '';
         var advCancelledSub = '';
@@ -361,6 +410,7 @@
             startDate = new Date(data.startDate.seconds * 1000);
             endDate = new Date(data.endDate.seconds * 1000);
             setDate(startDate, endDate);
+            showAdvertPrice(data).catch(function (e) { console.error('advert price', e); });
             if (data.paymentStatus) {
                 $('#paymentStatus').html('<span class="badge badge-success py-2 px-3">{{ trans('lang.paid') }}</span>');
                 $("#update_pay_status").prop('checked', true);

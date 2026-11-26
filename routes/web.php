@@ -810,6 +810,10 @@ Route::middleware(['permission:subscription-history,subscription.history'])->gro
     Route::get('/subscription-plan/history/{id?}', [App\Http\Controllers\SubscriptionPlanController::class, 'SubscriptionPlanHistory'])->name('subscription.subscriptionPlanHistory');
 });
 
+// #113: advert price per day for each zone (same permission as editing adverts)
+Route::middleware(['permission:advertisements,advertisements.edit'])->group(function () {
+    Route::get('/advertisement-prices', [App\Http\Controllers\AdvertisementPricesController::class, 'index'])->name('advertisement-prices');
+});
 Route::middleware(['permission:advertisements,advertisements.edit'])->group(function () {
     Route::get('/advertisements/edit/{id}', [App\Http\Controllers\AdvertisementsController::class, 'edit'])->name('advertisements.edit');
 });

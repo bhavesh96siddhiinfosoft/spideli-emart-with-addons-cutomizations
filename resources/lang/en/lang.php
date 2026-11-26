@@ -3445,5 +3445,17 @@ return [
     'provider_payment_unrecorded_text' => 'Clients paid these at a gateway but the subscription could not be recorded (amount different or a write failed). Check the gateway reference and complete them by hand.',
     'provider_payment_reference' => 'Reference',
     'provider_payment_reason' => 'Reason',
+    // #113 advert prices
+    'adv_prices' => 'Advert prices',
+    'adv_prices_text' => 'Price per day of an advert, for each zone and each region it serves (in that region\'s currency). A store pays the number of days × this price once you approve its advert. Leave a box empty: that zone cannot pay online.',
+    'adv_price_per_day' => 'Price per day',
+    'adv_per_day' => 'per day',
+    'adv_price_not_set' => 'Not set',
+    'adv_zone_no_region' => 'This zone serves no region yet: link it to a region in Zones first.',
+    'adv_zone_hidden' => 'Hidden',
+    'adv_price_error' => 'Enter prices of 0 or more, or leave the box empty.',
+    'adv_prices_saved' => 'Advert prices saved.',
+    'adv_price' => 'Price',
+    'adv_price_none' => 'No advert price is set for this store\'s zone and region (Advert prices): it cannot be paid online.',
 ];
 ?>

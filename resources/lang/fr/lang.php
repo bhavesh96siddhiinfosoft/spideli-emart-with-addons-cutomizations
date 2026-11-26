@@ -3447,5 +3447,17 @@ Format accepté : MP3',
     'provider_payment_unrecorded_text' => 'Ces clients ont payé via une passerelle mais l’abonnement n’a pas pu être enregistré (montant différent ou écriture échouée). Vérifiez la référence de la passerelle et finalisez-les à la main.',
     'provider_payment_reference' => 'Référence',
     'provider_payment_reason' => 'Raison',
+    // #113 advert prices
+    'adv_prices' => 'Prix des publicités',
+    'adv_prices_text' => 'Prix par jour d\'une publicité, pour chaque zone et chaque région qu\'elle dessert (dans la devise de la région). Un établissement paie le nombre de jours × ce prix une fois sa publicité approuvée. Une case vide : la zone ne peut pas payer en ligne.',
+    'adv_price_per_day' => 'Prix par jour',
+    'adv_per_day' => 'par jour',
+    'adv_price_not_set' => 'Non défini',
+    'adv_zone_no_region' => 'Cette zone ne dessert encore aucune région : liez-la d\'abord à une région dans Zones.',
+    'adv_zone_hidden' => 'Masquée',
+    'adv_price_error' => 'Saisissez des prix de 0 ou plus, ou laissez la case vide.',
+    'adv_prices_saved' => 'Prix des publicités enregistrés.',
+    'adv_price' => 'Prix',
+    'adv_price_none' => 'Aucun prix de publicité n\'est défini pour la zone et la région de cet établissement (Prix des publicités) : paiement en ligne impossible.',
 ];
 ?>
