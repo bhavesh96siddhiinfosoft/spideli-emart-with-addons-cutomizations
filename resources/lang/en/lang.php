@@ -3454,6 +3454,8 @@ return [
     'adv_unrecorded_reference' => 'Reference',
     'adv_unrecorded_reason' => 'Reason',
     'adv_zone' => 'Zone',
+    'adv_status_canceled' => 'Canceled',
+    'adv_status_update_requested' => 'Update requested',
     'adv_prices' => 'Advert prices',
     'adv_prices_text' => 'Price per day of an advert, for each zone and each region it serves (in that region\'s currency). A store pays the number of days × this price once you approve its advert. Leave a box empty: that zone cannot pay online.',
     'adv_price_per_day' => 'Price per day',

@@ -285,7 +285,7 @@
                                     records.push([
                                         '<td class="delete-all"><input type="checkbox" id="is_open_' + childData.id + '" class="is_open" dataId="' + childData.id + '"><label class="col-3 control-label"\n' + 'for="is_open_' + childData.id + '" ></label></td>',
                                         '<td><a href="' + advertisementsView + '">' + childData.title + '</a></td>',
-                                        `<td><img src="${vendorImage}" style="width:50px; height:50px; border-radius:50%;" onerror="this.onerror=null;this.src=\'' + placeholderImage + '\'">
+                                        `<td><img src="${vendorImage}" style="width:50px; height:50px; border-radius:50%;" onerror="this.onerror=null;this.src='${placeholderImage}'">
                              <span>${childData.vendorTitle} <br>${childData.vendorEmail}</span></td>`,
                                         '<td>' +
                                         (childData.type === 'restaurant_promotion' ? '{{trans("lang.restaurant_promotion")}}' :
@@ -361,7 +361,7 @@
                     }
                     return {
                         title: vendorData.title || "-",
-                        image: vendor_userData.profilePictureURL || "",
+                        image: vendorData.photo || "",   // #113: the store's photo (was the owner's profile picture)
                         email: vendor_userData.email || "-",
                         section_id: vendor_userData.sectionId || "-",
                     };

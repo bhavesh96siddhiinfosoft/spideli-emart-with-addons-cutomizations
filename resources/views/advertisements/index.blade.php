@@ -256,6 +256,9 @@
     <script type="text/javascript">
         var id = "{{ $id }}";
         var section_id = getCookie('section_id') || '';
+        // #113: every advert, as the store's Ad List: approved, canceled and those waiting for approval (new: pending,
+        // edited: updated), each with its status. Approving still happens in Ad Requests.
+        var spideliAdvListStatuses = ['approved', 'canceled', 'pending', 'updated'];
         if (id != '') {
             database.collection('vendors').where("id", "==", '<?php echo $id; ?>').get().then(async function(snapshots) {
                 var vendorData = snapshots.docs[0].data();
@@ -274,9 +277,9 @@
                 }
             }
             });
-            var ref = database.collection('advertisements').where('status', '==', 'approved').where('vendorId', '==', id);
+            var ref = database.collection('advertisements').where('status', 'in', spideliAdvListStatuses).where('vendorId', '==', id);
         } else {
-            var ref = database.collection('advertisements').where('status', '==', 'approved');
+            var ref = database.collection('advertisements').where('status', 'in', spideliAdvListStatuses);
         }
         var placeholderImage = '';
         var user_permissions = '<?php echo @session('user_permissions'); ?>';
@@ -416,7 +419,13 @@
                             };
                             const endDate = childData.endDate.toDate().toLocaleDateString('en-US', options);
                             const ExpiryDate = childData.endDate;
-                            if (ExpiryDate && new Date(ExpiryDate.seconds * 1000) < new Date()) {
+                            if (childData.status === 'canceled') {   // #113: not only approved adverts any more
+                                childData.status = 'Canceled';
+                            } else if (childData.status === 'pending') {
+                                childData.status = 'Pending';
+                            } else if (childData.status === 'updated') {
+                                childData.status = 'Updated';
+                            } else if (ExpiryDate && new Date(ExpiryDate.seconds * 1000) < new Date()) {
                                 childData.status = 'Expired';
                             } else {
                                 const startDate = childData.startDate;
@@ -541,9 +550,9 @@
             html.push('<td><a href="' + advertisementsView + '" data-toggle="tooltip" data-bs-original-title="' + val.title + '">' + (val.title.length > 6 ? val.title.substring(0, 8) + '...' : val.title) + '</a></td>');
             if ("{{ $id }}" == '') {
                 if (val.vendorImage != '') {
-                    html.push(`<td><img src="${val.vendorImage}" style="width:50px; height:50px; border-radius:50%;" onerror="this.onerror=null;this.src=\''+placeholderImage+'\'"><span>${val.vendorTitle} <br> ${val.vendorEmail}</td></span>`);
+                    html.push(`<td><img src="${val.vendorImage}" style="width:50px; height:50px; border-radius:50%;" onerror="this.onerror=null;this.src='${placeholderImage}'"><span>${val.vendorTitle} <br> ${val.vendorEmail}</td></span>`);
                 } else {
-                    html.push(`<td><img src="${placeholderImage}" style="width:50px; height:50px; border-radius:50%;" onerror="this.onerror=null;this.src=\''+placeholderImage+'\'"><span>${val.vendorTitle} <br> ${val.vendorEmail}</td></span>`);
+                    html.push(`<td><img src="${placeholderImage}" style="width:50px; height:50px; border-radius:50%;" onerror="this.onerror=null;this.src='${placeholderImage}'"><span>${val.vendorTitle} <br> ${val.vendorEmail}</td></span>`);
 
                 }
             }
@@ -565,7 +574,9 @@
                 } else if (val.status == "Pending") {
                     html.push('<td><span class="badge badge-primary py-2 px-3" >{{ trans('lang.pending') }}</span></td>')
                 } else if (val.status == "Canceled") {
-                    html.push('<td><span class="badge badge-danger py-2 px-3" >{{ trans('lang.canceled') }}</span></td>')
+                    html.push('<td><span class="badge badge-danger py-2 px-3" >{{ trans('lang.adv_status_canceled') }}</span></td>')
+                } else if (val.status == "Updated") {   // #113: an approved advert the store edited, back for approval
+                    html.push('<td><span class="badge badge-warning py-2 px-3" >{{ trans('lang.adv_status_update_requested') }}</span></td>')
                 } else {
                     html.push('<td><span class="badge badge-success py-2 px-3" >{{ trans('lang.approved') }}</span></td>')
                 }
@@ -640,7 +651,7 @@
 
             return {
                 title: vendorData.title || "-",
-                image: vendor_userData.profilePictureURL || "",
+                image: vendorData.photo || "",   // #113: the store's photo (was the owner's profile picture)
                 email: vendor_userData.email || "-",
                 section_id: vendor_userData.sectionId || "-",
             };
