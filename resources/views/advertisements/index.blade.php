@@ -34,6 +34,40 @@
                 </div>
 
             </div>
+            {{-- #113: adverts paid at a gateway that the store panel could not mark paid (advertisement_checkouts,
+                 status paid_not_credited). Shown only when there are some, to complete by hand. --}}
+            <div class="table-list adv_unrecorded_box" style="display:none;">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card border border-danger">
+                            <div class="card-header border-0">
+                                <div class="card-header-title">
+                                    <h3 class="text-danger mb-2 h4">{{ trans('lang.adv_unrecorded') }} <span class="badge badge-danger adv_unrecorded_count"></span></h3>
+                                    <p class="mb-0 text-dark-2">{{ trans('lang.adv_unrecorded_text') }}</p>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered">
+                                        <thead>
+                                            <tr>
+                                                <th>{{ trans('lang.adv_unrecorded_store') }}</th>
+                                                <th>{{ trans('lang.adv_unrecorded_advert') }}</th>
+                                                <th>{{ trans('lang.adv_price') }}</th>
+                                                <th>{{ trans('lang.adv_unrecorded_method') }}</th>
+                                                <th>{{ trans('lang.adv_unrecorded_reference') }}</th>
+                                                <th>{{ trans('lang.adv_unrecorded_reason') }}</th>
+                                                <th>{{ trans('lang.date') }}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="adv_unrecorded_rows"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="table-list">
                 <div class="row">
                     <div class="col-12">
@@ -269,7 +303,51 @@
                 });
             }
         });
+        /* #113: paid at a gateway but not marked paid. Read-only: the admin checks the gateway reference and ticks
+         * "paid" by hand. Everything shown is escaped. */
+        function advUnEsc(value) {
+            return String(value == null ? '' : value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+        function advUnDate(value) {
+            var d = value && typeof value.toDate === 'function' ? value.toDate() : null;
+            return d ? ('0' + d.getDate()).slice(-2) + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + d.getFullYear() : '';
+        }
+        function buildAdvUnrecordedRow(c, storeName, advertTitle) {
+            var view = "{{ route('advertisements.view', ':id') }}".replace(':id', encodeURIComponent(c.advertisementId || ''));
+            return '<tr>' +
+                '<td>' + advUnEsc(storeName) + '</td>' +
+                '<td><a href="' + advUnEsc(view) + '">' + advUnEsc(advertTitle || c.advertisementId || '') + '</a></td>' +
+                '<td>' + advUnEsc(c.amount) + ' ' + advUnEsc(c.currency || '') + ' <small class="text-muted">(' + advUnEsc(c.days) + ' × ' + advUnEsc(c.pricePerDay) + ')</small></td>' +
+                '<td>' + advUnEsc(c.method || '') + '</td>' +
+                '<td>' + advUnEsc(c.paymentReference || '') + '<br><small class="text-muted">' + advUnEsc(c.id || '') + '</small></td>' +
+                '<td>' + advUnEsc(c.failureReason || '') + '</td>' +
+                '<td>' + advUnDate(c.createdAt) + '</td>' +
+                '</tr>';
+        }
+        async function loadAdvUnrecorded() {
+            var snap = await database.collection('advertisement_checkouts').where('status', '==', 'paid_not_credited').get();
+            var rows = snap.docs.map(function (d) { return d.data(); }).filter(function (c) {
+                return (id === '' || c.storeId === id) && regionIdInScope(c.regionId);
+            });
+            if (!rows.length) {
+                return;
+            }
+            rows.sort(function (a, b) {
+                return (b.createdAt && b.createdAt.toDate ? b.createdAt.toDate().getTime() : 0) - (a.createdAt && a.createdAt.toDate ? a.createdAt.toDate().getTime() : 0);
+            });
+            var html = await Promise.all(rows.map(async function (c) {
+                var store = c.storeId ? await database.collection('vendors').doc(c.storeId).get() : null;
+                var ad = c.advertisementId ? await database.collection('advertisements').doc(c.advertisementId).get() : null;
+                return buildAdvUnrecordedRow(c, store && store.exists ? store.data().title : '', ad && ad.exists ? ad.data().title : '');
+            }));
+            $('#adv_unrecorded_rows').html(html.join(''));
+            $('.adv_unrecorded_count').text(rows.length);
+            $('.adv_unrecorded_box').show();
+        }
+
         $(document).ready(function() {
+            loadAdvUnrecorded().catch(function (e) { console.error('unrecorded advert payments', e); });
             jQuery("#data-table_processing").show();
             var placeholder = database.collection('settings').doc('placeHolderImage');
             placeholder.get().then(async function(snapshotsimage) {

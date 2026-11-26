@@ -3446,6 +3446,13 @@ return [
     'provider_payment_reference' => 'Reference',
     'provider_payment_reason' => 'Reason',
     // #113 advert prices
+    'adv_unrecorded' => 'Paid but not recorded',
+    'adv_unrecorded_text' => 'Stores paid these adverts at a gateway but the advert could not be marked paid (amount different or a write failed). Check the gateway reference, then tick the advert paid by hand.',
+    'adv_unrecorded_store' => 'Store',
+    'adv_unrecorded_advert' => 'Advert',
+    'adv_unrecorded_method' => 'Gateway',
+    'adv_unrecorded_reference' => 'Reference',
+    'adv_unrecorded_reason' => 'Reason',
     'adv_zone' => 'Zone',
     'adv_prices' => 'Advert prices',
     'adv_prices_text' => 'Price per day of an advert, for each zone and each region it serves (in that region\'s currency). A store pays the number of days × this price once you approve its advert. Leave a box empty: that zone cannot pay online.',

@@ -3256,6 +3256,13 @@ return [
     'provider_payment_reference' => 'المرجع',
     'provider_payment_reason' => 'السبب',
     // #113 advert prices
+    'adv_unrecorded' => 'مدفوع لكن غير مسجّل',
+    'adv_unrecorded_text' => 'دفعت هذه المتاجر ثمن هذه الإعلانات عبر بوابة دفع لكن تعذر تسجيلها كمدفوعة (مبلغ مختلف أو فشل الحفظ). تحقق من مرجع البوابة ثم ضع علامة الدفع يدوياً.',
+    'adv_unrecorded_store' => 'المتجر',
+    'adv_unrecorded_advert' => 'الإعلان',
+    'adv_unrecorded_method' => 'البوابة',
+    'adv_unrecorded_reference' => 'المرجع',
+    'adv_unrecorded_reason' => 'السبب',
     'adv_zone' => 'المنطقة',
     'adv_prices' => 'أسعار الإعلانات',
     'adv_prices_text' => 'سعر الإعلان لليوم لكل منطقة توصيل ولكل إقليم تخدمه (بعملة الإقليم). يدفع المتجر عدد الأيام × هذا السعر بعد موافقتك على إعلانه. اترك الخانة فارغة: لا يمكن الدفع عبر الإنترنت في تلك المنطقة.',
