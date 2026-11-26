@@ -3448,6 +3448,7 @@ Format accepté : MP3',
     'provider_payment_reference' => 'Référence',
     'provider_payment_reason' => 'Raison',
     // #113 advert prices
+    'adv_zone' => 'Zone',
     'adv_prices' => 'Prix des publicités',
     'adv_prices_text' => 'Prix par jour d\'une publicité, pour chaque zone et chaque région qu\'elle dessert (dans la devise de la région). Un établissement paie le nombre de jours × ce prix une fois sa publicité approuvée. Une case vide : la zone ne peut pas payer en ligne.',
     'adv_price_per_day' => 'Prix par jour',

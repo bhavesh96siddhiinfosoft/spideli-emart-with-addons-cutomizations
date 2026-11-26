@@ -15,7 +15,7 @@
 
     <div class="container-fluid">
         <div class="error_top" style="display:none"></div>
-        <div class="success_top alert alert-success" style="display:none"></div>
+        <div class="success_top" style="display:none"></div>
         <div class="table-list">
             <div class="row">
                 <div class="col-12">
@@ -31,7 +31,7 @@
                                 <table class="table table-bordered" id="advPricesTable">
                                     <thead>
                                         <tr>
-                                            <th style="width:30%">{{ trans('lang.zone') }}</th>
+                                            <th style="width:30%">{{ trans('lang.adv_zone') }}</th>
                                             <th>{{ trans('lang.adv_price_per_day') }}</th>
                                         </tr>
                                     </thead>
@@ -159,7 +159,8 @@
             });
             await batch.commit();
             jQuery("#data-table_processing").hide();
-            $('.success_top').text(@json(trans('lang.adv_prices_saved'))).show();
+            // the panel's own saved message: a <p> inside .success_top (white card, green edge)
+            $('.success_top').html('').append($('<p>').text(@json(trans('lang.adv_prices_saved')))).show();
             window.scrollTo(0, 0);
         } catch (e) {
             showAdvError(String(e));
