@@ -59,6 +59,28 @@
                                                 <label class="col-12 control-label"><strong>{{ trans('lang.status') }}:</strong>
                                                     <span id="status"></span></label>
                                             </div>
+                                            {{-- #113: the priority (order on the website), set here by an admin who can edit adverts --}}
+                                            <div class="form-group row widt-100 gendetail-col">
+                                                <label class="col-12 control-label"><strong>{{ trans('lang.priority') }}:</strong>
+                                                    <span id="advPriority"></span></label>
+                                            </div>
+                                            @if (in_array('advertisements.edit', json_decode(@session('user_permissions'), true) ?: []))
+                                                <div class="form-group row widt-100 adv-priority-div d-none">
+                                                    <label class="col-3 control-label">{{ trans('lang.priority') }}:</label>
+                                                    <div class="col-5">
+                                                        <select id="adv_priority" class="form-control">
+                                                            <option value="N/A">N/A</option>
+                                                            <option value="1">1</option>
+                                                            <option value="2">2</option>
+                                                            <option value="3">3</option>
+                                                        </select>
+                                                        <div class="form-text text-muted">{{ trans('lang.adv_priority_help') }}</div>
+                                                    </div>
+                                                    <div class="col-4">
+                                                        <button type="button" class="btn btn-primary" id="adv_priority_save"><i class="fa fa-save"></i> {{ trans('lang.adv_priority_save') }}</button>
+                                                    </div>
+                                                </div>
+                                            @endif
                                             <div class="form-group row widt-100 gendetail-col d-none paused-note-div">
                                                 <label class="col-12 control-label"><strong>{{ trans('lang.paused_note') }}:</strong>
                                                     <span id="paused_note" class="text-danger"></span></label>
@@ -372,6 +394,7 @@
         ref.get().then(async function(snapshots) {
             var data = snapshots.docs[0].data();
             $('#advId').html(data.id);
+            spideliShowAdvPriority(data.priority);   // #113
             if (data.status == 'pending') {
                 $('.update-status-div').removeClass('d-none');
             } else if (data.status == 'updated') {
@@ -547,9 +570,11 @@
                 if (status == 'canceled') {
                     $('#ad-cancel-modal').modal('show');
                 }else if(status=='approved') {
-                    await database.collection('advertisements').doc(id).update({
-                        'status': status
-                    }).then(async function(result) {
+                    var approveData = {'status': status};
+                    if ($('#adv_priority').length) {
+                        approveData.priority = spideliAdvPriorityValue();   // #113: approve and set the priority in one step
+                    }
+                    await database.collection('advertisements').doc(id).update(approveData).then(async function(result) {
                         await sendNotification('approved');
 
                     })
@@ -559,6 +584,43 @@
             
 
         })
+        /* #113: the advert's priority: the order on the website (1 first, then 2, then 3, N/A last). Stored as the
+         * strings the Edit page uses: "N/A", "1", "2", "3". Shown to everyone who can view the advert; changed only by
+         * an admin who can edit adverts (the select is not rendered otherwise). */
+        var spideliAdvPriorities = ['N/A', '1', '2', '3'];
+
+        function spideliAdvPriorityValue() {
+            var v = String($('#adv_priority').val() || 'N/A');
+            return spideliAdvPriorities.indexOf(v) >= 0 ? v : 'N/A';
+        }
+
+        function spideliShowAdvPriority(priority) {
+            var p = (priority === null || priority === undefined || priority === '') ? 'N/A' : String(priority);
+            if (spideliAdvPriorities.indexOf(p) < 0) {
+                p = 'N/A';
+            }
+            $('#advPriority').text(p);
+            if ($('#adv_priority').length) {
+                $('#adv_priority').val(p);
+                $('.adv-priority-div').removeClass('d-none');
+            }
+        }
+
+        $('#adv_priority_save').on('click', async function() {
+            var $btn = $(this);
+            var priority = spideliAdvPriorityValue();
+            $btn.prop('disabled', true);
+            try {
+                await database.collection('advertisements').doc(id).update({'priority': priority});
+                $('#advPriority').text(priority);
+                toastr.success(@json(trans('lang.adv_priority_saved')));
+            } catch (e) {
+                console.error('[adv priority]', e);
+                toastr.error(@json(trans('lang.adv_priority_error')));
+            }
+            $btn.prop('disabled', false);
+        });
+
         $('#cancel-btn').click(async function() {
             var reason = $('#cancel_reason').val();
             if (reason == '') {

@@ -68,6 +68,7 @@
                                                             <th>{{ trans('lang.res_info') }}</th>
                                                             <th> {{ trans('lang.ads_type') }}</th>
                                                             <th> {{ trans('lang.duration') }}</th>
+                                                            <th>{{ trans('lang.priority') }}</th>
                                                             <th>{{ trans('lang.actions') }}</th>
                                                         </tr>
                                                     </thead>
@@ -85,6 +86,7 @@
                                                             <th>{{ trans('lang.res_info') }}</th>
                                                             <th> {{ trans('lang.ads_type') }}</th>
                                                             <th> {{ trans('lang.duration') }}</th>
+                                                            <th>{{ trans('lang.priority') }}</th>
                                                             <th>{{ trans('lang.actions') }}</th>
                                                         </tr>
                                                     </thead>
@@ -102,6 +104,7 @@
                                                             <th>{{ trans('lang.res_info') }}</th>
                                                             <th> {{ trans('lang.ads_type') }}</th>
                                                             <th> {{ trans('lang.duration') }}</th>
+                                                            <th>{{ trans('lang.priority') }}</th>
                                                             <th>{{ trans('lang.actions') }}</th>
                                                         </tr>
                                                     </thead>
@@ -137,6 +140,49 @@
             }
 
             var section_id = getCookie('section_id') || '';
+
+            /* #113: the advert's priority, the order on the website (1 first, then 2, then 3, N/A last), stored as the
+             * strings of the Edit page: "N/A", "1", "2", "3". An admin who can edit adverts changes it here (saved at
+             * once); others see the value. */
+            var spideliAdvPriorities = ['N/A', '1', '2', '3'];
+            var spideliCanEditAdvPriority = $.inArray('advertisements.edit', user_permissions) >= 0;
+
+            function spideliAdvPriorityOf(priority) {
+                var p = (priority === null || priority === undefined || priority === '') ? 'N/A' : String(priority);
+                return spideliAdvPriorities.indexOf(p) >= 0 ? p : 'N/A';
+            }
+
+            function spideliAdvPriorityCell(advId, priority) {
+                var p = spideliAdvPriorityOf(priority);
+                if (!spideliCanEditAdvPriority) {
+                    return '<td>' + p + '</td>';
+                }
+                var opts = spideliAdvPriorities.map(function (v) {
+                    return '<option value="' + v + '"' + (v === p ? ' selected' : '') + '>' + v + '</option>';
+                }).join('');
+                return '<td><select class="form-control adv-priority-select" style="min-width:80px" data-id="' + String(advId).replace(/[^A-Za-z0-9_-]/g, '') +
+                    '" data-saved="' + p + '" title="' + @json(trans('lang.adv_priority_help')).replace(/"/g, '&quot;') + '">' + opts + '</select></td>';
+            }
+
+            $(document).on('change', '.adv-priority-select', async function () {
+                var $sel = $(this);
+                var advId = $sel.attr('data-id');
+                var priority = spideliAdvPriorityOf($sel.val());
+                if (!advId) {
+                    return;
+                }
+                $sel.prop('disabled', true);
+                try {
+                    await database.collection('advertisements').doc(advId).update({'priority': priority});
+                    $sel.attr('data-saved', priority);
+                    toastr.success(@json(trans('lang.adv_priority_saved')));
+                } catch (e) {
+                    console.error('[adv priority]', e);
+                    $sel.val($sel.attr('data-saved'));   // back to what is saved
+                    toastr.error(@json(trans('lang.adv_priority_error')));
+                }
+                $sel.prop('disabled', false);
+            });
             
             $(document).ready(function() {
                 var placeholder = database.collection('settings').doc('placeHolderImage');
@@ -188,7 +234,7 @@
                             const searchValue = data.search.value.toLowerCase();
                             const orderColumnIndex = data.order[0].column;
                             const orderDirection = data.order[0].dir;
-                            const orderableColumns = (checkDeletePermission) ? ['', 'title', 'rest_info', 'type', 'duration', ''] : ['title', 'rest_info', 'type', 'duration', '']; // Ensure this matches the actual column names
+                            const orderableColumns = (checkDeletePermission) ? ['', 'title', 'rest_info', 'type', 'duration', 'priority', ''] : ['title', 'rest_info', 'type', 'duration', 'priority', '']; // Ensure this matches the actual column names
                             const orderByField = orderableColumns[orderColumnIndex];
                             if (searchValue.length >= 3 || searchValue.length === 0) {
                                 $('#data-table_processing').show();
@@ -292,6 +338,7 @@
                                             childData.type === 'video_promotion' ? '{{trans("lang.video_promotion")}}' : childData.type) +
                                         '</td>',
                                         '<td>' + startDate + '-' + endDate + '</td>',
+                                        spideliAdvPriorityCell(childData.id, childData.priority),   // #113
                                         '<span class="action-btn"><a href="'+chatRoute+'"><i class="fa fa-commenting" data-toggle="tooltip" data-bs-original-title="Chat"></i></a><a href="' + advertisementsView + '" data-toggle="tooltip" data-bs-original-title="{{ trans('lang.view') }}"><i class="mdi mdi-eye"></i></a><a href="' + route1 + '"><i class="mdi mdi-lead-pencil" data-toggle="tooltip" data-bs-original-title="{{ trans('lang.edit') }}"></i></a><?php if(in_array('category.delete', json_decode(@session('user_permissions'),true))){ ?> <a id="' + childData.id + '" name="advertisements-delete" class="delete-btn" href="javascript:void(0)"><i class="mdi mdi-delete"></i></a><?php } ?></span>'
                                     ]);
                                 }));
@@ -317,7 +364,7 @@
                         order: (checkDeletePermission) ? [1, 'asc'] : [0, 'asc'],
                         columnDefs: [{
                                 orderable: false,
-                                targets: (checkDeletePermission) ? [0, 5] : [4]
+                                targets: (checkDeletePermission) ? [0, 6] : [5]   // #113: + the Priority column
                             },
                         ],
                         "language": datatableLang,
