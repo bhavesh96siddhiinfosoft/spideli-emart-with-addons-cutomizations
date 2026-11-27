@@ -82,6 +82,12 @@
                                             </div>
                                             <div class="card-body">
                                                 <div class="order_detail-top-box">
+                                                    {{-- #115: one of several orders the customer placed together from different stores --}}
+                                                    <div class="alert alert-info ms-group-box d-none">
+                                                        <strong>{{ trans('lang.ms_order_group') }}</strong>
+                                                        <div class="ms-group-text"></div>
+                                                        <div class="ms-group-others mt-1"></div>
+                                                    </div>
 
                                                     <div class="form-group row widt-100 gendetail-col">
                                                         <label class="col-12 control-label"><strong>{{ trans('lang.date_created') }}
@@ -595,6 +601,39 @@
         var paymentMethod = '';
 
         var database = firebase.firestore();
+
+        /* #115: the other orders of a multi-store purchase (same vendor_orders.multiStoreGroupId): their id, store and
+         * status, each linking to its own order page. Text from Firestore goes in with .text(). */
+        async function spideliShowMultiStoreGroup(order) {
+            var size = parseInt(order && order.multiStoreGroupSize, 10);
+            if (!order || !order.multiStoreGroupId || !(size > 1)) {
+                return;
+            }
+            var $box = $('.ms-group-box');
+            $box.find('.ms-group-text').text(@json(trans('lang.ms_order_group_text')).replace(':count', String(size)).replace(':group', String(order.multiStoreGroupId)));
+            $box.removeClass('d-none');
+            try {
+                var snap = await database.collection('vendor_orders').where('multiStoreGroupId', '==', String(order.multiStoreGroupId)).get();
+                var $list = $box.find('.ms-group-others').empty();
+                var others = snap.docs.map(function (d) { return Object.assign({id: d.id}, d.data()); }).filter(function (o) { return o.id !== order.id; });
+                if (!others.length) {
+                    $list.text(@json(trans('lang.ms_order_group_none')));
+                    return;
+                }
+                $list.append($('<div>').text(@json(trans('lang.ms_order_group_others')) + ':'));
+                var $ul = $('<ul class="mb-0 pl-3">').appendTo($list);
+                others.forEach(function (o) {
+                    var url = '{{ route('orders.edit', ':id') }}'.replace(':id', encodeURIComponent(o.id));
+                    var store = (o.vendor && o.vendor.title) ? o.vendor.title : '';
+                    $('<li>').append($('<a>').attr('href', url).text(o.id))
+                        .append(document.createTextNode((store ? ' · ' + store : '') + (o.status ? ' · ' + o.status : '')))
+                        .appendTo($ul);
+                });
+            } catch (e) {
+                console.error('[multi-store group]', e);
+            }
+        }
+
         var subscriptionBusinessModel = database.collection('settings').doc("vendor");
         subscriptionBusinessModel.get().then(async function(snapshots) {
             var subscriptionSetting = snapshots.data();
@@ -840,6 +879,7 @@
 
                 await getDeliverymanList(vendorOrder.vendorID);
                 getUserReview(vendorOrder);
+                spideliShowMultiStoreGroup(vendorOrder);   // #115
                 var order = snapshots.docs[0].data();
                 packagingChargeEnable = order.packagingChargeEnable;
                 renderTrafficPricing('#div_traffic_pricing', order.trafficPricing);   // point 103
