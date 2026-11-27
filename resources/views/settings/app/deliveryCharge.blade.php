@@ -68,21 +68,28 @@
                 </div>
             </div>
 
-            <div class="table-responsive m-t-10" id="region_overview_box" style="display:none;">
-                <h4 class="mb-2">{{ trans('lang.delivery_charge_by_region')}}</h4>
-                <table class="table table-bordered table-striped">
-                    <thead>
-                        <tr>
-                            <th>{{ trans('lang.region_name')}}</th>
-                            <th>{{ trans('lang.delivery_charges_per')}}</th>
-                            <th>{{ trans('lang.price_per_minute')}}</th>
-                            <th>{{ trans('lang.minimum_delivery_charges')}}</th>
-                            <th>{{ trans('lang.minimum_delivery_charges_within')}}</th>
-                            <th>{{ trans('lang.status')}}</th>
-                        </tr>
-                    </thead>
-                    <tbody id="region_overview_rows"></tbody>
-                </table>
+            {{-- #115: the region overview in the same framed box as the form above (it was a bare table across the page) --}}
+            <div class="row vendor_payout_create mt-4" id="region_overview_box" style="display:none;">
+                <div class="vendor_payout_create-inner">
+                    <fieldset>
+                        <legend>{{ trans('lang.delivery_charge_by_region')}}</legend>
+                        <div class="table-responsive width-100">
+                            <table class="table table-bordered table-striped mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>{{ trans('lang.region_name')}}</th>
+                                        <th class="text-right">{{ trans('lang.delivery_charges_per')}} <span class="distance-type"></span></th>
+                                        <th class="text-right">{{ trans('lang.price_per_minute')}}</th>
+                                        <th class="text-right">{{ trans('lang.minimum_delivery_charges')}}</th>
+                                        <th class="text-right">{{ trans('lang.minimum_delivery_charges_within')}} <span class="distance-type"></span></th>
+                                        <th>{{ trans('lang.status')}}</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="region_overview_rows"></tbody>
+                            </table>
+                        </div>
+                    </fieldset>
+                </div>
             </div>
 
             <div class="form-group col-12 text-center">
@@ -90,33 +97,6 @@
                             class="fa fa-save"></i> {{trans('lang.save')}}</button>
                 <a href="{{url('/dashboard')}}" class="btn btn-default"><i
                             class="fa fa-undo"></i>{{trans('lang.cancel')}}</a>
-            </div>
-
-            {{-- #115: a cart with products from several stores (same service). Global setting, settings/multiStoreCart. --}}
-            <div class="error_top ms-cart-error" style="display:none"></div>
-            <div class="success_top ms-cart-saved" style="display:none"></div>
-            <div class="row vendor_payout_create mt-4">
-                <div class="vendor_payout_create-inner">
-                    <fieldset>
-                        <legend>{{ trans('lang.ms_cart_title') }}</legend>
-                        <div class="form-check width-100">
-                            <input type="checkbox" class="form-check-inline" id="ms_cart_enabled">
-                            <label class="col-8 control-label" for="ms_cart_enabled">{{ trans('lang.ms_cart_enable') }}</label>
-                            <div class="form-text text-muted pl-4">{{ trans('lang.ms_cart_enable_help') }}</div>
-                        </div>
-                        <div class="form-group row width-100">
-                            <label class="col-4 control-label">{{ trans('lang.ms_cart_max') }}</label>
-                            <div class="col-7">
-                                <input type="number" class="form-control" id="ms_cart_max" min="2" max="10" step="1">
-                                <div class="form-text text-muted">{{ trans('lang.ms_cart_max_help') }}</div>
-                            </div>
-                        </div>
-                        <div class="form-text text-muted pl-4 ms-cart-bound" style="display:none;">{{ trans('lang.ms_cart_region_bound') }}</div>
-                    </fieldset>
-                </div>
-            </div>
-            <div class="form-group col-12 text-center">
-                <button type="button" class="btn btn-primary" id="ms_cart_save"><i class="fa fa-save"></i> {{ trans('lang.save') }}</button>
             </div>
         </div>
 @endsection
@@ -235,23 +215,26 @@
         }
 
         var overrides = deliveryChargeSettings.regions || {};
-        var html = '';
+        var $rows = $('#region_overview_rows').empty();
+        function num(x) { return (x !== undefined && x !== null && x !== '') ? String(x) : '-'; }
 
         for (var i = 0; i < regions.length; i++) {
             var region = regions[i];
             var o = overrides[region.id];
             var v = o ? o : deliveryChargeSettings;
-            html += '<tr>';
-            html += '<td>' + region.name + '</td>';
-            html += '<td>' + (v.delivery_charges_per_km !== undefined ? v.delivery_charges_per_km : '') + '</td>';
-            html += '<td>' + (v.per_minute_charge !== undefined ? v.per_minute_charge : '') + '</td>';
-            html += '<td>' + (v.minimum_delivery_charges !== undefined ? v.minimum_delivery_charges : '') + '</td>';
-            html += '<td>' + (v.minimum_delivery_charges_within_km !== undefined ? v.minimum_delivery_charges_within_km : '') + '</td>';
-            html += '<td>' + (o ? "{{ trans('lang.delivery_charge_own') }}" : "{{ trans('lang.delivery_charge_inherited') }}") + '</td>';
-            html += '</tr>';
+            /* #115: numbers right-aligned under their headings, the status as a badge, text as text */
+            $('<tr>')
+                .append($('<td>').text(region.name || ''))
+                .append($('<td class="text-right">').text(num(v.delivery_charges_per_km)))
+                .append($('<td class="text-right">').text(num(v.per_minute_charge)))
+                .append($('<td class="text-right">').text(num(v.minimum_delivery_charges)))
+                .append($('<td class="text-right">').text(num(v.minimum_delivery_charges_within_km)))
+                .append($('<td>').append($('<span class="badge py-1 px-2">')
+                    .addClass(o ? 'badge-success' : 'badge-light')
+                    .text(o ? @json(trans('lang.delivery_charge_own')) : @json(trans('lang.delivery_charge_inherited')))))
+                .appendTo($rows);
         }
 
-        $('#region_overview_rows').html(html);
         $('#region_overview_box').show();
     }
 
@@ -287,52 +270,5 @@
             window.location.href = '{{ url("settings/app/deliveryCharge")}}';
         });
     });
-
-    /* #115: settings/multiStoreCart = { enabled: bool, maxStores: 2-10, updatedAt }.
-     * Off (or missing) = the cart keeps one store, as before. The website and the app read it. One setting for
-     * every region, so an admin bound to regions sees it but cannot change it (as the global charge above). */
-    var MS_CART_DEFAULT_MAX = 3;
-
-    function spideliMsCartLoad() {
-        database.collection('settings').doc('multiStoreCart').get().then(function (snap) {
-            var d = snap.exists ? (snap.data() || {}) : {};
-            var max = parseInt(d.maxStores, 10);
-            $('#ms_cart_enabled').prop('checked', d.enabled === true);
-            $('#ms_cart_max').val(max >= 2 && max <= 10 ? max : MS_CART_DEFAULT_MAX);
-            if (isRegionBound()) {
-                $('#ms_cart_enabled, #ms_cart_max, #ms_cart_save').prop('disabled', true);
-                $('.ms-cart-bound').show();
-            }
-        }).catch(function (e) {
-            console.error('[multi-store cart]', e);
-        });
-    }
-
-    $('#ms_cart_save').on('click', function () {
-        $('.ms-cart-error, .ms-cart-saved').hide();
-        if (isRegionBound()) {
-            return;
-        }
-        var max = Number($('#ms_cart_max').val());
-        if (!Number.isInteger(max) || max < 2 || max > 10) {
-            $('.ms-cart-error').html('').append($('<p>').text(@json(trans('lang.ms_cart_max_error')))).show();
-            return;
-        }
-        var $btn = $(this).prop('disabled', true);
-        database.collection('settings').doc('multiStoreCart').set({
-            enabled: $('#ms_cart_enabled').is(':checked'),
-            maxStores: max,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        }).then(function () {
-            $('.ms-cart-saved').html('').append($('<p>').text(@json(trans('lang.ms_cart_saved')))).show();
-        }).catch(function (e) {
-            console.error('[multi-store cart]', e);
-            $('.ms-cart-error').html('').append($('<p>').text(@json(trans('lang.ms_cart_save_error')))).show();
-        }).finally(function () {
-            $btn.prop('disabled', false);
-        });
-    });
-
-    $(document).ready(spideliMsCartLoad);
 </script>
 @endsection

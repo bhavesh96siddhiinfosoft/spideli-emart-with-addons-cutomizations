@@ -363,6 +363,7 @@ Route::prefix('settings')->group(function () {
     });
     Route::middleware(['permission:delivery-charge,settings.app.deliveryCharge'])->group(function () {
         Route::get('app/deliveryCharge', [App\Http\Controllers\SettingsController::class, 'deliveryCharge'])->name('settings.app.deliveryCharge');
+        Route::get('app/multiStoreCart', [App\Http\Controllers\SettingsController::class, 'multiStoreCart'])->name('settings.app.multiStoreCart');   // #115, same permission as Delivery Charge
     });
     Route::middleware(['permission:sms-gateway,settings.app.smsGateway'])->group(function () {
         Route::get('app/smsGateway', [App\Http\Controllers\SettingsController::class, 'smsGateway'])->name('settings.app.smsGateway');

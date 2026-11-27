@@ -139,6 +139,7 @@ $service_type = @$_COOKIE['service_type'];
                     @endif
                     @if (in_array('delivery-charge', $role_has_permission))
                     <li><a class="nav-link"href="{!! route('settings.app.deliveryCharge') !!}"><i class="mdi mdi-truck-delivery"></i> {{ trans('lang.delivery_charge') }}</a></li>
+                    <li><a class="nav-link" href="{!! route('settings.app.multiStoreCart') !!}"><i class="mdi mdi-cart-outline"></i> {{ trans('lang.ms_cart_title') }}</a></li>{{-- #115 --}}
                     @endif
                     @if (in_array('openai-settings', $role_has_permission))
                     <li><a class="nav-link"href="{!! route('settings.app.openai-settings') !!}"><i class="mdi mdi-robot"></i> {{ trans('lang.openai_settings') }}</a></li>

@@ -158,6 +158,12 @@ class SettingsController extends Controller
         return view('settings.app.deliveryCharge');
     }
 
+    /** #115: the multi-store cart setting (settings/multiStoreCart). */
+    public function multiStoreCart()
+    {
+        return view('settings.app.multiStoreCart');
+    }
+
     public function smsGateway()
     {
         return view('settings.app.smsGateway');
