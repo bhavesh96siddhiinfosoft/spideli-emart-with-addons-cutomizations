@@ -184,6 +184,29 @@
                             </tbody>
                         </table>
                     </div>
+
+                    {{-- F22: the older months of history this customer paid to unlock. --}}
+                    @if ($perm['ledger'] ?? false)
+                    <div class="mt-3">
+                        <strong class="d-block mb-1 text-muted">{{ __('Statement payments') }} ({{ count($statementUnlocks) }})</strong>
+                        <table class="table table-bordered mb-0">
+                            <thead><tr><th>{{ __('Month unlocked') }}</th><th>{{ __('Amount') }}</th><th>{{ __('Paid on') }}</th><th>{{ __('Reference') }}</th></tr></thead>
+                            <tbody>
+                            @forelse ($statementUnlocks as $su)
+                                @php $sd = $su['data']; $paid = $sd['createdAt'] ?? null; @endphp
+                                <tr>
+                                    <td>{{ $sd['month'] ?? '' }}</td>
+                                    <td class="finance-amount">{{ Money::format((int)($sd['amount'] ?? 0), $sd['currency'] ?? '') }}</td>
+                                    <td>{{ $paid instanceof \DateTimeInterface ? $paid->setTimezone(new DateTimeZone(config('app.timezone')))->format('Y-m-d H:i') : '' }}</td>
+                                    <td>@if (!empty($sd['ledgerTxId']))<a href="{{ route('finance.ledger.show', $sd['ledgerTxId']) }}">{{ $sd['reference'] ?? $sd['ledgerTxId'] }}</a>@else{{ $sd['reference'] ?? '' }}@endif</td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="4" class="text-muted">{{ __('No older months unlocked.') }}</td></tr>
+                            @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                    @endif
                 </div></div>
             </fieldset>
 

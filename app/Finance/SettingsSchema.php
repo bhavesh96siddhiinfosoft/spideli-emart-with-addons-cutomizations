@@ -113,6 +113,16 @@ class SettingsSchema
                         'help' => 'Leave blank for no limit (default: 10).'],
                     'pockets.minTransfer' => ['type' => 'money', 'label' => 'Smallest transfer to/from a pocket'],
                     'pockets.maxTransfer' => ['type' => 'money', 'label' => 'Largest transfer to/from a pocket'],
+                    // F22: account statements. The last `freeDays` of history are free; an older calendar month is opened
+                    // for good by paying `pricePerMonth` from the Finance wallet (the app writes ledger type statement_fee
+                    // to platform_{CUR} and statement_unlocks/{uid}_{CUR}_{YYYY-MM} in one transaction).
+                    ['section' => 'Account statements'],
+                    'statements.enabled' => ['type' => 'bool', 'label' => 'Older history is paid',
+                        'help' => 'Off: customers see all their history free. On: only the free days below are free; each older month is unlocked for good by paying the price per month from the Finance wallet.'],
+                    'statements.freeDays' => ['type' => 'int', 'min' => 1, 'max' => 3650, 'default' => 30, 'label' => 'Free history (days)',
+                        'help' => 'How many days back the customer sees for free, e.g. 30 = about one month.'],
+                    'statements.pricePerMonth' => ['type' => 'money', 'label' => 'Price of each older month',
+                        'help' => 'Paid once per calendar month unlocked. A currency left blank = older months cannot be unlocked in that currency.'],
                     ['section' => 'Security'],
                     'security.reauthAbove' => ['type' => 'money', 'label' => 'Ask for the password again from',
                         'help' => 'A currency left blank = always asked.'],

@@ -352,6 +352,8 @@ class FinanceDeskController extends Controller
                 return $r['name'] ?? ''; }, $regions->all()),
             'wallets' => $wallets,
             'pockets' => $pockets,
+            /* F22: months of older history the customer paid to unlock (statement_unlocks, latest payment first). */
+            'statementUnlocks' => $perm['ledger'] ? self::sortBy($read(__('Statement payments'), 'statement_unlocks', [['userId', '==', $uid]], 200), 'createdAt') : [],
             'kyc' => $kyc,
             'ledger' => array_slice($ledger, 0, 50),
             'transfers' => $transfers,

@@ -1067,6 +1067,7 @@ Route::middleware(['permission:finance-ledger,finance.reconcile'])->group(functi
 Route::get('finance', [App\Http\Controllers\FinanceDashboardController::class, 'index'])->name('finance.dashboard');
 Route::middleware(['permission:finance-ledger,finance.ledger'])->group(function () {
     Route::get('finance/ledger', [App\Http\Controllers\FinanceController::class, 'ledger'])->name('finance.ledger');
+    Route::get('finance/statements', [App\Http\Controllers\FinanceStatementsController::class, 'index'])->name('finance.statements');   // F22, same permission as the ledger
     Route::get('finance/ledger-export.csv', [App\Http\Controllers\FinanceController::class, 'ledgerExport'])->name('finance.ledger.export');
     Route::get('finance/ledger/{txId}', [App\Http\Controllers\FinanceController::class, 'ledgerShow'])->name('finance.ledger.show')->where('txId', '[A-Za-z0-9_\-]+');
     Route::get('finance/approvals', [App\Http\Controllers\FinanceController::class, 'approvals'])->name('finance.approvals');

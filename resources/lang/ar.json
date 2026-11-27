@@ -1790,5 +1790,22 @@
     "Payment QR code": "رمز QR للدفع",
     "Scan this QR code in the Spideli mobile app to send money to this customer.": "امسح رمز QR هذا في تطبيق Spideli للجوال لإرسال الأموال إلى هذا العميل.",
     "Copy URI": "نسخ الرابط",
-    "Copied!": "تم النسخ!"
+    "Copied!": "تم النسخ!",
+    "Account statements": "كشوف الحساب",
+    "Older history is paid": "السجل الأقدم مدفوع",
+    "Off: customers see all their history free. On: only the free days below are free; each older month is unlocked for good by paying the price per month from the Finance wallet.": "إيقاف: يرى العملاء كل سجلهم مجاناً. تشغيل: الأيام المجانية أدناه فقط مجانية؛ ويُفتح كل شهر أقدم نهائياً بدفع سعر الشهر من محفظة التمويل.",
+    "Free history (days)": "السجل المجاني (أيام)",
+    "How many days back the customer sees for free, e.g. 30 = about one month.": "عدد الأيام السابقة التي يراها العميل مجاناً، مثلاً 30 = شهر تقريباً.",
+    "Price of each older month": "سعر كل شهر أقدم",
+    "Paid once per calendar month unlocked. A currency left blank = older months cannot be unlocked in that currency.": "يُدفع مرة واحدة لكل شهر تقويمي يُفتح. عملة تُترك فارغة = لا يمكن فتح الأشهر الأقدم بتلك العملة.",
+    "Statement payments": "مدفوعات كشوف الحساب",
+    "Statements": "كشوف الحساب",
+    "Month unlocked": "الشهر المفتوح",
+    "Months unlocked": "الأشهر المفتوحة",
+    "Paid on": "تاريخ الدفع",
+    "No older months unlocked.": "لم يُفتح أي شهر أقدم.",
+    "No statement payments yet.": "لا توجد مدفوعات كشوف حساب بعد.",
+    "Older months of history that customers paid to unlock, newest first. The free days and the price per month are set per region in Finance > Settings > Wallet.": "الأشهر الأقدم من السجل التي دفع العملاء لفتحها، الأحدث أولاً. تُحدَّد الأيام المجانية وسعر الشهر لكل منطقة في التمويل > الإعدادات > المحفظة.",
+    "The statement payments could not be read. Please try again.": "تعذرت قراءة مدفوعات كشوف الحساب. يرجى المحاولة مرة أخرى.",
+    "All regions": "كل المناطق"
 }

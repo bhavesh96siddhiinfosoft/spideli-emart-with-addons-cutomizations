@@ -57,6 +57,7 @@
         @endif
         @if (in_array('finance.ledger', $financePerms))
             <li class="nav-item"><a class="nav-link {{ $tab == 'ledger' ? 'active' : '' }}" href="{{ route('finance.ledger') }}">{{ __('Ledger') }}</a></li>
+            <li class="nav-item"><a class="nav-link {{ $tab == 'statements' ? 'active' : '' }}" href="{{ route('finance.statements') }}">{{ __('Statements') }}</a></li>{{-- F22 --}}
             <li class="nav-item"><a class="nav-link {{ $tab == 'approvals' ? 'active' : '' }}" href="{{ route('finance.approvals') }}">{{ __('Approvals') }}
                 @if ($financePending)<span class="badge badge-warning ml-1">{{ $financePending }}</span>@endif</a></li>
         @endif

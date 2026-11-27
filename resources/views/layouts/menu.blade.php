@@ -966,6 +966,12 @@ $service_type = @$_COOKIE['service_type'];
                     <span class="hide-menu">{{ __('Ledger') }}</span>
                 </a>
             </li>
+            {{-- F22: older months of history paid for by customers --}}
+            <li><a class="waves-effect waves-dark" href="{!! route('finance.statements') !!}" aria-expanded="false">
+                    <i class="ri-file-list-3-line"></i>
+                    <span class="hide-menu">{{ __('Statement payments') }}</span>
+                </a>
+            </li>
             <li><a class="waves-effect waves-dark" href="{!! route('finance.approvals') !!}" aria-expanded="false">
                     <i class="ri-shield-check-fill"></i>
                     <span class="hide-menu">{{ __('Approvals') }}</span>
